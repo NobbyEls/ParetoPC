@@ -1,0 +1,215 @@
+/* ParetoPC Dashboard - custom styles */
+
+html, body { height: 100%; }
+
+/* KPI cards */
+.kpi-card {
+  border-radius: 0.75rem;
+  padding: 1rem 1.25rem;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.06);
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-height: 110px;
+  position: relative;
+  overflow: hidden;
+}
+.kpi-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at top right, rgba(255,255,255,0.18), transparent 60%);
+  pointer-events: none;
+}
+.kpi-label {
+  font-size: 0.78rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  opacity: 0.92;
+  text-transform: uppercase;
+}
+.kpi-value {
+  font-size: 1.6rem;
+  font-weight: 800;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+}
+@media (min-width: 640px) {
+  .kpi-value { font-size: 1.85rem; }
+}
+.kpi-sub {
+  font-size: 0.75rem;
+  opacity: 0.85;
+}
+
+/* Chart cards */
+.chart-card {
+  background: white;
+  border-radius: 0.75rem;
+  padding: 1rem 1.25rem;
+  border: 1px solid rgb(226 232 240);
+  display: flex;
+  flex-direction: column;
+}
+.dark .chart-card {
+  background: rgb(30 41 59);
+  border-color: rgb(51 65 85);
+}
+.chart-header {
+  margin-bottom: 0.75rem;
+}
+.chart-title {
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+.chart-sub {
+  font-size: 0.75rem;
+  color: rgb(100 116 139);
+  margin-top: 2px;
+}
+.dark .chart-sub { color: rgb(148 163 184); }
+
+.chart-body {
+  position: relative;
+  height: 280px;
+}
+.chart-body-tall {
+  height: 380px;
+}
+@media (min-width: 1024px) {
+  .chart-body { height: 300px; }
+  .chart-body-tall { height: 420px; }
+}
+
+/* Department tabs */
+.dept-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0.85rem;
+  border-radius: 9999px;
+  font-size: 0.82rem;
+  font-weight: 500;
+  background: rgb(241 245 249);
+  color: rgb(51 65 85);
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all .15s ease;
+}
+.dark .dept-tab {
+  background: rgb(30 41 59);
+  color: rgb(203 213 225);
+}
+.dept-tab:hover {
+  background: rgb(226 232 240);
+}
+.dark .dept-tab:hover {
+  background: rgb(51 65 85);
+}
+.dept-tab.active {
+  background: rgb(79 70 229);
+  color: white;
+  border-color: rgb(67 56 202);
+  box-shadow: 0 2px 8px rgba(79,70,229,0.25);
+}
+.dept-tab .badge {
+  font-size: 0.7rem;
+  padding: 0.05rem 0.45rem;
+  border-radius: 9999px;
+  background: rgba(0,0,0,0.08);
+}
+.dept-tab.active .badge {
+  background: rgba(255,255,255,0.22);
+}
+
+/* Table */
+.th {
+  text-align: left;
+  padding: 0.65rem 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+}
+.th:hover { color: rgb(79 70 229); }
+.th.sort-asc::after { content: ' ▲'; font-size: 0.7em; }
+.th.sort-desc::after { content: ' ▼'; font-size: 0.7em; }
+
+#table-body tr {
+  border-top: 1px solid rgb(226 232 240);
+}
+.dark #table-body tr {
+  border-top-color: rgb(51 65 85);
+}
+#table-body td {
+  padding: 0.55rem 0.85rem;
+  white-space: nowrap;
+}
+#table-body tr:hover {
+  background: rgb(248 250 252);
+}
+.dark #table-body tr:hover {
+  background: rgba(51,65,85,0.4);
+}
+
+/* Dropzone hover state */
+#dropzone.dragover {
+  border-color: rgb(79 70 229) !important;
+  background: rgb(238 242 255);
+}
+.dark #dropzone.dragover {
+  background: rgba(67,56,202,0.15);
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: rgb(203 213 225);
+  border-radius: 8px;
+}
+.dark ::-webkit-scrollbar-thumb {
+  background: rgb(71 85 105);
+}
+
+/* Tag chips for table */
+.chip {
+  display: inline-block;
+  padding: 0.1rem 0.55rem;
+  border-radius: 9999px;
+  font-size: 0.7rem;
+  font-weight: 500;
+}
+.chip-printer { background: rgb(254 226 226); color: rgb(153 27 27); }
+.chip-monitor { background: rgb(219 234 254); color: rgb(30 64 175); }
+.chip-pcbranded { background: rgb(220 252 231); color: rgb(22 101 52); }
+.chip-other { background: rgb(241 245 249); color: rgb(51 65 85); }
+.dark .chip-printer { background: rgba(153,27,27,0.25); color: rgb(252 165 165); }
+.dark .chip-monitor { background: rgba(30,64,175,0.25); color: rgb(147 197 253); }
+.dark .chip-pcbranded { background: rgba(22,101,52,0.25); color: rgb(134 239 172); }
+.dark .chip-other { background: rgba(51,65,85,0.6); color: rgb(203 213 225); }
+
+
+
+/* Mode tabs (Sheet vs File) */
+.mode-tab {
+  background: transparent;
+  color: rgb(71 85 105);
+}
+.dark .mode-tab {
+  color: rgb(148 163 184);
+}
+.mode-tab.active {
+  background: white;
+  color: rgb(79 70 229);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+}
+.dark .mode-tab.active {
+  background: rgb(15 23 42);
+  color: rgb(165 180 252);
+}
+
+/* Toast colors */
+#toast.toast-success { background: rgb(16 185 129); color: white; }
+#toast.toast-error { background: rgb(244 63 94); color: white; }
+#toast.toast-info { background: rgb(79 70 229); color: white; }

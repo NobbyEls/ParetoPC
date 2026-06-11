@@ -1,0 +1,9 @@
+node_modules/
+package.json
+package-lock.json
+.DS_Store
+*.log
+.vscode/
+.idea/
+_test_*.cjs
+_test_*.js
