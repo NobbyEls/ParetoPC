@@ -4,9 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>ParetoPC — Dashboard Analisa Penjualan</title>
-  <meta name="description" content="Dashboard analisa penjualan PC, Printer, Monitor per departemen. Terkoneksi ke Google Sheets untuk update otomatis." />
+  <meta name="description" content="Dashboard analisa penjualan PC, Printer, Monitor per departemen, dengan analisa Year-over-Year." />
 
-  <!-- Tailwind CSS via CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
@@ -15,11 +14,7 @@
         extend: {
           colors: {
             brand: {
-              50:  '#eef2ff',
-              100: '#e0e7ff',
-              500: '#6366f1',
-              600: '#4f46e5',
-              700: '#4338ca',
+              50:  '#eef2ff', 100: '#e0e7ff', 500: '#6366f1', 600: '#4f46e5', 700: '#4338ca',
             },
           },
           fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] }
@@ -32,10 +27,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
 
-  <!-- SheetJS for Excel parsing -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.20.3/dist/xlsx.full.min.js"></script>
-
-  <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.6/dist/chart.umd.min.js"></script>
 
   <link rel="stylesheet" href="css/style.css" />
@@ -51,16 +43,13 @@
         </div>
         <div class="min-w-0">
           <h1 class="text-lg sm:text-xl font-bold leading-tight truncate">ParetoPC Dashboard</h1>
-          <p class="text-xs text-slate-500 dark:text-slate-400 truncate">Analisa penjualan per departemen</p>
+          <p class="text-xs text-slate-500 dark:text-slate-400 truncate">Analisa penjualan per departemen · YoY</p>
         </div>
       </div>
       <div class="flex items-center gap-2">
-        <button id="btn-refresh" class="hidden inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white transition" title="Ambil data terbaru dari spreadsheet">
+        <button id="btn-refresh" class="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white transition" title="Ambil data terbaru dari spreadsheet">
           <svg id="icon-refresh" xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10"/><path d="M20.49 15a9 9 0 0 1-14.85 3.36L1 14"/></svg>
           <span class="hidden sm:inline">Refresh</span>
-        </button>
-        <button id="btn-settings" class="hidden p-2 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 transition" title="Pengaturan">
-          <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
         </button>
         <button id="btn-theme" aria-label="Toggle theme" class="p-2 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 transition">
           <svg id="icon-sun" class="w-5 h-5 hidden dark:block" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
@@ -72,119 +61,28 @@
 
   <main class="max-w-[1400px] mx-auto px-4 sm:px-6 py-6">
 
-    <!-- ===== Connect / Upload section (shown when no data) ===== -->
-    <section id="connect-section" class="">
-      <div class="max-w-3xl mx-auto text-center mb-6">
-        <h2 class="text-2xl sm:text-3xl font-bold mb-2">Hubungkan Data Penjualan Anda</h2>
-        <p class="text-slate-600 dark:text-slate-400">
-          Dashboard akan otomatis menganalisa data per departemen.
-          <br />
-          <span class="text-xs">🔒 Semua diproses di browser Anda — tidak ada server yang menyimpan data.</span>
-        </p>
-      </div>
-
-      <!-- Mode tabs -->
-      <div class="max-w-3xl mx-auto mb-4 flex gap-2 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
-        <button id="tab-mode-sheet" class="mode-tab flex-1 py-2.5 px-4 rounded-lg text-sm font-semibold transition active">
-          📊 Google Sheets <span class="text-xs opacity-75">(auto-update)</span>
-        </button>
-        <button id="tab-mode-file" class="mode-tab flex-1 py-2.5 px-4 rounded-lg text-sm font-semibold transition">
-          📁 Upload File Excel
-        </button>
-      </div>
-
-      <!-- Mode 1: Google Sheets -->
-      <div id="mode-sheet" class="max-w-3xl mx-auto">
-        <div class="bg-white dark:bg-slate-800 rounded-2xl p-6 sm:p-8 border border-slate-200 dark:border-slate-700">
-          <div class="space-y-4">
-            <div>
-              <label class="block text-sm font-semibold mb-2">URL Google Sheets <span class="text-rose-500">*</span></label>
-              <input id="sheet-url" type="url" placeholder="Paste URL spreadsheet atau Published CSV URL"
-                class="w-full text-sm bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-4 py-3 focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none" />
-              <p class="text-xs text-slate-500 dark:text-slate-400 mt-2">
-                Bisa pakai URL spreadsheet langsung (yang ada <code class="font-mono">/spreadsheets/d/...</code>) atau hasil <em>Publish to web → CSV</em>.
-              </p>
-            </div>
-
-            <div class="grid grid-cols-2 gap-3">
-              <div>
-                <label class="block text-xs font-semibold mb-1 text-slate-600 dark:text-slate-400">Sheet / Tab (opsional)</label>
-                <input id="sheet-name" type="text" placeholder="contoh: Penjualan 2026"
-                  class="w-full text-sm bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2" />
-                <p class="text-[11px] text-slate-500 mt-1">Kosongkan untuk pakai sheet default</p>
-              </div>
-              <div>
-                <label class="block text-xs font-semibold mb-1 text-slate-600 dark:text-slate-400">Auto-refresh</label>
-                <select id="auto-refresh" class="w-full text-sm bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2">
-                  <option value="0">Mati (manual)</option>
-                  <option value="60000">Tiap 1 menit</option>
-                  <option value="300000" selected>Tiap 5 menit</option>
-                  <option value="900000">Tiap 15 menit</option>
-                  <option value="3600000">Tiap 1 jam</option>
-                </select>
-              </div>
-            </div>
-
-            <button id="btn-connect-sheet" class="w-full py-3 rounded-lg bg-brand-600 hover:bg-brand-700 text-white font-semibold transition">
-              Hubungkan & Tampilkan Dashboard
-            </button>
-          </div>
-
-          <details class="mt-5 text-sm">
-            <summary class="cursor-pointer font-semibold text-brand-600 dark:text-brand-500">📖 Cara setup Google Sheets (klik untuk buka)</summary>
-            <ol class="mt-3 space-y-2 text-slate-700 dark:text-slate-300 list-decimal list-inside pl-2">
-              <li>Buka spreadsheet Anda di Google Sheets.</li>
-              <li>Menu <strong>File → Share → Publish to web</strong>.</li>
-              <li>Pilih sheet yang ingin dipublish (atau "Entire Document"), lalu pilih format <strong>Comma-separated values (.csv)</strong>.</li>
-              <li>Klik <strong>Publish</strong>. Copy URL yang muncul, paste di kolom URL di atas.</li>
-              <li>Atau cara lebih simpel: cukup paste link spreadsheet biasa — pastikan akses sharing-nya minimal "Anyone with the link can view".</li>
-            </ol>
-            <p class="mt-3 text-xs text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 p-3 rounded-lg">
-              ⚠️ Pastikan baris pertama spreadsheet adalah header (Tgl., No Dok., Kode Gudang, dst.) sesuai contoh data Anda.
-            </p>
-          </details>
-        </div>
-      </div>
-
-      <!-- Mode 2: File Upload -->
-      <div id="mode-file" class="max-w-3xl mx-auto hidden">
-        <label id="dropzone" for="file-input"
-          class="block cursor-pointer border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-brand-500 dark:hover:border-brand-500 bg-white dark:bg-slate-800/50 rounded-2xl p-10 sm:p-16 text-center transition">
-          <div class="flex flex-col items-center gap-4">
-            <div class="w-16 h-16 rounded-full bg-brand-50 dark:bg-brand-700/20 flex items-center justify-center">
-              <svg class="w-8 h-8 text-brand-600 dark:text-brand-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-            </div>
-            <div>
-              <p class="text-lg font-semibold">Klik di sini atau drag & drop file</p>
-              <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Format yang didukung: .xlsx, .xls, .csv</p>
-              <p class="text-xs text-amber-600 dark:text-amber-500 mt-2">⚠️ Mode upload tidak auto-update. Untuk auto-update harian, pakai mode Google Sheets.</p>
-            </div>
-            <button type="button" onclick="document.getElementById('file-input').click()"
-              class="mt-2 inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-brand-600 hover:bg-brand-700 text-white font-medium transition">
-              Pilih File
-            </button>
-          </div>
-          <input id="file-input" type="file" accept=".xlsx,.xls,.csv" class="hidden" />
-        </label>
-      </div>
-
-      <!-- Expected columns hint -->
-      <div class="max-w-3xl mx-auto mt-6 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/40 rounded-lg text-sm">
-        <p class="font-semibold text-amber-900 dark:text-amber-200 mb-1">📋 Kolom yang dibutuhkan (header di baris 1):</p>
-        <p class="text-amber-800 dark:text-amber-300/90 leading-relaxed">
-          <code class="font-mono text-xs">Tgl.</code>, <code class="font-mono text-xs">No Dok.</code>, <code class="font-mono text-xs">Kode Gudang</code>, <code class="font-mono text-xs">Kode Departemen</code>, <code class="font-mono text-xs">Kode Barang</code>, <code class="font-mono text-xs">Nama Barang</code>, <code class="font-mono text-xs">Qty</code>, <code class="font-mono text-xs">Harga</code>, <code class="font-mono text-xs">Diskon</code>, <code class="font-mono text-xs">Total (IDR)</code>, <code class="font-mono text-xs">Kode Sales</code>, <code class="font-mono text-xs">Cek Kota</code>, <code class="font-mono text-xs">Week</code>, <code class="font-mono text-xs">Bulan</code>, <code class="font-mono text-xs">Brand</code>, <code class="font-mono text-xs">Cek Juta</code>, <strong><code class="font-mono text-xs">Cek Dept</code></strong>, <code class="font-mono text-xs">Dimensi</code>, <code class="font-mono text-xs">Cek Ink Tank</code>.
-        </p>
-      </div>
+    <!-- ===== Initial loading screen ===== -->
+    <section id="initial-loading" class="py-20 flex flex-col items-center text-center">
+      <div class="w-12 h-12 border-4 border-brand-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+      <p class="text-lg font-semibold">Memuat data dari Google Sheets...</p>
+      <p id="initial-loading-detail" class="text-sm text-slate-500 dark:text-slate-400 mt-1">Sedang mengambil & menggabungkan data tahun aktif</p>
     </section>
 
-    <!-- ===== Loading overlay ===== -->
-    <div id="loading" class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center">
-      <div class="bg-white dark:bg-slate-800 rounded-xl p-6 shadow-2xl flex items-center gap-4">
-        <div class="w-8 h-8 border-4 border-brand-500 border-t-transparent rounded-full animate-spin"></div>
-        <div>
-          <p class="font-semibold">Memproses...</p>
-          <p id="loading-msg" class="text-sm text-slate-500 dark:text-slate-400">Mengambil data</p>
-        </div>
+    <!-- ===== Error screen ===== -->
+    <section id="error-screen" class="hidden max-w-2xl mx-auto py-12 text-center">
+      <div class="w-16 h-16 mx-auto rounded-full bg-rose-100 dark:bg-rose-900/30 flex items-center justify-center mb-4">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8 text-rose-600 dark:text-rose-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      </div>
+      <h2 class="text-xl font-bold mb-2">Gagal memuat data</h2>
+      <p id="error-msg" class="text-slate-600 dark:text-slate-400 mb-4"></p>
+      <button id="btn-retry" class="px-5 py-2 rounded-lg bg-brand-600 hover:bg-brand-700 text-white font-medium">Coba Lagi</button>
+    </section>
+
+    <!-- ===== Loading overlay (during refresh) ===== -->
+    <div id="loading" class="hidden fixed inset-0 bg-slate-900/30 backdrop-blur-sm z-50 flex items-center justify-center pointer-events-none">
+      <div class="bg-white dark:bg-slate-800 rounded-xl px-5 py-4 shadow-2xl flex items-center gap-4">
+        <div class="w-6 h-6 border-4 border-brand-500 border-t-transparent rounded-full animate-spin"></div>
+        <p id="loading-msg" class="text-sm font-medium">Mengambil data terbaru...</p>
       </div>
     </div>
 
@@ -193,50 +91,14 @@
       <p id="toast-msg" class="text-sm font-medium"></p>
     </div>
 
-    <!-- ===== Settings modal ===== -->
-    <div id="settings-modal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-40 flex items-center justify-center p-4">
-      <div class="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-2xl max-w-md w-full">
-        <div class="flex items-center justify-between mb-4">
-          <h3 class="text-lg font-bold">Pengaturan Sumber Data</h3>
-          <button id="btn-close-settings" class="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-700">
-            <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-          </button>
-        </div>
-        <div class="space-y-3 text-sm">
-          <div>
-            <label class="block text-xs font-semibold mb-1">URL Google Sheets</label>
-            <input id="settings-url" type="url" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2" />
-          </div>
-          <div>
-            <label class="block text-xs font-semibold mb-1">Sheet / Tab</label>
-            <input id="settings-sheet" type="text" placeholder="kosongkan untuk default" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2" />
-          </div>
-          <div>
-            <label class="block text-xs font-semibold mb-1">Auto-refresh</label>
-            <select id="settings-refresh" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2">
-              <option value="0">Mati (manual)</option>
-              <option value="60000">Tiap 1 menit</option>
-              <option value="300000">Tiap 5 menit</option>
-              <option value="900000">Tiap 15 menit</option>
-              <option value="3600000">Tiap 1 jam</option>
-            </select>
-          </div>
-          <div class="flex gap-2 pt-3">
-            <button id="btn-save-settings" class="flex-1 py-2 rounded-lg bg-brand-600 hover:bg-brand-700 text-white font-semibold">Simpan & Reload</button>
-            <button id="btn-disconnect" class="px-4 py-2 rounded-lg bg-rose-100 dark:bg-rose-900/30 text-rose-700 dark:text-rose-300 font-semibold hover:bg-rose-200">Putuskan</button>
-          </div>
-        </div>
-      </div>
-    </div>
-
     <!-- ===== Dashboard (hidden until data loaded) ===== -->
     <section id="dashboard" class="hidden space-y-6">
 
       <!-- Source info bar -->
       <div class="bg-white dark:bg-slate-800 rounded-xl px-4 py-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm border border-slate-200 dark:border-slate-700">
         <div class="flex items-center gap-2">
-          <span id="source-icon" class="w-5 h-5 inline-flex items-center justify-center"></span>
-          <span class="font-medium" id="source-label">Sumber: —</span>
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-emerald-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="3" x2="9" y2="21"/><line x1="3" y1="9" x2="21" y2="9"/></svg>
+          <span class="font-medium" id="source-label">—</span>
         </div>
         <span class="text-slate-400">·</span>
         <span><strong id="row-count">0</strong> baris</span>
@@ -244,7 +106,6 @@
         <span>Periode: <strong id="period-range">—</strong></span>
         <span class="text-slate-400">·</span>
         <span class="text-xs text-slate-500 dark:text-slate-400">Update terakhir: <strong id="last-update">—</strong></span>
-        <span id="auto-refresh-badge" class="hidden ml-2 px-2 py-0.5 text-xs rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300">Auto-refresh aktif</span>
       </div>
 
       <!-- Filters -->
@@ -254,7 +115,11 @@
           <span class="text-sm font-semibold text-slate-700 dark:text-slate-300">Filter</span>
         </div>
         <div id="dept-tabs" class="flex flex-wrap gap-2"></div>
-        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div class="grid grid-cols-2 sm:grid-cols-5 gap-3">
+          <div>
+            <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Tahun</label>
+            <select id="filter-tahun" class="w-full text-sm bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2"></select>
+          </div>
           <div>
             <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Kota / Cabang</label>
             <select id="filter-kota" class="w-full text-sm bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2"></select>
@@ -298,12 +163,24 @@
         </div>
       </div>
 
+      <!-- YoY Comparison (full width) -->
+      <div id="yoy-card" class="chart-card hidden">
+        <div class="chart-header flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h3 class="chart-title">📅 Year-over-Year Comparison</h3>
+            <p class="chart-sub">Perbandingan omzet bulanan antar tahun</p>
+          </div>
+          <div id="yoy-summary" class="text-sm"></div>
+        </div>
+        <div class="chart-body chart-body-tall"><canvas id="chart-yoy"></canvas></div>
+      </div>
+
       <!-- Row 1: Trend + Mix Departemen -->
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <div class="chart-card lg:col-span-2">
           <div class="chart-header">
             <h3 class="chart-title">Tren Penjualan Bulanan</h3>
-            <p class="chart-sub">Total omzet per bulan</p>
+            <p class="chart-sub">Total omzet per bulan (per departemen)</p>
           </div>
           <div class="chart-body"><canvas id="chart-trend"></canvas></div>
         </div>
@@ -406,7 +283,7 @@
                 <th class="th" data-sort="namaBarang">Nama Barang</th>
                 <th class="th text-right" data-sort="qty">Qty</th>
                 <th class="th text-right" data-sort="total">Total</th>
-                <th class="th" data-sort="sales">Sales</th>
+                <th class="th" data-sort="kodeSales">Sales</th>
               </tr>
             </thead>
             <tbody id="table-body"></tbody>
@@ -425,11 +302,10 @@
     </section>
 
     <footer class="mt-12 pb-6 text-center text-xs text-slate-500 dark:text-slate-500">
-      <p>Dibuat untuk analisa penjualan PC, Printer, Monitor · 100% client-side · Hosted on GitHub Pages</p>
+      <p>Dibuat untuk analisa penjualan PC, Printer, Monitor · 100% client-side · Data tarik dari Google Sheets</p>
     </footer>
   </main>
 
-  <!-- App scripts -->
   <script src="js/utils.js"></script>
   <script src="js/parser.js"></script>
   <script src="js/sheets.js"></script>

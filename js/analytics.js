@@ -7,22 +7,104 @@ window.PC = window.PC || {};
 PC.analytics = (() => {
   const U = PC.utils;
 
-  /** Apply filters to records. filters = { dept, kota, bulan, brand, juta, search } */
+  /** Apply filters to records. filters = { dept, kota, bulan, brand, juta, tahun, search } */
   function filterRecords(records, filters = {}) {
-    const { dept, kota, bulan, brand, juta, search } = filters;
+    const { dept, kota, bulan, brand, juta, tahun, search } = filters;
     const q = search ? search.toLowerCase() : '';
+    const yr = tahun && tahun !== '__all__' ? parseInt(tahun, 10) : null;
     return records.filter(r => {
       if (dept && dept !== '__all__' && r.dept !== dept) return false;
       if (kota && kota !== '__all__' && r.kota !== kota) return false;
       if (bulan && bulan !== '__all__' && r.bulan !== bulan) return false;
       if (brand && brand !== '__all__' && r.brand !== brand) return false;
       if (juta && juta !== '__all__' && r.cekJuta !== juta) return false;
+      if (yr !== null && r.year !== yr) return false;
       if (q) {
         const hay = `${r.namaBarang} ${r.brand} ${r.kodeSales} ${r.kodeBarang} ${r.kota} ${r.dept} ${r.noDok}`.toLowerCase();
         if (!hay.includes(q)) return false;
       }
       return true;
     });
+  }
+
+  /**
+   * Year-over-year monthly comparison.
+   * Returns { years: [...], labels: ['Januari',...'Desember'], datasets: [{label: '2025', data: [...]}, {label:'2026', data: [...]}] }
+   */
+  function yoyByMonth(records) {
+    const MONTHS = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+    const yearsSet = new Set();
+    for (const r of records) if (r.year) yearsSet.add(r.year);
+    const years = [...yearsSet].sort((a, b) => a - b);
+    const datasets = years.map(y => ({
+      label: String(y),
+      data: MONTHS.map(mo => U.sumBy(
+        records.filter(r => r.year === y && r.bulan === mo),
+        r => r.total
+      )),
+    }));
+    return { years, labels: MONTHS, datasets };
+  }
+
+  /** YoY summary: returns { years, totals, growth, samePeriod } */
+  function yoySummary(records) {
+    const yearsSet = new Set();
+    for (const r of records) if (r.year) yearsSet.add(r.year);
+    const years = [...yearsSet].sort((a, b) => a - b);
+    const totals = {};
+    for (const y of years) {
+      totals[y] = U.sumBy(records.filter(r => r.year === y), r => r.total);
+    }
+    const growth = {};
+    for (let i = 1; i < years.length; i++) {
+      const cur = years[i], prev = years[i-1];
+      growth[cur] = totals[prev] ? ((totals[cur] - totals[prev]) / totals[prev]) * 100 : null;
+    }
+
+    // Same-period YoY: only compare months that have data in BOTH years.
+    // This is meaningful when the latest year is incomplete (e.g. YTD).
+    const samePeriod = computeSamePeriod(records, years);
+
+    return { years, totals, growth, samePeriod };
+  }
+
+  /**
+   * Compute apples-to-apples YoY using the intersection of months
+   * that appear in all years. Returns:
+   *   { months: [...], totals: { [year]: revenue }, growth: { [year]: % vs prev } }
+   * or null if intersection is empty.
+   */
+  function computeSamePeriod(records, years) {
+    if (!years || years.length < 2) return null;
+    // For each year, set of months present
+    const monthsByYear = {};
+    for (const y of years) {
+      monthsByYear[y] = new Set(records.filter(r => r.year === y).map(r => r.bulan).filter(Boolean));
+    }
+    // Intersection across all years
+    let common = null;
+    for (const y of years) {
+      common = common === null ? new Set(monthsByYear[y]) : new Set([...common].filter(m => monthsByYear[y].has(m)));
+    }
+    if (!common || common.size === 0) return null;
+
+    // Sort common months in calendar order
+    const orderedMonths = U.sortBulan([...common]);
+    const totals = {};
+    for (const y of years) {
+      totals[y] = U.sumBy(
+        records.filter(r => r.year === y && common.has(r.bulan)),
+        r => r.total
+      );
+    }
+    const growth = {};
+    for (let i = 1; i < years.length; i++) {
+      const cur = years[i], prev = years[i-1];
+      growth[cur] = totals[prev] ? ((totals[cur] - totals[prev]) / totals[prev]) * 100 : null;
+    }
+    // Detect if same-period equals full year (i.e. all years have all 12 months)
+    const fullYear = orderedMonths.length === 12;
+    return { months: orderedMonths, totals, growth, fullYear };
   }
 
   /** Compute KPI summary */
@@ -132,5 +214,6 @@ PC.analytics = (() => {
   return {
     filterRecords, summary, aggBy, aggByDept,
     monthlyTrend, pareto, topN,
+    yoyByMonth, yoySummary,
   };
 })();

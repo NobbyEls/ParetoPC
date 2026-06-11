@@ -254,6 +254,40 @@ PC.charts = (() => {
     });
   }
 
+  function yoyChart(yoy) {
+    // Use distinct colors per year, with the latest year highlighted
+    const yearColors = ['#94a3b8', '#6366f1', '#10b981', '#f59e0b', '#ef4444'];
+    const datasets = yoy.datasets.map((ds, i) => {
+      const isLatest = i === yoy.datasets.length - 1;
+      const baseColor = yearColors[i % yearColors.length];
+      return {
+        label: ds.label,
+        data: ds.data,
+        backgroundColor: isLatest ? baseColor : baseColor + '99',
+        borderColor: baseColor,
+        borderWidth: isLatest ? 0 : 1,
+        borderRadius: 4,
+      };
+    });
+    return _replace('chart-yoy', {
+      type: 'bar',
+      data: { labels: yoy.labels, datasets },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: { position: 'bottom', labels: { boxWidth: 12, padding: 12 } },
+          tooltip: {
+            callbacks: { label: (c) => `${c.dataset.label}: ${U.formatIDR(c.parsed.y)}` }
+          }
+        },
+        scales: {
+          y: { ticks: { callback: (v) => U.formatIDRCompact(v) }, grid: { drawBorder: false } },
+          x: { grid: { display: false } }
+        }
+      }
+    });
+  }
+
   function pieChart(canvasId, agg) {
     const labels = agg.map(d => d.key);
     const data = agg.map(d => d.qty || d.total);
@@ -281,6 +315,7 @@ PC.charts = (() => {
 
   return {
     trendChart, deptMixChart, topBarChart, paretoChart, distChart, pieChart,
+    yoyChart,
     refreshTheme, destroyAll
   };
 })();

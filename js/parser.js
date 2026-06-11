@@ -108,6 +108,7 @@ PC.parser = (() => {
       records.push({
         tgl:        date,
         tglRaw:     get('tgl'),
+        year:       date ? date.getFullYear() : null,
         noDok:      cleanText(get('noDok')),
         kodeGudang: cleanText(get('kodeGudang')),
         kodeDept:   cleanText(get('kodeDept')),
