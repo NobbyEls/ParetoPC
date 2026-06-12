@@ -1,28 +1,34 @@
-/* ParetoPC Dashboard — ELS-inspired dark theme */
+/* ParetoPC Dashboard — Omset-inspired dark theme */
 
 /* ============================================================
    DESIGN TOKENS
    ============================================================ */
 :root {
-  --bg-primary:   #080b1a;
+  --bg-base:      #07091a;
+  --bg-primary:   #07091a;
   --bg-secondary: #0e1226;
-  --bg-card:      #11152a;
-  --bg-card-2:    #161a32;
-  --bg-input:     #0c1024;
-  --border:       #232842;
-  --border-bright:#2d3454;
-  --text-primary: #e7eaf3;
-  --text-secondary:#9aa3b9;
-  --text-muted:   #6b7390;
+  --bg-card:      rgba(20, 24, 48, 0.55);
+  --bg-card-2:    rgba(28, 33, 63, 0.7);
+  --bg-glass:     rgba(255, 255, 255, 0.04);
+  --bg-input:     rgba(255, 255, 255, 0.05);
+  --border-subtle: rgba(255, 255, 255, 0.06);
+  --border-medium: rgba(255, 255, 255, 0.1);
+  --border-strong: rgba(255, 255, 255, 0.18);
+  --border:       rgba(255, 255, 255, 0.1);
+  --border-bright: rgba(255, 255, 255, 0.18);
+  --text-primary: #f1f5f9;
+  --text-secondary:#cbd5e1;
+  --text-muted:   #94a3b8;
   --accent-magenta:#ec4899;
   --accent-purple: #a855f7;
   --accent-pink:   #f472b6;
   --accent-cyan:   #06b6d4;
   --accent-violet: #8b5cf6;
+  --indigo:       #6366f1;
   --year-2024:    #22c55e;
   --year-2025:    #fbbf24;
   --year-2026:    #ef4444;
-  --gradient-primary: linear-gradient(135deg, #ec4899 0%, #a855f7 50%, #ec4899 100%);
+  --gradient-primary: linear-gradient(135deg, #6366f1 0%, #ec4899 100%);
   --gradient-pink-purple: linear-gradient(90deg, #ec4899, #a855f7);
   --gradient-cyan-magenta: linear-gradient(90deg, transparent, rgba(6,182,212,0.4), rgba(168,85,247,0.4), transparent);
 }
@@ -35,12 +41,12 @@ html, body { height: 100%; }
 html.dark { color-scheme: dark; }
 
 .dark body {
-  background: var(--bg-primary) !important;
+  background: var(--bg-base) !important;
   color: var(--text-primary) !important;
   background-image:
-    radial-gradient(ellipse 80% 60% at top right,    rgba(168,85,247,0.10), transparent 60%),
-    radial-gradient(ellipse 80% 60% at bottom left,  rgba(236,72,153,0.08), transparent 60%),
-    radial-gradient(ellipse 60% 50% at top left,     rgba(6,182,212,0.06),  transparent 60%) !important;
+    radial-gradient(at 20% 0%, rgba(99, 102, 241, 0.12) 0%, transparent 50%),
+    radial-gradient(at 80% 50%, rgba(236, 72, 153, 0.08) 0%, transparent 50%),
+    radial-gradient(at 50% 100%, rgba(16, 185, 129, 0.08) 0%, transparent 50%) !important;
   background-attachment: fixed !important;
 }
 
@@ -59,25 +65,41 @@ body { font-feature-settings: 'cv11', 'ss01'; }
 /* Borders (dark mode) */
 .dark .border-slate-200 { border-color: var(--border) !important; }
 
-/* Header bar — same max-width as filter/nav (1400px centered) */
+/* Sticky top group (header + filter + dept tabs) */
+.sticky-top-group {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding-bottom: 0;
+  margin-bottom: 0.75rem;
+}
+
+/* Header bar — omset style */
 .header-bar {
-  background: rgba(14, 18, 38, 0.75);
-  backdrop-filter: blur(18px) saturate(180%);
-  -webkit-backdrop-filter: blur(18px) saturate(180%);
-  border-bottom: 1px solid var(--border);
+  background: var(--bg-card);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 2px solid var(--border-medium);
+  border-radius: 10px 10px 0 0;
+  padding: 14px 24px;
+  margin-bottom: 0;
 }
 html:not(.dark) .header-bar {
   background: rgba(255, 255, 255, 0.75);
-  border-bottom: 1px solid #e2e8f0;
+  border: 2px solid #e2e8f0;
+  border-radius: 10px 10px 0 0;
 }
 
 /* Light mode sticky nav */
 html:not(.dark) .filter-card-sticky {
-  background: rgba(255, 255, 255, 0.75) !important;
-  border-top-color: #e2e8f0 !important;
+  background: rgba(255, 255, 255, 0.85) !important;
+  border-color: #e2e8f0 !important;
 }
 html:not(.dark) .dept-tabs-sticky {
-  background: rgba(255, 255, 255, 0.75) !important;
+  background: rgba(255, 255, 255, 0.85) !important;
   border-color: #e2e8f0 !important;
 }
 html:not(.dark) .dept-tabs-sticky .dept-tab {
@@ -95,9 +117,9 @@ html:not(.dark) select, html:not(.dark) input[type="text"] {
   color: #1e293b !important;
 }
 html:not(.dark) .filter-section-icon {
-  background: linear-gradient(135deg, rgba(99,102,241,0.12), rgba(99,102,241,0.06));
-  border-color: rgba(99,102,241,0.25);
-  color: #6366f1;
+  background: linear-gradient(135deg, #6366f1, #ec4899);
+  border-color: transparent;
+  color: #fff;
 }
 html:not(.dark) .logo-text-gradient {
   background: linear-gradient(90deg, #6366f1, #4f46e5, #3b82f6);
@@ -133,39 +155,33 @@ html:not(.dark) .th:hover { color: #6366f1 !important; }
    STICKY NAV BLOCK (filter + dept tabs below header)
    ============================================================ */
 .sticky-nav-block {
-  position: sticky;
-  top: 48px; /* matches fixed header height */
-  z-index: 25;
   display: flex;
   flex-direction: column;
   gap: 0;
   margin-top: 0 !important;
-  margin-bottom: 0.75rem;
+  margin-bottom: 0 !important;
 }
 
 .filter-card-sticky {
   border-radius: 0 !important;
-  border-bottom: none !important;
-  border-left: none !important;
-  border-right: none !important;
   margin-bottom: 0 !important;
-  padding: 0.5rem 1rem !important;
-  background: rgba(14, 18, 38, 0.72) !important;
-  backdrop-filter: blur(16px) saturate(160%);
-  -webkit-backdrop-filter: blur(16px) saturate(160%);
-  border-top: 1px solid var(--border) !important;
+  padding: 12px 18px !important;
+  background: var(--bg-card) !important;
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 2px solid var(--border-medium) !important;
+  border-top: none !important;
 }
 
 .dept-tabs-sticky {
-  background: rgba(14, 18, 38, 0.72) !important;
-  backdrop-filter: blur(16px) saturate(160%);
-  -webkit-backdrop-filter: blur(16px) saturate(160%);
-  border-top: 1px solid var(--border-bright) !important;
-  border-bottom: 1px solid var(--border) !important;
-  border-left: none !important;
-  border-right: none !important;
-  border-radius: 0 !important;
-  padding: 0.4rem 0.75rem;
+  background: var(--bg-card) !important;
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 2px solid var(--border-medium) !important;
+  border-top: none !important;
+  border-radius: 0 0 10px 10px !important;
+  padding: 12px 18px;
+  margin-bottom: 0 !important;
 }
 
 /* ============================================================
@@ -252,19 +268,21 @@ html:not(.dark) .th:hover { color: #6366f1 !important; }
 }
 
 /* ============================================================
-   BUTTONS in header
+   BUTTONS in header (btn-glass style like omset)
    ============================================================ */
 .btn-icon, #btn-refresh, #btn-theme {
-  background: var(--bg-card) !important;
-  border: 1px solid var(--border-bright) !important;
-  color: var(--text-secondary) !important;
-  transition: all 0.15s ease;
-  border-radius: 0.6rem !important;
+  background: var(--bg-glass) !important;
+  border: 1px solid var(--border-medium) !important;
+  color: var(--text-primary) !important;
+  transition: all 0.2s ease;
+  border-radius: 10px !important;
+  padding: 9px 16px !important;
 }
 .btn-icon:hover, #btn-refresh:hover, #btn-theme:hover {
   background: var(--bg-card-2) !important;
   color: var(--text-primary) !important;
-  border-color: var(--accent-purple) !important;
+  border-color: var(--border-strong) !important;
+  transform: translateY(-1px);
 }
 
 #btn-refresh {
@@ -396,26 +414,27 @@ html:not(.dark) .th:hover { color: #6366f1 !important; }
 .kpi-card.from-fuchsia-500  { background: linear-gradient(135deg, #ec4899 0%, #a855f7 100%) !important; }
 
 /* ============================================================
-   FORM CONTROLS (selects, inputs)
+   FORM CONTROLS (selects, inputs) - omset style
    ============================================================ */
 select, input[type="text"], input[type="search"], input[type="url"] {
   background: var(--bg-input) !important;
-  border: 1px solid var(--border-bright) !important;
+  border: 1px solid var(--border-medium) !important;
   color: var(--text-primary) !important;
-  border-radius: 0.6rem !important;
+  border-radius: 9px !important;
+  font-size: 0.82rem;
   font-weight: 500;
-  transition: all 0.15s ease;
+  transition: all 0.2s ease;
 }
 select:hover, input:hover {
-  border-color: var(--accent-purple) !important;
+  border-color: var(--border-strong) !important;
 }
 select:focus, input:focus {
   outline: none !important;
-  border-color: var(--accent-magenta) !important;
-  box-shadow: 0 0 0 3px rgba(236,72,153,0.15) !important;
+  border-color: var(--indigo) !important;
+  box-shadow: 0 0 0 3px rgba(99,102,241,0.2) !important;
 }
 select option {
-  background: var(--bg-card) !important;
+  background: #0e1226 !important;
   color: var(--text-primary);
 }
 
@@ -432,21 +451,22 @@ select {
 /* Filter section header */
 .filter-section-icon {
   width: 36px; height: 36px;
-  border-radius: 0.6rem;
-  background: linear-gradient(135deg, rgba(168,85,247,0.25), rgba(139,92,246,0.18));
-  border: 1px solid rgba(168,85,247,0.35);
+  border-radius: 10px;
+  background: var(--gradient-primary);
   display: flex; align-items: center; justify-content: center;
-  color: #d8b4fe;
+  color: #fff;
+  flex-shrink: 0;
+  box-shadow: 0 4px 16px rgba(99, 102, 241, 0.3);
 }
 
 /* Filter labels */
 .filter-label {
-  font-size: 0.68rem;
-  font-weight: 700;
-  letter-spacing: 0.12em;
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--text-muted);
-  margin-bottom: 0.45rem;
+  margin-bottom: 4px;
   display: block;
 }
 
@@ -685,15 +705,14 @@ thead.bg-slate-100, thead.dark\:bg-slate-900\/50 {
    LOGO icon in header
    ============================================================ */
 .logo-icon {
-  background: linear-gradient(135deg, #ec4899 0%, #a855f7 100%) !important;
-  box-shadow: 0 4px 14px rgba(236,72,153,0.4), 0 0 0 1px rgba(255,255,255,0.06);
+  background: linear-gradient(135deg, #6366f1 0%, #ec4899 100%) !important;
+  box-shadow: 0 4px 14px rgba(99,102,241,0.4), 0 0 0 1px rgba(255,255,255,0.06);
 }
 .logo-text-gradient {
-  background: linear-gradient(90deg, #f472b6, #a855f7, #06b6d4);
+  background: linear-gradient(135deg, #fff 0%, #c7d2fe 100%);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
-  background-size: 200% 100%;
 }
 
 /* ============================================================

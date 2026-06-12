@@ -34,52 +34,12 @@
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.6/dist/chart.umd.min.js"></script>
 
-  <link rel="stylesheet" href="css/style.css?v=14" />
+  <link rel="stylesheet" href="css/style.css?v=15" />
 </head>
 <body class="bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 font-sans antialiased min-h-screen">
 
-  <!-- ===== Header ===== -->
-  <header class="fixed top-0 left-0 right-0 z-30">
-    <div class="max-w-[1400px] mx-auto px-4 sm:px-6 py-2 flex items-center justify-between gap-3 flex-wrap header-bar">
-      <div class="flex items-center gap-3 min-w-0">
-        <div class="logo-icon w-11 h-11 rounded-xl flex items-center justify-center text-white font-bold shrink-0">
-          PC
-        </div>
-        <div class="min-w-0">
-          <h1 class="text-lg sm:text-xl font-extrabold leading-tight truncate logo-text-gradient">ParetoPC Analytics</h1>
-          <p class="text-xs text-slate-500 truncate">Dashboard Penjualan · Multi-Cabang Indonesia</p>
-        </div>
-      </div>
-      <div class="flex items-center gap-2 flex-wrap">
-        <!-- Theme toggle (left of pills, matching ELS layout) -->
-        <button id="btn-theme" aria-label="Toggle theme" class="p-2 rounded-lg btn-icon">
-          <svg id="icon-sun" class="w-5 h-5 hidden dark:block" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
-          <svg id="icon-moon" class="w-5 h-5 dark:hidden" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-        </button>
-
-        <!-- Year pills -->
-        <div id="year-pills" class="year-pills"></div>
-
-        <!-- Last-update clock pill -->
-        <div id="clock-pill" class="hidden sm:inline-flex items-center gap-1.5 px-3 py-2 text-sm rounded-lg" style="background:var(--bg-card); border:1px solid var(--border-bright); color:var(--text-secondary);">
-          <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-          <span id="clock-pill-text">—</span>
-        </div>
-
-        <button id="btn-refresh" class="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg" title="Ambil data tahun aktif terbaru (cache untuk tahun lama tetap dipakai)">
-          <svg id="icon-refresh" xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10"/><path d="M20.49 15a9 9 0 0 1-14.85 3.36L1 14"/></svg>
-          <span class="hidden sm:inline">Refresh</span>
-        </button>
-
-        <button id="btn-clear-cache" class="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg btn-clear" title="Hapus cache lokal & ambil ulang semua data">
-          <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
-          <span class="hidden sm:inline">Clear Cache</span>
-        </button>
-      </div>
-    </div>
-  </header>
-
-  <main class="max-w-[1400px] mx-auto px-4 sm:px-6 pt-[48px] pb-6">
+  <!-- ===== Sticky Top Group (Header + Filter + Dept Tabs) ===== -->
+  <main class="max-w-[1600px] mx-auto px-4 sm:px-7 pb-6">
 
     <!-- ===== Initial loading screen ===== -->
     <section id="initial-loading" class="py-20 flex flex-col items-center text-center">
@@ -122,9 +82,48 @@
         <span id="last-update">—</span>
       </div>
 
-      <!-- ===== Sticky Filter + Dept Tabs block ===== -->
-      <div id="sticky-nav" class="sticky-nav-block">
-        <!-- Filters (moved above dept tabs) -->
+      <!-- ===== Sticky Top Group: Header + Filter + Dept Tabs ===== -->
+      <div class="sticky-top-group">
+        <!-- Header -->
+        <div class="flex items-center justify-between gap-3 flex-wrap header-bar">
+          <div class="flex items-center gap-3 min-w-0">
+            <div class="logo-icon w-11 h-11 rounded-xl flex items-center justify-center text-white font-bold shrink-0">
+              PC
+            </div>
+            <div class="min-w-0">
+              <h1 class="text-lg sm:text-xl font-extrabold leading-tight truncate logo-text-gradient">ParetoPC Analytics</h1>
+              <p class="text-xs text-slate-500 truncate" style="color: var(--text-muted);">Dashboard Penjualan · Multi-Cabang Indonesia</p>
+            </div>
+          </div>
+          <div class="flex items-center gap-2 flex-wrap">
+            <!-- Theme toggle -->
+            <button id="btn-theme" aria-label="Toggle theme" class="p-2 rounded-lg btn-icon">
+              <svg id="icon-sun" class="w-5 h-5 hidden dark:block" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+              <svg id="icon-moon" class="w-5 h-5 dark:hidden" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+            </button>
+
+            <!-- Year pills -->
+            <div id="year-pills" class="year-pills"></div>
+
+            <!-- Last-update clock pill -->
+            <div id="clock-pill" class="hidden sm:inline-flex items-center gap-1.5 px-3 py-2 text-sm rounded-lg" style="background:var(--bg-glass); border:1px solid var(--border-subtle); color:var(--text-muted); border-radius:10px;">
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              <span id="clock-pill-text">—</span>
+            </div>
+
+            <button id="btn-refresh" class="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg" title="Ambil data tahun aktif terbaru (cache untuk tahun lama tetap dipakai)">
+              <svg id="icon-refresh" xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10"/><path d="M20.49 15a9 9 0 0 1-14.85 3.36L1 14"/></svg>
+              <span class="hidden sm:inline">Refresh</span>
+            </button>
+
+            <button id="btn-clear-cache" class="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg btn-clear" title="Hapus cache lokal & ambil ulang semua data">
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+              <span class="hidden sm:inline">Clear Cache</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Filters -->
         <div class="filter-card filter-card-sticky flex items-center gap-3 flex-wrap">
           <div class="filter-section-icon shrink-0">
             <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
@@ -160,7 +159,7 @@
           </button>
         </div>
 
-        <!-- Department Tabs (below filters) -->
+        <!-- Department Tabs -->
         <div id="dept-tabs-wrap" class="dept-tabs-sticky">
           <div id="dept-tabs" class="flex flex-wrap gap-2"></div>
         </div>
@@ -333,11 +332,11 @@
     </footer>
   </main>
 
-  <script src="js/utils.js?v=14"></script>
-  <script src="js/parser.js?v=14"></script>
-  <script src="js/sheets.js?v=14"></script>
-  <script src="js/analytics.js?v=14"></script>
-  <script src="js/charts.js?v=14"></script>
-  <script src="js/app.js?v=14"></script>
+  <script src="js/utils.js?v=15"></script>
+  <script src="js/parser.js?v=15"></script>
+  <script src="js/sheets.js?v=15"></script>
+  <script src="js/analytics.js?v=15"></script>
+  <script src="js/charts.js?v=15"></script>
+  <script src="js/app.js?v=15"></script>
 </body>
 </html>
