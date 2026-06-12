@@ -17,7 +17,7 @@ PC.parser = (() => {
     namaBarang: ['Nama Barang', 'Item Name', 'Produk', 'Product'],
     qty:        ['Qty*', 'Qty', 'Quantity', 'Jumlah'],
     harga:      ['Harga', 'Price'],
-    diskon:     ['Diskon', 'Discount'],
+    diskon:     ['Diskon', 'Discount', 'Potongan'],
     total:      ['Total (IDR)', 'Total', 'Total IDR', 'Net Total', 'Sub Total', 'Grand Total'],
     kodeSales:  ['Kode Sales', 'Sales Code', 'Sales'],
     kota:       ['Cek Kota', 'Kota', 'City', 'Cabang', 'Branch'],

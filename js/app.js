@@ -15,6 +15,10 @@
   // ============================================================
   const SOURCES = [
     {
+      label: '2024',
+      url: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTl41UUW1aYTQoKwnmpZZ0lgMD4LXt9V89NIhZIXNV19WGPphLUvhiscncehAACSsnEtHfq5VgqedkR/pub?gid=1837670229&single=true&output=csv',
+    },
+    {
       label: '2025',
       url: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQXTD8lAQ4MiHlohXrMRntfU9Frfcw9E1w1y-uVpfsWiLKzzKJCBoa-561eKo-fF3iTiOk85UsrE-aC/pub?gid=1837670229&single=true&output=csv',
     },
