@@ -725,6 +725,7 @@ footer { color: var(--text-muted); }
 
 /* ============================================================
    MARKETSHARE TABLE (per Brand · per Bulan)
+   Matching omset reference exactly.
    ============================================================ */
 .ms-tab-group {
   display: flex;
@@ -775,129 +776,212 @@ footer { color: var(--text-muted); }
   font-variant-numeric: tabular-nums;
 }
 .ms-table th, .ms-table td {
-  padding: 4px 8px;
+  padding: 10px 8px;
   text-align: center;
-  border-right: 1px solid rgba(255,255,255,0.04);
-  border-bottom: 1px solid rgba(255,255,255,0.04);
+  border: 1px solid var(--border-subtle);
 }
 
-/* ---------- Header rows ---------- */
+/* ---------- All thead th base ---------- */
+.ms-table thead th {
+  background: rgba(15, 20, 36, 0.95);
+  color: var(--text-secondary);
+  padding: 10px 8px;
+  text-align: center;
+  font-weight: 600;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border: 1px solid var(--border-subtle);
+}
+
+/* ---------- BULAN header cell ---------- */
 .ms-head-bulan {
-  background: linear-gradient(180deg, #7c3aed 0%, #1e1b4b 100%) !important;
-  color: white !important;
+  background: linear-gradient(135deg, #6366f1, #ec4899) !important;
+  color: #fff !important;
+  text-align: center;
+  min-width: 70px;
   font-weight: 800;
   font-size: 0.72rem;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  min-width: 80px;
   padding: 10px 12px !important;
-  border-top: none !important;
 }
 
-/* Per-brand header: dark bg + colored top stripe + colored brand text */
-.ms-head-brand {
-  background: #0f1424 !important;
-  color: var(--ms-c, #94a3b8) !important;
-  font-weight: 700 !important;
-  font-size: 0.72rem;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  padding: 8px 6px !important;
-  border-top: none !important;
-  border-bottom: 2px solid var(--ms-c, #94a3b8) !important;
-}
+/* ---------- Per-brand header: subtle tinted background + pastel text ---------- */
+.ms-brand-asus { background: rgba(245, 158, 11, 0.15) !important; color: #fcd34d !important; }
+.ms-brand-lenovo { background: rgba(16, 185, 129, 0.15) !important; color: #6ee7b7 !important; }
+.ms-brand-acer { background: rgba(148, 163, 184, 0.15) !important; color: #cbd5e1 !important; }
+.ms-brand-apple { background: rgba(168, 162, 158, 0.15) !important; color: #d6d3d1 !important; }
+.ms-brand-axioo { background: rgba(99, 102, 241, 0.15) !important; color: #a5b4fc !important; }
+.ms-brand-advan { background: rgba(251, 146, 60, 0.15) !important; color: #fdba74 !important; }
+.ms-brand-hp { background: rgba(244, 63, 94, 0.15) !important; color: #fda4af !important; }
+.ms-brand-msi { background: rgba(59, 130, 246, 0.15) !important; color: #93c5fd !important; }
+.ms-brand-other { background: rgba(168, 85, 247, 0.15) !important; color: #d8b4fe !important; }
+.ms-brand-epson { background: rgba(16, 185, 129, 0.15) !important; color: #6ee7b7 !important; }
+.ms-brand-canon { background: rgba(239, 68, 68, 0.15) !important; color: #fca5a5 !important; }
+.ms-brand-samsung { background: rgba(59, 130, 246, 0.15) !important; color: #93c5fd !important; }
+.ms-brand-lg { background: rgba(168, 85, 247, 0.15) !important; color: #d8b4fe !important; }
+.ms-brand-xiaomi { background: rgba(251, 146, 60, 0.15) !important; color: #fdba74 !important; }
+.ms-brand-brother { background: rgba(6, 182, 212, 0.15) !important; color: #67e8f9 !important; }
+.ms-brand-blueprint { background: rgba(14, 165, 233, 0.15) !important; color: #7dd3fc !important; }
+.ms-brand-dell { background: rgba(59, 130, 246, 0.15) !important; color: #93c5fd !important; }
+.ms-brand-aoc { background: rgba(236, 72, 153, 0.15) !important; color: #f9a8d4 !important; }
+.ms-brand-benq { background: rgba(6, 182, 212, 0.15) !important; color: #67e8f9 !important; }
+.ms-brand-philips { background: rgba(132, 204, 22, 0.15) !important; color: #bef264 !important; }
 
-/* Special right-side columns (one rule per column type — keeps colours in sync with COLOR_* constants in JS) */
-.ms-head-grand,
-.ms-head-mom,
-.ms-head-yoy,
-.ms-head-est,
-.ms-head-growth {
-  background: #161b2e !important;
+/* ---------- Special column headers ---------- */
+.ms-head-grand {
+  background: rgba(75, 85, 99, 0.4) !important;
+  color: var(--text-primary) !important;
   font-weight: 700;
   letter-spacing: 0.05em;
   vertical-align: middle;
-  padding: 8px 8px !important;
-  border-top: none !important;
-  border-bottom: 2px solid transparent !important;
+  padding: 10px 8px !important;
 }
-.ms-head-grand  { color: #e2e8f0 !important; border-bottom-color: #475569 !important; }
-.ms-head-mom    { color: #fbbf24 !important; border-bottom-color: #fbbf24 !important; }
-.ms-head-yoy    { color: #f472b6 !important; border-bottom-color: #f472b6 !important; }
-.ms-head-est    { color: #c4b5fd !important; border-bottom-color: #c4b5fd !important; }
-.ms-head-growth { color: #34d399 !important; border-bottom-color: #34d399 !important; }
+.ms-head-mom {
+  background: rgba(245, 158, 11, 0.15) !important;
+  color: #fcd34d !important;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  vertical-align: middle;
+  padding: 10px 8px !important;
+}
+.ms-head-yoy {
+  background: rgba(245, 158, 11, 0.15) !important;
+  color: #fcd34d !important;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  vertical-align: middle;
+  padding: 10px 8px !important;
+}
+.ms-head-est {
+  background: rgba(16, 185, 129, 0.15) !important;
+  color: #6ee7b7 !important;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  vertical-align: middle;
+  padding: 10px 8px !important;
+}
+.ms-head-growth {
+  background: rgba(16, 185, 129, 0.2) !important;
+  color: #6ee7b7 !important;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  vertical-align: middle;
+  padding: 10px 8px !important;
+}
 
 /* Stack main + sub label vertically inside special headers */
 .ms-head-main { display: block; font-size: 0.72rem; font-weight: 800; }
 .ms-head-sub  { display: block; font-size: 0.55rem; opacity: 0.7; font-weight: 500; margin-top: 2px; letter-spacing: 0.02em; }
 
-/* Subhead row — QTY / % labels */
+/* Subhead row  — QTY / % labels */
 .ms-table thead tr.subhead th {
   font-size: 0.58rem;
   color: #64748b;
   padding: 3px 8px;
-  background: #0a0e1a;
+  background: rgba(15, 20, 36, 0.95);
   font-weight: 600;
   letter-spacing: 0.1em;
   text-transform: uppercase;
 }
 
-/* ---------- Body cells ---------- */
+/* ---------- Body cells base ---------- */
 .ms-table tbody td {
-  background: #0f1424;
+  padding: 7px 8px;
+  text-align: center;
+  border: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+  font-size: 0.78rem;
   line-height: 1.25;
-  color: var(--text-primary);
 }
-.ms-table tbody td.month-cell {
-  background: linear-gradient(180deg, #4c1d95, #1e1b4b) !important;
-  color: #f1f5f9 !important;
-  font-weight: 700;
-  font-size: 0.8rem;
-  padding: 6px 10px;
-  text-align: left;
-  letter-spacing: 0.02em;
+
+/* BULAN body cells (month column with data) */
+.ms-table tbody td.ms-bulan-cell {
+  background: rgba(99, 102, 241, 0.1);
+  color: var(--text-primary);
+  text-align: center;
+  font-weight: 600;
   min-width: 70px;
 }
-.ms-table tbody td.month-cell.month-empty {
-  background: #0f1424 !important;
-  color: #475569 !important;
+.ms-table tbody td.ms-bulan-cell.ms-empty-month {
+  color: #64748b;
+  background: rgba(7, 9, 26, 0.6);
   font-weight: 500;
 }
-.ms-table tbody tr:hover td:not(.month-cell):not(.ms-growth-cell) { background: rgba(255, 255, 255, 0.03); }
 
-.ms-up    { color: #4ade80 !important; font-weight: 600; }
-.ms-down  { color: #f87171 !important; font-weight: 600; }
-.ms-empty { color: #334155; }
-
-/* ---------- Grand total row (tfoot) ---------- */
-.ms-grand-row td {
-  font-weight: 800;
-  background: linear-gradient(90deg, #4c1d95, #1e1b4b) !important;
-  border-top: 2px solid #7c3aed;
-  color: #f1f5f9;
+/* QTY cells */
+.ms-qty-cell {
+  color: var(--text-primary) !important;
+  font-weight: 500;
+  font-size: 0.78rem;
 }
-.ms-grand-row td.month-cell {
-  background: linear-gradient(180deg, #7c3aed, #3b0764) !important;
-  color: white !important;
-  font-size: 0.72rem;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
+/* % share cells (flat/default) */
+.ms-share-cell {
+  color: var(--text-primary) !important;
+  font-weight: 500;
+  font-size: 0.78rem;
 }
 
-.ms-qty-cell    { font-weight: 700; font-size: 0.78rem; color: #f1f5f9; }
-.ms-share-cell  { font-size: 0.68rem; color: var(--text-secondary); }
-.ms-special-cell {
+/* ---------- Conditional formatting on % cells ---------- */
+.pct-up { color: #10b981 !important; font-weight: 700; }
+.pct-down { color: #f43f5e !important; font-weight: 700; }
+.pct-flat { color: #cbd5e1 !important; font-weight: 600; }
+
+/* Legacy up/down classes (kept for MoM/YoY arrows) */
+.ms-up { color: #10b981 !important; font-weight: 700; }
+.ms-down { color: #f43f5e !important; font-weight: 700; }
+.ms-empty { color: #64748b; }
+
+/* ---------- Special column BODY cells ---------- */
+.ms-total-cell {
+  background: rgba(75, 85, 99, 0.2) !important;
+  color: var(--text-primary) !important;
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+.ms-mom-cell {
+  background: rgba(245, 158, 11, 0.05) !important;
+}
+.ms-yoy-cell {
+  background: rgba(245, 158, 11, 0.05) !important;
+}
+.ms-est-cell {
+  background: rgba(16, 185, 129, 0.05) !important;
   font-size: 0.7rem;
   color: var(--text-secondary);
   white-space: pre-line;
   line-height: 1.3;
 }
 
-/* Merged Growth column (rowspan = 12) */
+/* Empty row styling */
+.ms-table tbody tr.ms-empty-row td {
+  color: #64748b;
+  background: rgba(7, 9, 26, 0.6);
+}
+
+.ms-table tbody tr:hover td:not(.ms-bulan-cell):not(.ms-growth-cell) { background: rgba(255, 255, 255, 0.03); }
+
+/* ---------- Grand total row (tfoot) ---------- */
+.ms-grand-row td {
+  background: rgba(99, 102, 241, 0.15) !important;
+  color: var(--text-primary) !important;
+  font-weight: 700;
+  border-top: 2px solid #6366f1 !important;
+}
+.ms-grand-row td.ms-bulan-cell {
+  background: linear-gradient(135deg, #6366f1, #ec4899) !important;
+  color: #fff !important;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+/* ---------- Merged Growth column (rowspan = 12) ---------- */
 .ms-growth-cell {
   vertical-align: middle;
-  background: linear-gradient(180deg, rgba(16,185,129,0.10), rgba(16,185,129,0.04)) !important;
-  border-left: 2px solid rgba(16,185,129,0.3);
+  background: rgba(16, 185, 129, 0.08) !important;
+  border-left: 2px solid rgba(16, 185, 129, 0.3);
   min-width: 130px;
 }
 .ms-growth-merged {

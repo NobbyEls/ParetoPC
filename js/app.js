@@ -709,7 +709,8 @@
     let headRow1 = `<tr class="brand-row">`;
     headRow1 += `<th rowspan="2" class="ms-head-bulan">BULAN</th>`;
     for (const c of brandCols) {
-      headRow1 += `<th colspan="2" class="ms-head-brand" style="--ms-c:${c.color}">${escapeHtml(c.label)}</th>`;
+      const brandSlug = c.key === '__other__' ? 'other' : String(c.key).toLowerCase().replace(/[^a-z]/g, '');
+      headRow1 += `<th colspan="2" class="ms-head-brand ms-brand-${brandSlug}">${escapeHtml(c.label)}</th>`;
     }
     headRow1 += `<th rowspan="2" class="ms-head-grand"><span class="ms-head-main">GRAND</span><span class="ms-head-sub">TOTAL</span></th>`;
     headRow1 += `<th rowspan="2" class="ms-head-mom"><span class="ms-head-main">MOM</span><span class="ms-head-sub">${yearLabel}</span></th>`;
@@ -741,9 +742,10 @@
     let body = '';
     rows.forEach((row, idx) => {
       const cells = [];
-      // Month label cell — purple gradient for data rows, dim for empty
+      // Month label cell
       const hasData = row.grandTotal > 0;
-      cells.push(`<td class="month-cell ${hasData ? '' : 'month-empty'}">${escapeHtml(row.month.slice(0,3))}</td>`);
+      const bulanCls = hasData ? 'ms-bulan-cell' : 'ms-bulan-cell ms-empty-month';
+      cells.push(`<td class="${bulanCls}">${escapeHtml(row.month.slice(0,3))}</td>`);
       for (const c of brandCols) {
         const qty = row.qtyPerBrand[c.key] || 0;
         const share = row.sharePerBrand[c.key];
@@ -754,48 +756,50 @@
         } else {
           cells.push(`<td class="ms-qty-cell">${U.formatNumber(qty)}</td>`);
           // Entire share % cell colored by delta direction
-          const deltaCls = (delta === null || delta === undefined || isNaN(delta) || Math.abs(delta) < 0.005) ? '' : (delta >= 0 ? 'ms-up' : 'ms-down');
-          const arrowChar = (delta === null || delta === undefined || isNaN(delta) || Math.abs(delta) < 0.005) ? '' : (delta >= 0 ? '▲ ' : '▼ ');
-          cells.push(`<td class="ms-share-cell ${deltaCls}">${arrowChar}${(share || 0).toFixed(2)}%</td>`);
+          const isFlat = (delta === null || delta === undefined || isNaN(delta) || Math.abs(delta) < 0.005);
+          const pctCls = isFlat ? 'pct-flat' : (delta >= 0 ? 'pct-up' : 'pct-down');
+          const arrowChar = isFlat ? '' : (delta >= 0 ? '▲ ' : '▼ ');
+          cells.push(`<td class="ms-share-cell ${pctCls}">${arrowChar}${(share || 0).toFixed(2)}%</td>`);
         }
       }
       // Grand Total
-      cells.push(`<td class="ms-qty-cell">${hasData ? U.formatNumber(row.grandTotal) : ''}</td>`);
+      cells.push(`<td class="ms-qty-cell ms-total-cell">${hasData ? U.formatNumber(row.grandTotal) : ''}</td>`);
       // MoM
-      cells.push(`<td class="ms-share-cell">${hasData ? fmtPct(row.mom) : ''}</td>`);
+      cells.push(`<td class="ms-share-cell ms-mom-cell">${hasData ? fmtPct(row.mom) : ''}</td>`);
       // YoY
-      cells.push(`<td class="ms-share-cell">${hasData ? fmtPct(row.yoy) : ''}</td>`);
+      cells.push(`<td class="ms-share-cell ms-yoy-cell">${hasData ? fmtPct(row.yoy) : ''}</td>`);
 
       // Estimasi Closing — only the row matching estimasiClosing.monthName
       let estHtml = '';
       if (estimasiClosing && estimasiClosing.monthName === row.month) {
         estHtml = `<strong>${U.formatNumber(estimasiClosing.value)}</strong>\n${estimasiClosing.daysElapsed}/${estimasiClosing.daysInMonth} hari`;
       }
-      cells.push(`<td class="ms-special-cell">${estHtml}</td>`);
+      cells.push(`<td class="ms-est-cell">${estHtml}</td>`);
 
       // Growth — MERGED across all 12 rows. Only render the cell on the FIRST row
       // with rowspan = total number of months. Other rows skip this column.
       if (idx === 0) {
-        cells.push(`<td class="ms-special-cell ms-growth-cell" rowspan="${rows.length}">${growthMergedHtml}</td>`);
+        cells.push(`<td class="ms-growth-cell" rowspan="${rows.length}">${growthMergedHtml}</td>`);
       }
 
-      body += `<tr>${cells.join('')}</tr>`;
+      const rowCls = hasData ? '' : ' class="ms-empty-row"';
+      body += `<tr${rowCls}>${cells.join('')}</tr>`;
     });
 
     // ----- GRAND TOTAL ROW -----
     const grandCells = [];
-    grandCells.push(`<td class="month-cell">Grand Total</td>`);
+    grandCells.push(`<td class="ms-bulan-cell">Grand Total</td>`);
     for (const c of brandCols) {
       const qty = grandRow.qtyPerBrand[c.key] || 0;
       const share = grandRow.sharePerBrand[c.key] || 0;
       grandCells.push(`<td class="ms-qty-cell">${U.formatNumber(qty)}</td>`);
       grandCells.push(`<td class="ms-share-cell">${share.toFixed(2)}%</td>`);
     }
-    grandCells.push(`<td class="ms-qty-cell">${U.formatNumber(grandRow.grandTotal)}</td>`);
-    grandCells.push(`<td class="ms-share-cell"></td>`);
-    grandCells.push(`<td class="ms-share-cell"></td>`);
-    grandCells.push(`<td class="ms-special-cell"></td>`);
-    grandCells.push(`<td class="ms-special-cell"></td>`); // Growth column placeholder for tfoot row
+    grandCells.push(`<td class="ms-qty-cell ms-total-cell">${U.formatNumber(grandRow.grandTotal)}</td>`);
+    grandCells.push(`<td class="ms-share-cell ms-mom-cell"></td>`);
+    grandCells.push(`<td class="ms-share-cell ms-yoy-cell"></td>`);
+    grandCells.push(`<td class="ms-est-cell"></td>`);
+    grandCells.push(`<td class="ms-growth-cell"></td>`); // Growth column placeholder for tfoot row
 
     table.innerHTML =
       `<thead>${headRow1}${headRow2}</thead>` +
