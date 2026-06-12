@@ -56,14 +56,9 @@
       juta: '__all__',
       tahun: '__all__',
       cekInk: '__all__',
+      msCategory: '__all__',  // Marketshare table category sub-tab
       search: '',
     },
-    table: {
-      page: 1,
-      pageSize: 25,
-      sort: { key: 'tgl', dir: 'desc' },
-      cache: [],
-    }
   };
 
   // ============================================================
@@ -219,20 +214,19 @@
   }
 
   // ============================================================
-  // Year pills (header) — visual indicator: cached (green ⚡) vs live (red ●)
+  // Year pills (header) — VISUAL INDICATOR ONLY (not clickable)
+  // Cached (green ⚡) vs Live (red ●). Year filter is via dropdown.
   // ============================================================
   function renderYearPills() {
     const wrap = document.getElementById('year-pills');
     if (!wrap) return;
     const years = [...new Set(state.records.map(r => r.year).filter(Boolean))].sort();
     if (!years.length) { wrap.innerHTML = ''; return; }
-    const active = state.filters.tahun;
     // Build a map of which year came from cache (uses last fetch's source info)
     const cachedYears = new Set((state.sources || []).filter(s => s.fromCache).map(s => s.label));
 
     wrap.innerHTML = years.map(y => {
       const yStr = String(y);
-      const isActive = String(active) === yStr;
       const isCached = cachedYears.has(yStr);
       const stateClass = isCached ? 'cached' : 'live';
       const iconHtml = isCached
@@ -240,22 +234,13 @@
         : '<span class="pill-dot"></span>';
       const tip = isCached ? `Cached locally — klik tombol Clear Cache untuk re-fetch` : `Live — fetched fresh setiap reload`;
       return `
-        <button class="year-pill ${stateClass} ${isActive ? 'active' : ''}" data-year="${y}" title="${tip}">
+        <span class="year-pill ${stateClass}" data-year="${y}" title="${tip}">
           ${iconHtml}
           <span>${y}</span>
-        </button>
+        </span>
       `;
     }).join('');
-    wrap.querySelectorAll('.year-pill').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const y = btn.dataset.year;
-        state.filters.tahun = (String(state.filters.tahun) === y) ? '__all__' : y;
-        const sel = document.getElementById('filter-tahun');
-        if (sel) sel.value = state.filters.tahun;
-        renderYearPills();
-        render();
-      });
-    });
+    // No click handler — pills are purely visual indicators.
   }
 
   // ============================================================
@@ -287,8 +272,6 @@
       state.filters.tahun = '__all__';
       state.filters.cekInk = '__all__';
       state.filters.search = '';
-      const search = document.getElementById('table-search');
-      if (search) search.value = '';
       populateFilters();
       renderYearPills();
       render();
@@ -312,10 +295,17 @@
   bindFilter('filter-juta', 'juta');
   bindFilter('filter-cekink', 'cekInk');
 
-  document.getElementById('table-search').addEventListener('input', (e) => {
-    state.filters.search = e.target.value;
-    state.table.page = 1;
-    renderTable();
+  // ============================================================
+  // Marketshare category sub-tabs (Semua / Gaming / Non Gaming)
+  // ============================================================
+  document.addEventListener('click', (e) => {
+    const tab = e.target.closest('.ms-tab');
+    if (!tab) return;
+    state.filters.msCategory = tab.dataset.cat || '__all__';
+    document.querySelectorAll('.ms-tab').forEach(t => {
+      t.classList.toggle('active', t.dataset.cat === state.filters.msCategory);
+    });
+    renderMarketshare();
   });
 
   // ============================================================
@@ -357,7 +347,6 @@
         state.filters.brand = '__all__';
         state.filters.juta = '__all__';
         state.filters.cekInk = '__all__';
-        state.table.page = 1;
         renderDeptTabs();
         populateFilters();
         render();
@@ -485,20 +474,13 @@
       }
     }
 
-    // KPIs
-    const sum = A.summary(filtered);
-    const sumAll = A.summary(state.records);
-    document.getElementById('kpi-revenue').textContent = U.formatIDR(sum.revenue);
-    document.getElementById('kpi-revenue-sub').textContent = sumAll.revenue ? `${(sum.revenue / sumAll.revenue * 100).toFixed(1)}% dari total` : '—';
-    document.getElementById('kpi-qty').textContent = U.formatNumber(sum.qty);
-    document.getElementById('kpi-qty-sub').textContent = sumAll.qty ? `${(sum.qty / sumAll.qty * 100).toFixed(1)}% dari total` : '—';
-    document.getElementById('kpi-trx').textContent = U.formatNumber(sum.trx);
-    document.getElementById('kpi-trx-sub').textContent = sumAll.trx ? `${(sum.trx / sumAll.trx * 100).toFixed(1)}% dari total` : '—';
-    document.getElementById('kpi-avg').textContent = U.formatIDR(sum.avg);
-    document.getElementById('kpi-avg-sub').textContent = sum.lines + ' baris transaksi';
+    // KPIs removed — totals are conveyed via dept tabs and YoY card.
 
     // YoY chart — uses filtered (already scoped to active dept)
     renderYoy(filtered);
+
+    // Marketshare per Brand (monthly detail table) — sits below YoY card.
+    renderMarketshare();
 
     // Single-line trend (just for active dept)
     Ch.trendChart(A.monthlyTrend(filtered, { byDept: false }));
@@ -527,8 +509,6 @@
       );
       Ch.pieChart('chart-ink', inkAgg);
     }
-
-    renderTable(filtered);
   }
 
   function setText(id, text) {
@@ -604,82 +584,181 @@
   }
 
   // ============================================================
-  // Detail table
+  // Marketshare per Brand — Detail Bulanan (table)
   // ============================================================
-  document.querySelectorAll('th[data-sort]').forEach(th => {
-    th.addEventListener('click', () => {
-      const k = th.dataset.sort;
-      if (state.table.sort.key === k) state.table.sort.dir = state.table.sort.dir === 'asc' ? 'desc' : 'asc';
-      else { state.table.sort.key = k; state.table.sort.dir = 'asc'; }
-      renderTable();
+  function renderMarketshare() {
+    const card = document.getElementById('marketshare-card');
+    if (!card) return;
+
+    // Determine focus year: most recent year present in data; need at least 1 year.
+    const yearsInData = [...new Set(state.records.map(r => r.year).filter(Boolean))].sort((a,b) => a - b);
+    if (!yearsInData.length) { card.classList.add('hidden'); return; }
+    const focusYear = yearsInData[yearsInData.length - 1];
+    const prevYear = focusYear - 1;
+
+    const dept = state.filters.dept;
+    const category = state.filters.msCategory || '__all__';
+
+    // For the marketshare aggregation we ignore the bulan filter (always show 12 months)
+    // and ignore the brand/kota/juta filters too — but we DO honor dept and the
+    // category (Gaming/Non Gaming) sub-tab. The dept filter scopes which records
+    // we look at; categories drill further.
+    const data = A.marketshareTable(state.records, {
+      year: focusYear,
+      prevYear,
+      dept,
+      category,
+      topN: 8,
     });
-  });
-  document.getElementById('btn-prev-page').addEventListener('click', () => {
-    if (state.table.page > 1) { state.table.page--; renderTable(); }
-  });
-  document.getElementById('btn-next-page').addEventListener('click', () => {
-    state.table.page++; renderTable();
-  });
 
-  function renderTable(prefiltered) {
-    const filtered = prefiltered || A.filterRecords(state.records, state.filters);
-    const { key, dir } = state.table.sort;
-    const sgn = dir === 'asc' ? 1 : -1;
-    const sorted = [...filtered].sort((a, b) => {
-      let av = a[key], bv = b[key];
-      if (key === 'tgl') { av = av ? av.getTime() : 0; bv = bv ? bv.getTime() : 0; }
-      if (typeof av === 'number' && typeof bv === 'number') return sgn * (av - bv);
-      return sgn * String(av || '').localeCompare(String(bv || ''));
+    if (!data || !data.topBrands.length) {
+      card.classList.add('hidden');
+      return;
+    }
+    card.classList.remove('hidden');
+
+    // Period banner
+    const categoryLabel = category === '__all__' ? 'Semua' : category;
+    const banner = document.getElementById('ms-period-banner');
+    if (banner) {
+      banner.innerHTML = `<span>📊 Tahun <strong>${focusYear}</strong> · YoY dibandingkan <strong>${prevYear}</strong> · Kategori: <strong>${escapeHtml(categoryLabel)}</strong></span>`;
+    }
+
+    // Sync active state of category tabs
+    document.querySelectorAll('.ms-tab').forEach(t => {
+      t.classList.toggle('active', t.dataset.cat === category);
     });
 
-    state.table.cache = sorted;
-    const total = sorted.length;
-    const pages = Math.max(1, Math.ceil(total / state.table.pageSize));
-    if (state.table.page > pages) state.table.page = pages;
-    const start = (state.table.page - 1) * state.table.pageSize;
-    const slice = sorted.slice(start, start + state.table.pageSize);
-
-    const tbody = document.getElementById('table-body');
-    tbody.innerHTML = slice.map(r => `
-      <tr>
-        <td>${r.tgl ? U.formatDate(r.tgl) : (r.tglRaw || '—')}</td>
-        <td class="font-mono text-xs">${escapeHtml(r.noDok)}</td>
-        <td>${escapeHtml(r.kota)}</td>
-        <td><span class="${U.deptChipClass(r.dept)}">${escapeHtml(r.dept)}</span></td>
-        <td>${escapeHtml(r.brand)}</td>
-        <td class="max-w-xs truncate" title="${escapeAttr(r.namaBarang)}">${escapeHtml(r.namaBarang)}</td>
-        <td class="text-right">${U.formatNumber(r.qty)}</td>
-        <td class="text-right font-medium">${U.formatIDR(r.total)}</td>
-        <td class="font-mono text-xs">${escapeHtml(r.kodeSales)}</td>
-      </tr>
-    `).join('');
-
-    document.getElementById('table-info').textContent = `${total.toLocaleString('id-ID')} baris`;
-    document.getElementById('page-info').textContent = `${state.table.page} / ${pages}`;
-    document.getElementById('btn-prev-page').disabled = state.table.page <= 1;
-    document.getElementById('btn-next-page').disabled = state.table.page >= pages;
-
-    document.querySelectorAll('th[data-sort]').forEach(th => {
-      th.classList.remove('sort-asc', 'sort-desc');
-      if (th.dataset.sort === key) th.classList.add(dir === 'asc' ? 'sort-asc' : 'sort-desc');
-    });
+    renderMarketshareTableHtml(data);
   }
 
-  // Export filtered table to CSV
-  document.getElementById('btn-export-csv').addEventListener('click', () => {
-    const rows = state.table.cache.length ? state.table.cache : A.filterRecords(state.records, state.filters);
-    const headers = ['Tgl','No Dok','Kota','Dept','Brand','Nama Barang','Qty','Harga','Diskon','Total','Sales','Tahun'];
-    const lines = [headers.join(',')];
-    for (const r of rows) {
-      lines.push([
-        r.tgl ? r.tgl.toISOString().slice(0,10) : (r.tglRaw || ''),
-        r.noDok, r.kota, r.dept, r.brand, r.namaBarang,
-        r.qty, r.harga, r.diskon, r.total, r.kodeSales, r.year || ''
-      ].map(U.csvEscape).join(','));
+  // Brand color palette (cycled) for the brand-row column headers.
+  const BRAND_COLORS = ['#a16207', '#991b1b', '#14532d', '#475569', '#1e3a8a', '#9a3412', '#9f1239', '#0c4a6e'];
+  const COLOR_OTHER = '#6d28d9';
+  const COLOR_GRAND = '#1e293b';
+  const COLOR_MOM   = '#7c2d12';
+  const COLOR_YOY   = '#831843';
+  const COLOR_EST   = '#1e1b4b';
+  const COLOR_GROW  = '#064e3b';
+
+  function fmtPct(v, decimals = 2) {
+    if (v === null || v === undefined || isNaN(v)) return '-';
+    const arrow = v >= 0 ? '▲' : '▼';
+    const cls = v >= 0 ? 'ms-up' : 'ms-down';
+    return `<span class="${cls}">${arrow} ${Math.abs(v).toFixed(decimals)}%</span>`;
+  }
+
+  function fmtShareDelta(delta) {
+    // Tiny epsilon: anything under ~0.005 considered flat
+    if (delta === null || delta === undefined || isNaN(delta)) return '';
+    if (Math.abs(delta) < 0.005) return '';
+    const arrow = delta >= 0 ? '▲' : '▼';
+    const cls = delta >= 0 ? 'ms-up' : 'ms-down';
+    return ` <span class="${cls}">${arrow}</span>`;
+  }
+
+  function renderMarketshareTableHtml(data) {
+    const table = document.getElementById('ms-table');
+    if (!table) return;
+    const { topBrands, otherCount, rows, grandRow, estimasiClosing, growth, yearLabel, prevYearLabel } = data;
+
+    // Build column list: [...topBrands, _OTHER, GRAND, MOM, YOY, EST, GROWTH]
+    const brandCols = topBrands.map((b, i) => ({
+      key: b,
+      label: b,
+      color: BRAND_COLORS[i % BRAND_COLORS.length],
+    }));
+    if (otherCount > 0) {
+      brandCols.push({ key: '__other__', label: `OTHER (${otherCount})`, color: COLOR_OTHER });
     }
-    const ts = new Date().toISOString().slice(0,10);
-    U.downloadText(`paretopc-export-${ts}.csv`, '\uFEFF' + lines.join('\n'), 'text/csv;charset=utf-8');
-  });
+
+    // ----- HEAD -----
+    let headRow1 = `<tr class="brand-row"><th rowspan="2" style="background:${COLOR_GRAND};min-width:90px">Bulan</th>`;
+    for (const c of brandCols) {
+      headRow1 += `<th colspan="2" style="background:${c.color}">${escapeHtml(c.label)}</th>`;
+    }
+    headRow1 += `<th rowspan="2" style="background:${COLOR_GRAND}">Grand<br>Total</th>`;
+    headRow1 += `<th rowspan="2" style="background:${COLOR_MOM}">MoM<br><small>${yearLabel}</small></th>`;
+    headRow1 += `<th rowspan="2" style="background:${COLOR_YOY}">YoY<br><small>vs ${prevYearLabel}</small></th>`;
+    headRow1 += `<th rowspan="2" style="background:${COLOR_EST}">Estimasi<br>Closing</th>`;
+    headRow1 += `<th rowspan="2" style="background:${COLOR_GROW}">Growth<br><small>${yearLabel} vs ${prevYearLabel}</small></th>`;
+    headRow1 += `</tr>`;
+
+    let headRow2 = `<tr class="subhead">`;
+    for (let i = 0; i < brandCols.length; i++) {
+      headRow2 += `<th>QTY</th><th>%</th>`;
+    }
+    headRow2 += `</tr>`;
+
+    // ----- BODY -----
+    let body = '';
+    rows.forEach((row, idx) => {
+      const cells = [];
+      // Month label cell (gradient pink/purple)
+      cells.push(`<td class="month-cell">${escapeHtml(row.month)}</td>`);
+
+      const hasData = row.grandTotal > 0;
+      for (const c of brandCols) {
+        const qty = row.qtyPerBrand[c.key] || 0;
+        const share = row.sharePerBrand[c.key];
+        const delta = row.shareDelta ? row.shareDelta[c.key] : null;
+        if (!hasData) {
+          cells.push(`<td class="ms-qty-cell ms-empty">-</td><td class="ms-share-cell ms-empty">-</td>`);
+        } else {
+          cells.push(`<td class="ms-qty-cell">${U.formatNumber(qty)}</td>`);
+          cells.push(`<td class="ms-share-cell">${(share || 0).toFixed(2)}%${fmtShareDelta(delta)}</td>`);
+        }
+      }
+      // Grand Total
+      cells.push(`<td class="ms-qty-cell">${hasData ? U.formatNumber(row.grandTotal) : '-'}</td>`);
+      // MoM
+      cells.push(`<td class="ms-share-cell">${hasData ? fmtPct(row.mom) : '-'}</td>`);
+      // YoY
+      cells.push(`<td class="ms-share-cell">${hasData ? fmtPct(row.yoy) : '-'}</td>`);
+
+      // Estimasi Closing — only the row matching estimasiClosing.monthName
+      let estHtml = '-';
+      if (estimasiClosing && estimasiClosing.monthName === row.month) {
+        estHtml = `<strong>${U.formatNumber(estimasiClosing.value)}</strong>\n${estimasiClosing.daysElapsed}/${estimasiClosing.daysInMonth} hari`;
+      }
+      cells.push(`<td class="ms-special-cell">${estHtml}</td>`);
+
+      // Growth — only the row matching estimasiClosing.monthName (or last month with data)
+      let growthHtml = '-';
+      if (growth && growth.anchorMonth === row.month) {
+        const gpct = growth.pct;
+        const arrow = (gpct === null || gpct === undefined) ? '' : (gpct >= 0 ? '▲' : '▼');
+        const cls = (gpct === null || gpct === undefined) ? '' : (gpct >= 0 ? 'ms-up' : 'ms-down');
+        const headLine = (gpct === null || gpct === undefined)
+          ? '<span class="ms-empty">-</span>'
+          : `<span class="${cls}"><strong>${arrow} ${Math.abs(gpct).toFixed(2)}%</strong></span>`;
+        growthHtml = `${headLine}\n${growth.periodLabel}${growth.note ? '\n' + growth.note : ''}`;
+      }
+      cells.push(`<td class="ms-special-cell">${growthHtml}</td>`);
+
+      body += `<tr>${cells.join('')}</tr>`;
+    });
+
+    // ----- GRAND TOTAL ROW -----
+    const grandCells = [];
+    grandCells.push(`<td class="month-cell">Grand Total</td>`);
+    for (const c of brandCols) {
+      const qty = grandRow.qtyPerBrand[c.key] || 0;
+      const share = grandRow.sharePerBrand[c.key] || 0;
+      grandCells.push(`<td class="ms-qty-cell">${U.formatNumber(qty)}</td>`);
+      grandCells.push(`<td class="ms-share-cell">${share.toFixed(2)}%</td>`);
+    }
+    grandCells.push(`<td class="ms-qty-cell">${U.formatNumber(grandRow.grandTotal)}</td>`);
+    grandCells.push(`<td class="ms-share-cell">-</td>`);
+    grandCells.push(`<td class="ms-share-cell">-</td>`);
+    grandCells.push(`<td class="ms-special-cell">-</td>`);
+    grandCells.push(`<td class="ms-special-cell">-</td>`);
+
+    table.innerHTML =
+      `<thead>${headRow1}${headRow2}</thead>` +
+      `<tbody>${body}</tbody>` +
+      `<tfoot><tr class="ms-grand-row">${grandCells.join('')}</tr></tfoot>`;
+  }
 
   // ============================================================
   // Boot — fetch fresh on every page open

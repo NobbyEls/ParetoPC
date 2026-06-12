@@ -165,7 +165,7 @@ html:not(.dark) .th:hover { color: #6366f1 !important; }
 .filter-card-sticky {
   border-radius: 0 !important;
   margin-bottom: 0 !important;
-  padding: 12px 18px !important;
+  padding: 0.85rem 1.25rem !important;
   background: var(--bg-card) !important;
   backdrop-filter: blur(20px) saturate(180%);
   -webkit-backdrop-filter: blur(20px) saturate(180%);
@@ -180,7 +180,7 @@ html:not(.dark) .th:hover { color: #6366f1 !important; }
   border: 2px solid var(--border-medium) !important;
   border-top: none !important;
   border-radius: 0 0 10px 10px !important;
-  padding: 12px 18px;
+  padding: 0.75rem 1.25rem;
   margin-bottom: 0 !important;
 }
 
@@ -204,12 +204,14 @@ html:not(.dark) .th:hover { color: #6366f1 !important; }
   background: transparent;
   color: var(--text-secondary);
   border: 1px solid var(--border-bright);
-  cursor: pointer;
+  cursor: default;          /* read-only indicator */
+  pointer-events: none;     /* prevent interaction */
   transition: all 0.18s ease;
   font-variant-numeric: tabular-nums;
 }
 .year-pill:hover {
-  transform: translateY(-1px);
+  /* no-op since pointer-events:none, but keep for safety */
+  transform: none;
 }
 .year-pill .pill-icon {
   width: 12px; height: 12px;
@@ -466,7 +468,7 @@ select {
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--text-muted);
-  margin-bottom: 4px;
+  margin-bottom: 0.5rem;
   display: block;
 }
 
@@ -719,3 +721,134 @@ thead.bg-slate-100, thead.dark\:bg-slate-900\/50 {
    Footer
    ============================================================ */
 footer { color: var(--text-muted); }
+
+
+/* ============================================================
+   MARKETSHARE TABLE (per Brand · per Bulan)
+   ============================================================ */
+.ms-tab-group {
+  display: flex;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--border-medium);
+  border-radius: 10px;
+  padding: 3px;
+  gap: 2px;
+}
+.ms-tab {
+  padding: 6px 14px;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--text-muted);
+  border: none;
+  cursor: pointer;
+  font-size: 0.78rem;
+  font-weight: 600;
+  transition: all 0.15s;
+}
+.ms-tab:hover { color: var(--text-primary); }
+.ms-tab.active {
+  background: linear-gradient(135deg, #ec4899, #a855f7);
+  color: white;
+  box-shadow: 0 2px 8px rgba(236,72,153,0.3);
+}
+
+.ms-period-banner {
+  padding: 8px 14px;
+  background: rgba(99,102,241,0.08);
+  border: 1px solid rgba(99,102,241,0.2);
+  border-radius: 8px;
+  margin-bottom: 12px;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.ms-table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--border-medium);
+  border-radius: 10px;
+  background: rgba(0,0,0,0.15);
+}
+.ms-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.78rem;
+  font-variant-numeric: tabular-nums;
+}
+.ms-table th, .ms-table td {
+  padding: 8px 10px;
+  text-align: center;
+  border-right: 1px solid var(--border-subtle);
+}
+.ms-table thead tr.brand-row th {
+  font-size: 0.7rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: white;
+  padding: 10px 8px;
+}
+.ms-table thead tr.subhead th {
+  font-size: 0.6rem;
+  color: var(--text-muted);
+  padding: 4px 10px;
+  background: rgba(0,0,0,0.3);
+  font-weight: 600;
+}
+.ms-table tbody td { background: rgba(0,0,0,0.1); }
+.ms-table tbody td.month-cell {
+  background: linear-gradient(135deg, #ec4899, #a855f7);
+  color: white;
+  font-weight: 700;
+  padding: 12px 10px;
+}
+.ms-table tbody tr:hover td:not(.month-cell) { background: rgba(255,255,255,0.03); }
+.ms-up    { color: #34d399; }
+.ms-down  { color: #f87171; }
+.ms-empty { color: var(--text-muted); }
+
+.ms-grand-row td {
+  font-weight: 700;
+  background: rgba(168,85,247,0.08) !important;
+  border-top: 2px solid var(--border-strong);
+}
+.ms-grand-row td.month-cell {
+  background: linear-gradient(135deg, #ec4899, #a855f7) !important;
+}
+
+.ms-qty-cell    { font-weight: 700; font-size: 0.82rem; }
+.ms-share-cell  { font-size: 0.7rem; }
+.ms-special-cell {
+  font-size: 0.72rem;
+  color: var(--text-secondary);
+  white-space: pre-line;
+  line-height: 1.4;
+}
+
+/* Light-mode tweaks */
+html:not(.dark) .ms-period-banner {
+  background: #eef2ff;
+  border-color: #c7d2fe;
+  color: #3730a3;
+}
+html:not(.dark) .ms-table-wrap {
+  background: #ffffff;
+  border-color: #e2e8f0;
+}
+html:not(.dark) .ms-table tbody td {
+  background: #ffffff;
+  color: #1e293b;
+}
+html:not(.dark) .ms-table thead tr.subhead th {
+  background: #f1f5f9;
+  color: #64748b;
+}
+html:not(.dark) .ms-grand-row td {
+  background: #faf5ff !important;
+  color: #1e293b;
+}
+html:not(.dark) .ms-tab-group {
+  background: #f1f5f9;
+  border-color: #e2e8f0;
+}
+html:not(.dark) .ms-tab { color: #64748b; }
+html:not(.dark) .ms-tab:hover { color: #1e293b; }

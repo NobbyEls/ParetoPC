@@ -34,7 +34,7 @@
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.6/dist/chart.umd.min.js"></script>
 
-  <link rel="stylesheet" href="css/style.css?v=15" />
+  <link rel="stylesheet" href="css/style.css?v=16" />
 </head>
 <body class="bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 font-sans antialiased min-h-screen">
 
@@ -165,29 +165,7 @@
         </div>
       </div>
 
-      <!-- KPI Cards -->
-      <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div class="kpi-card bg-gradient-to-br from-indigo-500 to-indigo-700 text-white">
-          <p class="kpi-label">Total Omzet</p>
-          <p class="kpi-value" id="kpi-revenue">Rp 0</p>
-          <p class="kpi-sub" id="kpi-revenue-sub">—</p>
-        </div>
-        <div class="kpi-card bg-gradient-to-br from-emerald-500 to-emerald-700 text-white">
-          <p class="kpi-label">Total Qty</p>
-          <p class="kpi-value" id="kpi-qty">0</p>
-          <p class="kpi-sub" id="kpi-qty-sub">—</p>
-        </div>
-        <div class="kpi-card bg-gradient-to-br from-amber-500 to-orange-600 text-white">
-          <p class="kpi-label">Jumlah Transaksi</p>
-          <p class="kpi-value" id="kpi-trx">0</p>
-          <p class="kpi-sub" id="kpi-trx-sub">—</p>
-        </div>
-        <div class="kpi-card bg-gradient-to-br from-fuchsia-500 to-pink-600 text-white">
-          <p class="kpi-label">Rata-rata Transaksi</p>
-          <p class="kpi-value" id="kpi-avg">Rp 0</p>
-          <p class="kpi-sub" id="kpi-avg-sub">—</p>
-        </div>
-      </div>
+      <!-- KPI Cards removed (Total Omzet / Qty / Trx / Avg) -->
 
       <!-- YoY Comparison (full width) -->
       <div id="yoy-card" class="chart-card hidden">
@@ -199,6 +177,25 @@
           <div id="yoy-summary" class="text-sm"></div>
         </div>
         <div class="chart-body chart-body-tall"><canvas id="chart-yoy"></canvas></div>
+      </div>
+
+      <!-- Marketshare per Brand — Detail Bulanan (table) -->
+      <div id="marketshare-card" class="chart-card hidden">
+        <div class="chart-header flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h3 class="chart-title">Marketshare per Brand — Detail Bulanan</h3>
+            <p class="chart-sub">Growth, MoM, YoY, dan estimasi closing per brand. Pilih kategori di tab.</p>
+          </div>
+          <div id="ms-category-tabs" class="ms-tab-group">
+            <button class="ms-tab active" data-cat="__all__">Semua</button>
+            <button class="ms-tab" data-cat="Gaming">Gaming</button>
+            <button class="ms-tab" data-cat="Non Gaming">Non Gaming</button>
+          </div>
+        </div>
+        <div id="ms-period-banner" class="ms-period-banner"></div>
+        <div class="ms-table-wrap">
+          <table id="ms-table" class="ms-table"></table>
+        </div>
       </div>
 
       <!-- Row 1: Trend + Mix Brand -->
@@ -283,47 +280,7 @@
         </div>
       </div>
 
-      <!-- Detail Table -->
-      <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
-        <div class="p-4 flex flex-wrap items-center gap-3 justify-between border-b border-slate-200 dark:border-slate-700">
-          <div>
-            <h3 class="font-semibold">Detail Transaksi</h3>
-            <p class="text-xs text-slate-500 dark:text-slate-400">Filter aktif diterapkan · klik header untuk sort</p>
-          </div>
-          <div class="flex items-center gap-2">
-            <input id="table-search" type="text" placeholder="Cari (produk, brand, sales...)" class="text-sm bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 w-56" />
-            <button id="btn-export-csv" class="text-sm px-3 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-medium">
-              ⬇ Export CSV
-            </button>
-          </div>
-        </div>
-        <div class="overflow-x-auto">
-          <table class="w-full text-sm">
-            <thead class="bg-slate-100 dark:bg-slate-900/50 text-xs uppercase tracking-wide text-slate-600 dark:text-slate-400">
-              <tr>
-                <th class="th" data-sort="tgl">Tgl</th>
-                <th class="th" data-sort="noDok">No Dok</th>
-                <th class="th" data-sort="kota">Kota</th>
-                <th class="th" data-sort="dept">Dept</th>
-                <th class="th" data-sort="brand">Brand</th>
-                <th class="th" data-sort="namaBarang">Nama Barang</th>
-                <th class="th text-right" data-sort="qty">Qty</th>
-                <th class="th text-right" data-sort="total">Total</th>
-                <th class="th" data-sort="kodeSales">Sales</th>
-              </tr>
-            </thead>
-            <tbody id="table-body"></tbody>
-          </table>
-        </div>
-        <div class="px-4 py-3 flex items-center justify-between text-sm border-t border-slate-200 dark:border-slate-700">
-          <span id="table-info">0 baris</span>
-          <div class="flex items-center gap-2">
-            <button id="btn-prev-page" class="px-3 py-1 rounded bg-slate-100 dark:bg-slate-700 disabled:opacity-50">Prev</button>
-            <span id="page-info" class="text-xs">1 / 1</span>
-            <button id="btn-next-page" class="px-3 py-1 rounded bg-slate-100 dark:bg-slate-700 disabled:opacity-50">Next</button>
-          </div>
-        </div>
-      </div>
+      <!-- Detail Transaksi section removed -->
 
     </section>
 
@@ -332,11 +289,11 @@
     </footer>
   </main>
 
-  <script src="js/utils.js?v=15"></script>
-  <script src="js/parser.js?v=15"></script>
-  <script src="js/sheets.js?v=15"></script>
-  <script src="js/analytics.js?v=15"></script>
-  <script src="js/charts.js?v=15"></script>
-  <script src="js/app.js?v=15"></script>
+  <script src="js/utils.js?v=16"></script>
+  <script src="js/parser.js?v=16"></script>
+  <script src="js/sheets.js?v=16"></script>
+  <script src="js/analytics.js?v=16"></script>
+  <script src="js/charts.js?v=16"></script>
+  <script src="js/app.js?v=16"></script>
 </body>
 </html>

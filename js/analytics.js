@@ -208,9 +208,250 @@ PC.analytics = (() => {
     return aggBy(records, keyFn).slice(0, n);
   }
 
+  // ============================================================
+  // MARKETSHARE TABLE — Per Brand · Per Bulan (12 months) · Growth
+  // ============================================================
+  const MS_MONTHS = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+
+  function _daysInMonth(monthIdx, year) {
+    if (monthIdx === 1) {
+      const isLeap = (year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0));
+      return isLeap ? 29 : 28;
+    }
+    return [31,28,31,30,31,30,31,31,30,31,30,31][monthIdx];
+  }
+
+  /**
+   * Build a marketshare matrix for a single year, with QTY & share% per brand
+   * per month, plus MoM/YoY/EstimasiClosing/Growth on the GRAND TOTAL.
+   *
+   * Filters used: dept, category (cekPc). bulan/brand filters are intentionally
+   * ignored because the table itself is a per-month, per-brand breakdown.
+   *
+   * @param {Array} records  Full records dataset.
+   * @param {Object} opts    { year, prevYear, dept, category, topN }
+   * @returns marketshare data object (see briefing for shape).
+   */
+  function marketshareTable(records, opts = {}) {
+    const { year, prevYear, dept, category = '__all__', topN: nBrands = 8 } = opts;
+    if (!year) return null;
+
+    // Filter by dept + category
+    const matchScope = (r) => {
+      if (dept && dept !== '__all__' && r.dept !== dept) return false;
+      if (category && category !== '__all__' && r.cekPc !== category) return false;
+      return true;
+    };
+
+    const curYear = records.filter(r => r.year === year && matchScope(r));
+    const prvYear = records.filter(r => r.year === prevYear && matchScope(r));
+
+    if (!curYear.length) {
+      return {
+        topBrands: [], otherCount: 0, rows: [], grandRow: { qtyPerBrand: {}, sharePerBrand: {}, grandTotal: 0 },
+        estimasiClosing: null, growth: null,
+        yearLabel: String(year), prevYearLabel: String(prevYear),
+      };
+    }
+
+    // Compute total qty per brand in current year — pick top N.
+    const brandTotals = new Map();
+    for (const r of curYear) {
+      const k = r.brand || 'Unknown';
+      brandTotals.set(k, (brandTotals.get(k) || 0) + (r.qty || 0));
+    }
+    const sortedBrands = [...brandTotals.entries()].sort((a, b) => b[1] - a[1]);
+    const topBrands = sortedBrands.slice(0, nBrands).map(([k]) => k);
+    const otherBrands = sortedBrands.slice(nBrands).map(([k]) => k);
+    const otherSet = new Set(otherBrands);
+    const otherCount = otherBrands.length;
+
+    const allKeys = [...topBrands, '__other__'];
+
+    // Per-month matrix for current year
+    const matrix = {};   // matrix[monthIdx][brandKey] = qty
+    const monthMaxDay = new Array(12).fill(0);
+    for (let i = 0; i < 12; i++) {
+      matrix[i] = {};
+      for (const k of allKeys) matrix[i][k] = 0;
+    }
+    for (const r of curYear) {
+      const mIdx = MS_MONTHS.indexOf(r.bulan);
+      if (mIdx < 0) continue;
+      const key = topBrands.includes(r.brand) ? r.brand : (otherSet.has(r.brand) ? '__other__' : '__other__');
+      matrix[mIdx][key] = (matrix[mIdx][key] || 0) + (r.qty || 0);
+      // Track latest day in each month for estimasi closing
+      if (r.tgl instanceof Date && !isNaN(r.tgl)) {
+        const day = r.tgl.getDate();
+        if (day > monthMaxDay[mIdx]) monthMaxDay[mIdx] = day;
+      }
+    }
+
+    // Per-month grand totals for previous year
+    const prvMonthGrand = new Array(12).fill(0);
+    for (const r of prvYear) {
+      const mIdx = MS_MONTHS.indexOf(r.bulan);
+      if (mIdx < 0) continue;
+      prvMonthGrand[mIdx] += (r.qty || 0);
+    }
+
+    // Find latest month with data + decide which (if any) is the running month.
+    let latestMonth = -1;
+    for (let i = 0; i < 12; i++) if (monthMaxDay[i] > 0) latestMonth = i;
+    const today = new Date();
+    const isCurrentCalendarYear = (year === today.getFullYear());
+    let runningMonthIdx = -1;
+    if (latestMonth >= 0 && isCurrentCalendarYear) {
+      const totalDays = _daysInMonth(latestMonth, year);
+      if (monthMaxDay[latestMonth] < totalDays) runningMonthIdx = latestMonth;
+    }
+
+    // Build rows: 12 months. Track previous-month share to compute shareDelta.
+    let prevSharePerBrand = {}; // last month's share per brand
+    let prevMonthGrandTotal = null; // for MoM
+    const rows = [];
+
+    // Optional: seed prevSharePerBrand with prior year's December shares so
+    // January comparison isn't always blank.
+    const prvDecPerBrand = {};
+    for (const k of allKeys) prvDecPerBrand[k] = 0;
+    let prvDecGrand = 0;
+    for (const r of prvYear) {
+      if (r.bulan !== 'Desember') continue;
+      const key = topBrands.includes(r.brand) ? r.brand : '__other__';
+      prvDecPerBrand[key] += (r.qty || 0);
+      prvDecGrand += (r.qty || 0);
+    }
+    if (prvDecGrand > 0) {
+      for (const k of allKeys) prevSharePerBrand[k] = (prvDecPerBrand[k] / prvDecGrand) * 100;
+      prevMonthGrandTotal = prvDecGrand;
+    }
+
+    for (let i = 0; i < 12; i++) {
+      const qtyPerBrand = {};
+      let monthTotal = 0;
+      for (const k of allKeys) {
+        qtyPerBrand[k] = matrix[i][k] || 0;
+        monthTotal += qtyPerBrand[k];
+      }
+      const hasData = monthTotal > 0;
+
+      const sharePerBrand = {};
+      const shareDelta = {};
+      for (const k of allKeys) {
+        sharePerBrand[k] = monthTotal > 0 ? (qtyPerBrand[k] / monthTotal) * 100 : 0;
+        const prv = prevSharePerBrand[k];
+        shareDelta[k] = (prv === undefined || prv === null) ? null : (sharePerBrand[k] - prv);
+      }
+
+      // Use estimasi for running month when computing MoM/YoY anchor value
+      let estClosingValue = null;
+      if (i === runningMonthIdx && hasData) {
+        const totalDays = _daysInMonth(i, year);
+        const elapsed = monthMaxDay[i];
+        if (elapsed > 0) estClosingValue = Math.round(monthTotal * (totalDays / elapsed));
+      }
+
+      const anchorValue = (estClosingValue !== null) ? estClosingValue : monthTotal;
+      let mom = null;
+      if (hasData && prevMonthGrandTotal && prevMonthGrandTotal > 0) {
+        mom = ((anchorValue - prevMonthGrandTotal) / prevMonthGrandTotal) * 100;
+      }
+      let yoy = null;
+      const prvSame = prvMonthGrand[i];
+      if (hasData && prvSame > 0) {
+        yoy = ((anchorValue - prvSame) / prvSame) * 100;
+      }
+
+      rows.push({
+        month: MS_MONTHS[i],
+        monthIdx: i,
+        qtyPerBrand,
+        sharePerBrand,
+        shareDelta,
+        grandTotal: monthTotal,
+        mom,
+        yoy,
+        isLatestMonth: (i === latestMonth),
+      });
+
+      if (hasData) {
+        prevSharePerBrand = { ...sharePerBrand };
+        prevMonthGrandTotal = anchorValue; // chain MoM using estimasi if running
+      }
+    }
+
+    // Grand row (whole year)
+    const grandQtyPerBrand = {};
+    let grandTotal = 0;
+    for (const k of allKeys) {
+      grandQtyPerBrand[k] = 0;
+      for (let i = 0; i < 12; i++) grandQtyPerBrand[k] += matrix[i][k] || 0;
+      grandTotal += grandQtyPerBrand[k];
+    }
+    const grandSharePerBrand = {};
+    for (const k of allKeys) {
+      grandSharePerBrand[k] = grandTotal > 0 ? (grandQtyPerBrand[k] / grandTotal) * 100 : 0;
+    }
+
+    // Estimasi closing payload (only if there is a running month)
+    let estimasiClosing = null;
+    if (runningMonthIdx >= 0) {
+      const totalDays = _daysInMonth(runningMonthIdx, year);
+      const elapsed = monthMaxDay[runningMonthIdx];
+      const monthTotal = rows[runningMonthIdx].grandTotal;
+      if (elapsed > 0 && monthTotal > 0) {
+        estimasiClosing = {
+          value: Math.round(monthTotal * (totalDays / elapsed)),
+          daysElapsed: elapsed,
+          daysInMonth: totalDays,
+          monthName: MS_MONTHS[runningMonthIdx],
+          monthIdx: runningMonthIdx,
+        };
+      }
+    }
+
+    // Cumulative growth: Jan→latest_month, current vs prev year (uses estimasi for running)
+    let growth = null;
+    if (latestMonth >= 0) {
+      let cumCur = 0, cumPrev = 0;
+      for (let i = 0; i <= latestMonth; i++) {
+        const monthTotal = rows[i].grandTotal;
+        if (i === runningMonthIdx && estimasiClosing) cumCur += estimasiClosing.value;
+        else cumCur += monthTotal;
+        cumPrev += prvMonthGrand[i] || 0;
+      }
+      let pct = null;
+      if (cumPrev > 0 && cumCur > 0) pct = ((cumCur - cumPrev) / cumPrev) * 100;
+      const periodLabel = `Jan – ${MS_MONTHS[latestMonth].slice(0,3)} ${year} vs Jan – ${MS_MONTHS[latestMonth].slice(0,3)} ${prevYear}`;
+      const note = (runningMonthIdx === latestMonth && estimasiClosing)
+        ? `(${MS_MONTHS[latestMonth].slice(0,3)}: estimasi closing)`
+        : '';
+      growth = {
+        pct,
+        periodLabel,
+        note,
+        anchorMonth: MS_MONTHS[latestMonth],
+        anchorMonthIdx: latestMonth,
+      };
+    }
+
+    return {
+      topBrands,
+      otherCount,
+      rows,
+      grandRow: { qtyPerBrand: grandQtyPerBrand, sharePerBrand: grandSharePerBrand, grandTotal },
+      estimasiClosing,
+      growth,
+      yearLabel: String(year),
+      prevYearLabel: String(prevYear),
+    };
+  }
+
   return {
     filterRecords, summary, aggBy, aggByDept,
     monthlyTrend, pareto, topN,
     yoyByMonth, yoySummary,
+    marketshareTable,
   };
 })();
