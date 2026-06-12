@@ -98,14 +98,24 @@
         spinRefreshIcon(true);
       }
 
+      const totalSources = SOURCES.length;
+      let completedSources = 0;
+
       const results = await Promise.all(
         SOURCES.map(async (src) => {
           const useCache = !ignoreCache && src.label !== CURRENT_YEAR;
+          setLoadingStatus(`Mengambil data ${src.label}...`);
           try {
             const r = await PC.sheets.loadSheet(src.url, {
               cacheKey: src.label,
               useCache,
             });
+            completedSources++;
+            const pct = Math.round((completedSources / totalSources) * 100);
+            setProgress(pct);
+            setLoadingStatus(completedSources < totalSources
+              ? `Mengambil data ${SOURCES[completedSources] ? SOURCES[completedSources].label : ''}...`
+              : 'Memproses data...');
             return {
               src,
               records: r.records,
@@ -115,6 +125,10 @@
               error: null,
             };
           } catch (e) {
+            completedSources++;
+            const pct = Math.round((completedSources / totalSources) * 100);
+            setProgress(pct);
+            setLoadingDetail(`Gagal memuat ${src.label}`);
             return {
               src,
               records: [],
@@ -162,7 +176,7 @@
       if (silent) U.toast('Gagal refresh: ' + err.message, 'error');
       else showError(err.message || 'Tidak bisa fetch data.');
     } finally {
-      U.hideLoading();
+      hideLoadingOverlay();
       spinRefreshIcon(false);
     }
   }
@@ -174,17 +188,47 @@
   }
 
   function showInitialLoading() {
-    document.getElementById('initial-loading').classList.remove('hidden');
+    const el = document.getElementById('loadingOverlay');
+    if (el) el.classList.remove('hidden');
+    const title = document.getElementById('loadingTitle');
+    if (title) title.textContent = 'Memuat Data Analytics';
+    const status = document.getElementById('loadingStatus');
+    if (status) status.textContent = 'Menghubungkan ke Google Sheets...';
+    const detail = document.getElementById('loadingDetail');
+    if (detail) detail.textContent = '';
+    setProgress(0);
     document.getElementById('error-screen').classList.add('hidden');
     document.getElementById('dashboard').classList.add('hidden');
   }
   function showLoadingOverlay(msg) {
-    const m = document.getElementById('loading-msg');
-    if (m && msg) m.textContent = msg;
-    document.getElementById('loading').classList.remove('hidden');
+    const el = document.getElementById('loadingOverlay');
+    if (el) el.classList.remove('hidden');
+    const title = document.getElementById('loadingTitle');
+    if (title) title.textContent = msg || 'Refresh Data';
+    const status = document.getElementById('loadingStatus');
+    if (status) status.textContent = 'Mengambil data terbaru...';
+    const detail = document.getElementById('loadingDetail');
+    if (detail) detail.textContent = '';
+    setProgress(0);
+  }
+  function hideLoadingOverlay() {
+    const el = document.getElementById('loadingOverlay');
+    if (el) el.classList.add('hidden');
+  }
+  function setProgress(pct) {
+    const fill = document.getElementById('progressFill');
+    if (fill) fill.style.width = Math.min(100, Math.max(0, pct)) + '%';
+  }
+  function setLoadingStatus(text) {
+    const el = document.getElementById('loadingStatus');
+    if (el) el.textContent = text;
+  }
+  function setLoadingDetail(text) {
+    const el = document.getElementById('loadingDetail');
+    if (el) el.textContent = text;
   }
   function showError(msg) {
-    document.getElementById('initial-loading').classList.add('hidden');
+    hideLoadingOverlay();
     document.getElementById('dashboard').classList.add('hidden');
     document.getElementById('error-screen').classList.remove('hidden');
     document.getElementById('error-msg').textContent = msg;
@@ -404,7 +448,7 @@
   // Render dashboard after data load
   // ============================================================
   function onDataLoaded() {
-    document.getElementById('initial-loading').classList.add('hidden');
+    hideLoadingOverlay();
     document.getElementById('error-screen').classList.add('hidden');
     document.getElementById('dashboard').classList.remove('hidden');
 

@@ -208,13 +208,13 @@ PC.utils = (() => {
   }
 
   function showLoading(msg) {
-    const el = document.getElementById('loading');
-    const m = document.getElementById('loading-msg');
-    if (m && msg) m.textContent = msg;
+    const el = document.getElementById('loadingOverlay');
     if (el) el.classList.remove('hidden');
+    const status = document.getElementById('loadingStatus');
+    if (status && msg) status.textContent = msg;
   }
   function hideLoading() {
-    const el = document.getElementById('loading');
+    const el = document.getElementById('loadingOverlay');
     if (el) el.classList.add('hidden');
   }
 
