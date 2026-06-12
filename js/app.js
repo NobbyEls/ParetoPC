@@ -649,14 +649,30 @@
     renderMarketshareTableHtml(data);
   }
 
-  // Brand color palette (cycled) for the brand-row column headers.
-  const BRAND_COLORS = ['#a16207', '#991b1b', '#14532d', '#475569', '#1e3a8a', '#9a3412', '#9f1239', '#0c4a6e'];
-  const COLOR_OTHER = '#6d28d9';
-  const COLOR_GRAND = '#1e293b';
-  const COLOR_MOM   = '#7c2d12';
-  const COLOR_YOY   = '#831843';
-  const COLOR_EST   = '#1e1b4b';
-  const COLOR_GROW  = '#064e3b';
+  // Brand color palette + known brand colors (matches reference screenshot)
+  const BRAND_PALETTE = ['#fbbf24', '#22c55e', '#84cc16', '#e2e8f0', '#818cf8', '#fb923c', '#ec4899', '#60a5fa'];
+  const COLOR_OTHER = '#c4b5fd';
+  const COLOR_GRAND = '#cbd5e1';
+  const COLOR_MOM   = '#fbbf24';
+  const COLOR_YOY   = '#f472b6';
+  const COLOR_EST   = '#a78bfa';
+  const COLOR_GROW  = '#34d399';
+
+  // Known brand → signature colors (case-insensitive)
+  const KNOWN_BRANDS = {
+    'asus': '#fbbf24', 'lenovo': '#22c55e', 'acer': '#84cc16', 'apple': '#e2e8f0',
+    'axioo': '#818cf8', 'advan': '#fb923c', 'hp': '#ec4899', 'msi': '#60a5fa',
+    'epson': '#22c55e', 'canon': '#ef4444', 'samsung': '#3b82f6', 'lg': '#a855f7',
+    'xiaomi': '#fb923c', 'brother': '#60a5fa', 'aoc': '#ec4899', 'benq': '#06b6d4',
+    'philips': '#84cc16', 'dell': '#3b82f6', 'blueprint': '#06b6d4',
+    'other': COLOR_OTHER, 'unknown': '#94a3b8',
+  };
+
+  function brandColor(brand, fallbackIdx) {
+    const k = String(brand || '').toLowerCase().trim();
+    if (KNOWN_BRANDS[k]) return KNOWN_BRANDS[k];
+    return BRAND_PALETTE[fallbackIdx % BRAND_PALETTE.length];
+  }
 
   function fmtPct(v, decimals = 2) {
     if (v === null || v === undefined || isNaN(v)) return '';
@@ -682,23 +698,24 @@
     // Build column list: [...topBrands, _OTHER, GRAND, MOM, YOY, EST, GROWTH]
     const brandCols = topBrands.map((b, i) => ({
       key: b,
-      label: b,
-      color: BRAND_COLORS[i % BRAND_COLORS.length],
+      label: String(b).toUpperCase(),
+      color: brandColor(b, i),
     }));
     if (otherCount > 0) {
       brandCols.push({ key: '__other__', label: `OTHER (${otherCount})`, color: COLOR_OTHER });
     }
 
     // ----- HEAD -----
-    let headRow1 = `<tr class="brand-row"><th rowspan="2" style="background:${COLOR_GRAND};min-width:90px">Bulan</th>`;
+    let headRow1 = `<tr class="brand-row">`;
+    headRow1 += `<th rowspan="2" class="ms-head-bulan">BULAN</th>`;
     for (const c of brandCols) {
-      headRow1 += `<th colspan="2" style="background:${c.color}">${escapeHtml(c.label)}</th>`;
+      headRow1 += `<th colspan="2" class="ms-head-brand" style="--ms-c:${c.color}">${escapeHtml(c.label)}</th>`;
     }
-    headRow1 += `<th rowspan="2" style="background:${COLOR_GRAND}">Grand<br>Total</th>`;
-    headRow1 += `<th rowspan="2" style="background:${COLOR_MOM}">MoM<br><small>${yearLabel}</small></th>`;
-    headRow1 += `<th rowspan="2" style="background:${COLOR_YOY}">YoY<br><small>vs ${prevYearLabel}</small></th>`;
-    headRow1 += `<th rowspan="2" style="background:${COLOR_EST}">Estimasi<br>Closing</th>`;
-    headRow1 += `<th rowspan="2" style="background:${COLOR_GROW}">Growth<br><small>${yearLabel} vs ${prevYearLabel}</small></th>`;
+    headRow1 += `<th rowspan="2" class="ms-head-grand"><span class="ms-head-main">GRAND</span><span class="ms-head-sub">TOTAL</span></th>`;
+    headRow1 += `<th rowspan="2" class="ms-head-mom"><span class="ms-head-main">MOM</span><span class="ms-head-sub">${yearLabel}</span></th>`;
+    headRow1 += `<th rowspan="2" class="ms-head-yoy"><span class="ms-head-main">YOY</span><span class="ms-head-sub">vs ${prevYearLabel}</span></th>`;
+    headRow1 += `<th rowspan="2" class="ms-head-est"><span class="ms-head-main">ESTIMASI</span><span class="ms-head-sub">CLOSING</span></th>`;
+    headRow1 += `<th rowspan="2" class="ms-head-growth"><span class="ms-head-main">GROWTH</span><span class="ms-head-sub">${yearLabel} vs ${prevYearLabel}</span></th>`;
     headRow1 += `</tr>`;
 
     let headRow2 = `<tr class="subhead">`;

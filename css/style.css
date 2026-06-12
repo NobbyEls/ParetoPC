@@ -779,44 +779,90 @@ footer { color: var(--text-muted); }
   text-align: center;
   border-right: 1px solid var(--border-subtle);
 }
-.ms-table thead tr.brand-row th {
-  font-size: 0.7rem;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  font-weight: 700;
-  color: white;
-  padding: 6px 6px;
+
+/* ---------- Header rows ---------- */
+.ms-head-bulan {
+  background: linear-gradient(135deg, #ec4899, #a855f7) !important;
+  color: white !important;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  border-top: 3px solid #f472b6 !important;
 }
+
+/* Per-brand header: dark bg + colored top stripe + colored brand text */
+.ms-head-brand {
+  background: rgba(0, 0, 0, 0.5) !important;
+  color: var(--ms-c, #94a3b8) !important;
+  border-top: 3px solid var(--ms-c, #94a3b8) !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.06em;
+  text-shadow: 0 0 8px rgba(0, 0, 0, 0.5);
+}
+
+/* Special right-side columns (one rule per column type — keeps colours in sync with COLOR_* constants in JS) */
+.ms-head-grand,
+.ms-head-mom,
+.ms-head-yoy,
+.ms-head-est,
+.ms-head-growth {
+  background: rgba(0, 0, 0, 0.5) !important;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  vertical-align: middle;
+}
+.ms-head-grand  { color: #cbd5e1 !important; border-top: 3px solid #cbd5e1 !important; }
+.ms-head-mom    { color: #fbbf24 !important; border-top: 3px solid #fbbf24 !important; background: linear-gradient(180deg, rgba(120,53,15,0.35), rgba(0,0,0,0.5)) !important; }
+.ms-head-yoy    { color: #f472b6 !important; border-top: 3px solid #f472b6 !important; background: linear-gradient(180deg, rgba(131,24,67,0.35), rgba(0,0,0,0.5)) !important; }
+.ms-head-est    { color: #a78bfa !important; border-top: 3px solid #a78bfa !important; background: linear-gradient(180deg, rgba(49,46,129,0.35), rgba(0,0,0,0.5)) !important; }
+.ms-head-growth { color: #34d399 !important; border-top: 3px solid #34d399 !important; background: linear-gradient(180deg, rgba(6,78,59,0.35), rgba(0,0,0,0.5)) !important; }
+
+/* Stack main + sub label vertically inside special headers */
+.ms-head-main { display: block; font-size: 0.72rem; font-weight: 800; }
+.ms-head-sub  { display: block; font-size: 0.55rem; opacity: 0.7; font-weight: 500; margin-top: 2px; letter-spacing: 0.02em; }
+
+/* Subhead row — QTY / % labels */
 .ms-table thead tr.subhead th {
   font-size: 0.6rem;
   color: var(--text-muted);
   padding: 2px 8px;
-  background: rgba(0,0,0,0.3);
+  background: rgba(0, 0, 0, 0.45);
   font-weight: 600;
+  letter-spacing: 0.08em;
 }
-.ms-table tbody td { background: rgba(0,0,0,0.1); line-height: 1.2; }
+
+/* ---------- Body cells ---------- */
+.ms-table tbody td {
+  background: rgba(0, 0, 0, 0.18);
+  line-height: 1.2;
+  color: var(--text-primary);
+}
 .ms-table tbody td.month-cell {
-  background: linear-gradient(135deg, #ec4899, #a855f7);
-  color: white;
+  background: linear-gradient(135deg, #ec4899, #a855f7) !important;
+  color: white !important;
   font-weight: 700;
   padding: 5px 8px;
+  letter-spacing: 0.04em;
 }
-.ms-table tbody tr:hover td:not(.month-cell):not(.ms-growth-cell) { background: rgba(255,255,255,0.03); }
-.ms-up    { color: #34d399; }
-.ms-down  { color: #f87171; }
+.ms-table tbody tr:hover td:not(.month-cell):not(.ms-growth-cell) { background: rgba(255, 255, 255, 0.04); }
+
+/* Conditional formatting (▲▼) */
+.ms-up    { color: #4ade80; font-weight: 600; }
+.ms-down  { color: #f87171; font-weight: 600; }
 .ms-empty { color: var(--text-muted); }
 
+/* ---------- Grand total row (tfoot) ---------- */
 .ms-grand-row td {
-  font-weight: 700;
-  background: rgba(168,85,247,0.08) !important;
+  font-weight: 800;
+  background: rgba(168, 85, 247, 0.08) !important;
   border-top: 2px solid var(--border-strong);
+  color: #cbd5e1;
 }
 .ms-grand-row td.month-cell {
   background: linear-gradient(135deg, #ec4899, #a855f7) !important;
 }
 
-.ms-qty-cell    { font-weight: 700; font-size: 0.78rem; }
-.ms-share-cell  { font-size: 0.68rem; }
+.ms-qty-cell    { font-weight: 700; font-size: 0.78rem; color: #f1f5f9; }
+.ms-share-cell  { font-size: 0.68rem; color: var(--text-secondary); }
 .ms-special-cell {
   font-size: 0.7rem;
   color: var(--text-secondary);
