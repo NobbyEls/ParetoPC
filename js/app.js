@@ -24,6 +24,14 @@
     },
   ];
 
+  // The 4 main department tabs - shown in this exact order
+  const DEPT_TABS = ['Printer', 'Projector', 'Monitor', 'PC Branded'];
+
+  // Slugify dept name → CSS class (e.g. "PC Branded" → "pcbranded")
+  function deptSlug(d) {
+    return String(d || '').toLowerCase().replace(/[^a-z]/g, '');
+  }
+
   // ============================================================
   // State
   // ============================================================
@@ -32,7 +40,7 @@
     sources: [],   // [{ label, url, count, fetchedAt }]
     fetchedAt: null,
     filters: {
-      dept: '__all__',
+      dept: 'Printer',  // Default tab on first load
       kota: '__all__',
       bulan: '__all__',
       brand: '__all__',
@@ -186,29 +194,49 @@
   });
 
   // ============================================================
-  // Department tabs
+  // Department tabs - prominent navigation, fixed order
   // ============================================================
   function renderDeptTabs() {
     const wrap = document.getElementById('dept-tabs');
     if (!wrap) return;
-    const depts = U.sortDepts([...new Set(state.records.map(r => r.dept).filter(Boolean))]);
-    const allTotal = U.sumBy(state.records, r => r.total);
-    const tabs = [
-      { key: '__all__', label: 'Semua', total: allTotal },
-      ...depts.map(d => ({ key: d, label: d, total: U.sumBy(state.records.filter(r => r.dept === d), r => r.total) }))
-    ];
-    wrap.innerHTML = tabs.map(t => `
-      <button class="dept-tab ${state.filters.dept === t.key ? 'active' : ''}" data-key="${escapeAttr(t.key)}">
-        <span>${escapeHtml(t.label)}</span>
-        <span class="badge">${U.formatIDRCompact(t.total)}</span>
-      </button>
-    `).join('');
+    // Show ONLY the 4 declared depts that have data
+    const presentDepts = new Set(state.records.map(r => r.dept).filter(Boolean));
+    const tabs = DEPT_TABS.filter(d => presentDepts.has(d));
+
+    // If active dept has no data, fallback to first available
+    if (!presentDepts.has(state.filters.dept) && tabs.length) {
+      state.filters.dept = tabs[0];
+    }
+
+    wrap.innerHTML = tabs.map(d => {
+      const recs = state.records.filter(r => r.dept === d);
+      const total = U.sumBy(recs, r => r.total);
+      const isActive = state.filters.dept === d;
+      return `
+        <button class="dept-tab dept-${deptSlug(d)} ${isActive ? 'active' : ''}" data-key="${escapeAttr(d)}">
+          <span class="dept-tab-icon">${U.deptIcon(d)}</span>
+          <span class="dept-tab-text">
+            <span class="dept-tab-name">${escapeHtml(d)}</span>
+            <span class="dept-tab-stat">${U.formatIDRCompact(total)} · ${recs.length.toLocaleString('id-ID')} baris</span>
+          </span>
+        </button>
+      `;
+    }).join('');
     wrap.querySelectorAll('.dept-tab').forEach(btn => {
       btn.addEventListener('click', () => {
+        if (state.filters.dept === btn.dataset.key) return;
         state.filters.dept = btn.dataset.key;
+        // Reset sub-filters when switching dept (except tahun, useful to keep)
+        state.filters.kota = '__all__';
+        state.filters.bulan = '__all__';
+        state.filters.brand = '__all__';
+        state.filters.juta = '__all__';
+        state.table.page = 1;
         renderDeptTabs();
         populateFilters();
         render();
+        // Smooth scroll to top so user sees the dashboard refresh
+        window.scrollTo({ top: 0, behavior: 'smooth' });
       });
     });
   }
@@ -284,6 +312,23 @@
 
   function render() {
     const filtered = A.filterRecords(state.records, state.filters);
+    const dept = state.filters.dept;
+    const deptLabel = dept || 'Semua';
+
+    // Update chart titles to reflect active dept
+    setText('title-trend',  `Tren Penjualan Bulanan — ${deptLabel}`);
+    setText('sub-trend',    `Total omzet ${deptLabel} per bulan`);
+    setText('title-mix',    `Mix Brand di ${deptLabel}`);
+    setText('sub-mix',      `Kontribusi % omzet per brand`);
+    setText('title-brand',  `Top 10 Brand — ${deptLabel}`);
+    setText('title-product',`Top 10 Produk — ${deptLabel}`);
+    setText('title-kota',   `Penjualan per Kota — ${deptLabel}`);
+    setText('title-sales',  `Top 10 Sales — ${deptLabel}`);
+    setText('title-pareto', `📊 Analisa Pareto 80/20 — ${deptLabel}`);
+    setText('title-juta',   `Distribusi Range Harga — ${deptLabel}`);
+
+    // Show/hide cards based on dept
+    showCard('card-ink', dept === 'Printer');     // Ink Tank only for Printer
 
     // KPIs
     const sum = A.summary(filtered);
@@ -297,12 +342,16 @@
     document.getElementById('kpi-avg').textContent = U.formatIDR(sum.avg);
     document.getElementById('kpi-avg-sub').textContent = sum.lines + ' baris transaksi';
 
-    // YoY chart — only show if 2+ years AND no specific year filter is active
+    // YoY chart — uses filtered (already scoped to active dept)
     renderYoy(filtered);
 
-    // Standard charts
-    Ch.trendChart(A.monthlyTrend(filtered, { byDept: state.filters.dept === '__all__' }));
-    Ch.deptMixChart(A.aggByDept(state.filters.dept === '__all__' ? filtered : filtered));
+    // Single-line trend (just for active dept)
+    Ch.trendChart(A.monthlyTrend(filtered, { byDept: false }));
+
+    // Mix Brand pie (top brands' share within active dept)
+    const topBrands = A.topN(filtered, r => r.brand, 8);
+    Ch.brandMixChart(topBrands);
+
     Ch.topBarChart('chart-brand', A.topN(filtered, r => r.brand, 10), 'Brand');
     Ch.topBarChart('chart-product', A.topN(filtered, r => r.namaBarang, 10), 'Produk');
     Ch.topBarChart('chart-kota', A.aggBy(filtered, r => r.kota), 'Kota');
@@ -311,17 +360,31 @@
     const p = A.pareto(filtered, r => r.namaBarang, 30);
     Ch.paretoChart(p);
     document.getElementById('pareto-summary').innerHTML = p.totalItems
-      ? `🎯 <strong>${p.itemsIn80}</strong> dari <strong>${p.totalItems}</strong> produk (${(p.itemsIn80 / p.totalItems * 100).toFixed(1)}%) menghasilkan 80% dari omzet (${U.formatIDR(p.grandTotal * 0.8)} dari total ${U.formatIDR(p.grandTotal)}).`
+      ? `🎯 <strong>${p.itemsIn80}</strong> dari <strong>${p.totalItems}</strong> produk ${deptLabel} (${(p.itemsIn80 / p.totalItems * 100).toFixed(1)}%) menghasilkan 80% dari omzet (${U.formatIDR(p.grandTotal * 0.8)} dari total ${U.formatIDR(p.grandTotal)}).`
       : '—';
 
     Ch.distChart('chart-juta', A.aggBy(filtered, r => r.cekJuta), 'Range');
-    const inkAgg = A.aggBy(
-      filtered.filter(r => r.dept === 'Printer' || (r.cekInk && r.cekInk !== '')),
-      r => r.cekInk || 'Tidak Ada'
-    );
-    Ch.pieChart('chart-ink', inkAgg);
+
+    if (dept === 'Printer') {
+      const inkAgg = A.aggBy(
+        filtered.filter(r => r.cekInk && r.cekInk !== ''),
+        r => r.cekInk
+      );
+      Ch.pieChart('chart-ink', inkAgg);
+    }
 
     renderTable(filtered);
+  }
+
+  function setText(id, text) {
+    const el = document.getElementById(id);
+    if (el) el.textContent = text;
+  }
+  function showCard(id, show) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    if (show) el.classList.remove('hidden');
+    else el.classList.add('hidden');
   }
 
   function renderYoy(filtered) {

@@ -134,14 +134,22 @@ PC.utils = (() => {
     return s;
   }
 
-  /** Department display order & color */
-  const DEPT_ORDER = ['Printer', 'Monitor', 'PC Branded'];
+  /** Department display order & color (matches main dashboard tabs) */
+  const DEPT_ORDER = ['Printer', 'Projector', 'Monitor', 'PC Branded'];
   const DEPT_COLORS = {
     'Printer':    '#ef4444',
+    'Projector':  '#f59e0b',
     'Monitor':    '#3b82f6',
     'PC Branded': '#10b981',
     '_other':     '#a78bfa',
   };
+  const DEPT_ICONS = {
+    'Printer':    '🖨️',
+    'Projector':  '📽️',
+    'Monitor':    '🖥️',
+    'PC Branded': '💻',
+  };
+  function deptIcon(name) { return DEPT_ICONS[name] || '📊'; }
   const PALETTE = [
     '#6366f1','#10b981','#f59e0b','#ef4444','#3b82f6','#a855f7',
     '#ec4899','#14b8a6','#f97316','#84cc16','#06b6d4','#8b5cf6',
@@ -157,9 +165,10 @@ PC.utils = (() => {
   function deptChipClass(d) {
     if (!d) return 'chip chip-other';
     const k = String(d).toLowerCase();
-    if (k.includes('printer')) return 'chip chip-printer';
-    if (k.includes('monitor')) return 'chip chip-monitor';
-    if (k.includes('branded')) return 'chip chip-pcbranded';
+    if (k.includes('printer'))  return 'chip chip-printer';
+    if (k.includes('projector'))return 'chip chip-projector';
+    if (k.includes('monitor'))  return 'chip chip-monitor';
+    if (k.includes('branded'))  return 'chip chip-pcbranded';
     return 'chip chip-other';
   }
 
@@ -245,10 +254,10 @@ PC.utils = (() => {
   return {
     parseIDNumber, parseIDDate, formatIDR, formatIDRCompact, formatNumber,
     formatDate, formatDateTime, normHeader, findCol, groupBy, sumBy,
-    deptColor, paletteColor, deptChipClass, sortDepts, sortBulan, bulanIndex,
+    deptColor, deptIcon, paletteColor, deptChipClass, sortDepts, sortBulan, bulanIndex,
     toast, showLoading, hideLoading,
     loadConfig, saveConfig, clearConfig,
     downloadText, csvEscape,
-    DEPT_ORDER, PALETTE,
+    DEPT_ORDER, DEPT_ICONS, PALETTE,
   };
 })();

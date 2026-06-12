@@ -34,7 +34,7 @@
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.6/dist/chart.umd.min.js"></script>
 
-  <link rel="stylesheet" href="css/style.css?v=3" />
+  <link rel="stylesheet" href="css/style.css?v=4" />
 </head>
 <body class="bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 font-sans antialiased min-h-screen">
 
@@ -112,13 +112,17 @@
         <span class="text-xs text-slate-500 dark:text-slate-400">Update terakhir: <strong id="last-update">—</strong></span>
       </div>
 
+      <!-- ===== Department Tabs (primary navigation) ===== -->
+      <div id="dept-tabs-wrap" class="bg-white dark:bg-slate-800 rounded-xl p-3 border border-slate-200 dark:border-slate-700">
+        <div id="dept-tabs" class="flex flex-wrap gap-2"></div>
+      </div>
+
       <!-- Filters -->
       <div class="bg-white dark:bg-slate-800 rounded-xl p-4 border border-slate-200 dark:border-slate-700 space-y-3">
         <div class="flex items-center gap-2">
           <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-slate-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
-          <span class="text-sm font-semibold text-slate-700 dark:text-slate-300">Filter</span>
+          <span class="text-sm font-semibold text-slate-700 dark:text-slate-300">Filter Tambahan</span>
         </div>
-        <div id="dept-tabs" class="flex flex-wrap gap-2"></div>
         <div class="grid grid-cols-2 sm:grid-cols-5 gap-3">
           <div>
             <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Tahun</label>
@@ -179,19 +183,19 @@
         <div class="chart-body chart-body-tall"><canvas id="chart-yoy"></canvas></div>
       </div>
 
-      <!-- Row 1: Trend + Mix Departemen -->
+      <!-- Row 1: Trend + Mix Brand -->
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <div class="chart-card lg:col-span-2">
+        <div id="card-trend" class="chart-card lg:col-span-2">
           <div class="chart-header">
-            <h3 class="chart-title">Tren Penjualan Bulanan</h3>
-            <p class="chart-sub">Total omzet per bulan (per departemen)</p>
+            <h3 class="chart-title" id="title-trend">Tren Penjualan Bulanan</h3>
+            <p class="chart-sub" id="sub-trend">Total omzet per bulan</p>
           </div>
           <div class="chart-body"><canvas id="chart-trend"></canvas></div>
         </div>
-        <div class="chart-card">
+        <div id="card-mix" class="chart-card">
           <div class="chart-header">
-            <h3 class="chart-title">Mix Departemen</h3>
-            <p class="chart-sub">Kontribusi % omzet</p>
+            <h3 class="chart-title" id="title-mix">Mix Brand</h3>
+            <p class="chart-sub" id="sub-mix">Kontribusi % omzet per brand</p>
           </div>
           <div class="chart-body"><canvas id="chart-mix"></canvas></div>
         </div>
@@ -199,16 +203,16 @@
 
       <!-- Row 2: Top Brand + Top Produk -->
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <div class="chart-card">
+        <div id="card-brand" class="chart-card">
           <div class="chart-header">
-            <h3 class="chart-title">Top 10 Brand</h3>
+            <h3 class="chart-title" id="title-brand">Top 10 Brand</h3>
             <p class="chart-sub">Berdasarkan total omzet</p>
           </div>
           <div class="chart-body"><canvas id="chart-brand"></canvas></div>
         </div>
-        <div class="chart-card">
+        <div id="card-product" class="chart-card">
           <div class="chart-header">
-            <h3 class="chart-title">Top 10 Produk</h3>
+            <h3 class="chart-title" id="title-product">Top 10 Produk</h3>
             <p class="chart-sub">Berdasarkan total omzet</p>
           </div>
           <div class="chart-body"><canvas id="chart-product"></canvas></div>
@@ -217,16 +221,16 @@
 
       <!-- Row 3: Per Kota + Per Sales -->
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <div class="chart-card">
+        <div id="card-kota" class="chart-card">
           <div class="chart-header">
-            <h3 class="chart-title">Penjualan per Kota / Cabang</h3>
+            <h3 class="chart-title" id="title-kota">Penjualan per Kota / Cabang</h3>
             <p class="chart-sub">Total omzet</p>
           </div>
           <div class="chart-body"><canvas id="chart-kota"></canvas></div>
         </div>
-        <div class="chart-card">
+        <div id="card-sales" class="chart-card">
           <div class="chart-header">
-            <h3 class="chart-title">Top 10 Sales</h3>
+            <h3 class="chart-title" id="title-sales">Top 10 Sales</h3>
             <p class="chart-sub">Berdasarkan total omzet</p>
           </div>
           <div class="chart-body"><canvas id="chart-sales"></canvas></div>
@@ -234,9 +238,9 @@
       </div>
 
       <!-- Pareto -->
-      <div class="chart-card">
+      <div id="card-pareto" class="chart-card">
         <div class="chart-header">
-          <h3 class="chart-title">📊 Analisa Pareto 80/20 — Top Produk</h3>
+          <h3 class="chart-title" id="title-pareto">📊 Analisa Pareto 80/20 — Top Produk</h3>
           <p class="chart-sub">Produk yang berkontribusi 80% omzet (highlight ditandai)</p>
         </div>
         <div class="chart-body chart-body-tall"><canvas id="chart-pareto"></canvas></div>
@@ -245,14 +249,14 @@
 
       <!-- Row 4: Range Harga + Ink Tank -->
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <div class="chart-card">
+        <div id="card-juta" class="chart-card">
           <div class="chart-header">
-            <h3 class="chart-title">Distribusi Range Harga</h3>
+            <h3 class="chart-title" id="title-juta">Distribusi Range Harga</h3>
             <p class="chart-sub">Jumlah unit terjual per range (Cek Juta)</p>
           </div>
           <div class="chart-body"><canvas id="chart-juta"></canvas></div>
         </div>
-        <div class="chart-card">
+        <div id="card-ink" class="chart-card">
           <div class="chart-header">
             <h3 class="chart-title">Komposisi Tipe Printer</h3>
             <p class="chart-sub">Ink Tank vs Non Ink Tank</p>
@@ -310,11 +314,11 @@
     </footer>
   </main>
 
-  <script src="js/utils.js?v=3"></script>
-  <script src="js/parser.js?v=3"></script>
-  <script src="js/sheets.js?v=3"></script>
-  <script src="js/analytics.js?v=3"></script>
-  <script src="js/charts.js?v=3"></script>
-  <script src="js/app.js?v=3"></script>
+  <script src="js/utils.js?v=4"></script>
+  <script src="js/parser.js?v=4"></script>
+  <script src="js/sheets.js?v=4"></script>
+  <script src="js/analytics.js?v=4"></script>
+  <script src="js/charts.js?v=4"></script>
+  <script src="js/app.js?v=4"></script>
 </body>
 </html>

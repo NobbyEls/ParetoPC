@@ -78,16 +78,26 @@ PC.charts = (() => {
   }
 
   function deptMixChart(deptAgg) {
-    const labels = deptAgg.map(d => d.key);
-    const data = deptAgg.map(d => d.total);
-    const colors = labels.map(l => U.deptColor(l));
-    return _replace('chart-mix', {
+    return _doughnut('chart-mix', deptAgg, { colorFn: (l) => U.deptColor(l) });
+  }
+
+  /** Brand mix doughnut for a single department — uses palette colors */
+  function brandMixChart(brandAgg) {
+    return _doughnut('chart-mix', brandAgg, { colorFn: (l, i) => U.paletteColor(i) });
+  }
+
+  function _doughnut(canvasId, agg, opts = {}) {
+    const { colorFn = (l, i) => U.paletteColor(i) } = opts;
+    const labels = agg.map(d => d.key);
+    const data = agg.map(d => d.total);
+    const colors = labels.map((l, i) => colorFn(l, i));
+    return _replace(canvasId, {
       type: 'doughnut',
       data: { labels, datasets: [{ data, backgroundColor: colors, borderWidth: 2, borderColor: 'transparent' }] },
       options: {
         responsive: true, maintainAspectRatio: false, cutout: '60%',
         plugins: {
-          legend: { position: 'bottom', labels: { boxWidth: 10, padding: 10 } },
+          legend: { position: 'bottom', labels: { boxWidth: 10, padding: 10, font: { size: 11 } } },
           tooltip: {
             callbacks: {
               label: (c) => {
@@ -314,7 +324,7 @@ PC.charts = (() => {
   }
 
   return {
-    trendChart, deptMixChart, topBarChart, paretoChart, distChart, pieChart,
+    trendChart, deptMixChart, brandMixChart, topBarChart, paretoChart, distChart, pieChart,
     yoyChart,
     refreshTheme, destroyAll
   };
