@@ -87,69 +87,165 @@ body { font-feature-settings: 'cv11', 'ss01'; }
   padding: 14px 24px;
   margin-bottom: 0;
 }
+/* ============================================================
+   LIGHT THEME (matching omset reference)
+   ============================================================ */
+html:not(.dark) {
+  --bg-base: #eef1f7;
+  --bg-card: rgba(255, 255, 255, 0.82);
+  --bg-card-hover: rgba(255, 255, 255, 0.96);
+  --bg-card-2: rgba(255, 255, 255, 0.96);
+  --bg-glass: rgba(15, 23, 42, 0.04);
+  --bg-input: rgba(15, 23, 42, 0.04);
+  --border-subtle: rgba(15, 23, 42, 0.08);
+  --border-medium: rgba(15, 23, 42, 0.13);
+  --border-strong: rgba(15, 23, 42, 0.22);
+  --border: rgba(15, 23, 42, 0.13);
+  --border-bright: rgba(15, 23, 42, 0.22);
+  --text-primary: #0f172a;
+  --text-secondary: #1e293b;
+  --text-muted: #475569;
+  --bg-primary: #eef1f7;
+  --bg-secondary: #f1f5f9;
+}
+
+html:not(.dark) body {
+  background: #eef1f7 !important;
+  color: #0f172a !important;
+  background-image:
+    radial-gradient(at 20% 0%, rgba(99, 102, 241, 0.10) 0%, transparent 50%),
+    radial-gradient(at 80% 50%, rgba(236, 72, 153, 0.06) 0%, transparent 50%),
+    radial-gradient(at 50% 100%, rgba(16, 185, 129, 0.06) 0%, transparent 50%) !important;
+  background-attachment: fixed !important;
+}
+
+/* Header bar */
 html:not(.dark) .header-bar {
-  background: rgba(255, 255, 255, 0.75);
-  border: 2px solid #e2e8f0;
+  background: rgba(255, 255, 255, 0.82);
+  border: 2px solid rgba(15, 23, 42, 0.13);
   border-radius: 10px 10px 0 0;
 }
 
-/* Light mode sticky nav */
+/* Sticky nav */
 html:not(.dark) .filter-card-sticky {
-  background: rgba(255, 255, 255, 0.85) !important;
-  border-color: #e2e8f0 !important;
+  background: rgba(255, 255, 255, 0.82) !important;
+  border-color: rgba(15, 23, 42, 0.13) !important;
 }
 html:not(.dark) .dept-tabs-sticky {
-  background: rgba(255, 255, 255, 0.85) !important;
-  border-color: #e2e8f0 !important;
+  background: rgba(255, 255, 255, 0.82) !important;
+  border-color: rgba(15, 23, 42, 0.13) !important;
 }
 html:not(.dark) .dept-tabs-sticky .dept-tab {
   background: #f1f5f9;
   color: #334155;
+  border-color: rgba(15, 23, 42, 0.13);
 }
+
+/* Cards */
 html:not(.dark) .chart-card {
-  background: white !important;
-  border-color: #e2e8f0 !important;
+  background: rgba(255, 255, 255, 0.82) !important;
+  border-color: rgba(15, 23, 42, 0.13) !important;
+  box-shadow: 0 8px 28px rgba(15, 23, 42, 0.10);
 }
-html:not(.dark) .kpi-card { border-color: rgba(0,0,0,0.04) !important; }
+html:not(.dark) .chart-card::before,
+html:not(.dark) .chart-card::after { opacity: 0; }
+html:not(.dark) .kpi-card { border-color: rgba(15, 23, 42, 0.08) !important; }
+
+/* Form controls */
 html:not(.dark) select, html:not(.dark) input[type="text"] {
-  background: #f8fafc !important;
-  border-color: #e2e8f0 !important;
-  color: #1e293b !important;
+  background: rgba(15, 23, 42, 0.04) !important;
+  border-color: rgba(15, 23, 42, 0.13) !important;
+  color: #0f172a !important;
 }
+html:not(.dark) select option {
+  background: #ffffff !important;
+  color: #0f172a !important;
+}
+
+/* Filter icon */
 html:not(.dark) .filter-section-icon {
   background: linear-gradient(135deg, #6366f1, #ec4899);
   border-color: transparent;
   color: #fff;
 }
+
+/* Logo */
 html:not(.dark) .logo-text-gradient {
-  background: linear-gradient(90deg, #6366f1, #4f46e5, #3b82f6);
+  background: linear-gradient(135deg, #4338ca, #db2777);
   -webkit-background-clip: text; background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 html:not(.dark) .logo-icon {
   background: linear-gradient(135deg, #6366f1, #4f46e5) !important;
 }
+
+/* Buttons */
 html:not(.dark) #btn-refresh {
-  background: #f1f5f9 !important; border-color: #e2e8f0 !important; color: #475569 !important;
+  background: rgba(15, 23, 42, 0.04) !important;
+  border-color: rgba(15, 23, 42, 0.13) !important;
+  color: #475569 !important;
+}
+html:not(.dark) #btn-refresh:hover {
+  background: rgba(15, 23, 42, 0.08) !important;
+  border-color: rgba(15, 23, 42, 0.22) !important;
+  color: #0f172a !important;
 }
 html:not(.dark) #btn-clear-cache {
   background: #fef2f2 !important; border-color: #fecaca !important; color: #dc2626 !important;
 }
-html:not(.dark) .year-pill {
-  border-color: #e2e8f0; color: #475569;
+
+/* Theme toggle button - visible in light mode */
+html:not(.dark) #btn-theme,
+html:not(.dark) .btn-icon {
+  background: rgba(15, 23, 42, 0.04) !important;
+  border: 1px solid rgba(15, 23, 42, 0.13) !important;
+  color: #0f172a !important;
 }
-html:not(.dark) .info-bar { background: white !important; border-color: #e2e8f0 !important; }
-html:not(.dark) #yoy-card { background: #fafafa !important; border-color: #e2e8f0 !important; }
+html:not(.dark) #btn-theme:hover,
+html:not(.dark) .btn-icon:hover {
+  background: rgba(15, 23, 42, 0.08) !important;
+  border-color: rgba(15, 23, 42, 0.22) !important;
+  color: #0f172a !important;
+  transform: translateY(-1px);
+}
+
+/* Year pills */
+html:not(.dark) .year-pill {
+  border-color: rgba(15, 23, 42, 0.13); color: #475569;
+}
+html:not(.dark) .year-pill.cached { border-color: rgba(22, 163, 74, 0.4); color: #15803d; }
+html:not(.dark) .year-pill.cached .pill-icon { color: #16a34a; }
+html:not(.dark) .year-pill.live { border-color: rgba(220, 38, 38, 0.4); color: #dc2626; }
+
+/* Info bar & YoY card */
+html:not(.dark) .info-bar { background: rgba(255, 255, 255, 0.82) !important; border-color: rgba(15, 23, 42, 0.13) !important; }
+html:not(.dark) #yoy-card { background: rgba(255, 255, 255, 0.82) !important; border-color: rgba(15, 23, 42, 0.13) !important; }
 html:not(.dark) #yoy-card .chart-title { -webkit-text-fill-color: unset; background: none; color: #7c3aed; }
+
+/* Chips */
 html:not(.dark) .chip-printer { background: #fef2f2; color: #991b1b; border-color: #fecaca; }
 html:not(.dark) .chip-projector { background: #fffbeb; color: #92400e; border-color: #fde68a; }
 html:not(.dark) .chip-monitor { background: #eff6ff; color: #1e40af; border-color: #bfdbfe; }
 html:not(.dark) .chip-pcbranded { background: #ecfdf5; color: #065f46; border-color: #a7f3d0; }
-html:not(.dark) #table-body tr { border-top-color: #f1f5f9; }
-html:not(.dark) #table-body tr:hover { background: #f8fafc !important; }
-html:not(.dark) thead { background: #f8fafc !important; }
-html:not(.dark) .th { color: #64748b !important; }
+
+/* Table */
+html:not(.dark) #table-body tr { border-top-color: rgba(15, 23, 42, 0.08); }
+html:not(.dark) #table-body tr:hover { background: rgba(99, 102, 241, 0.08) !important; }
+html:not(.dark) thead { background: rgba(241, 245, 249, 0.97) !important; }
+html:not(.dark) .th { color: #475569 !important; }
 html:not(.dark) .th:hover { color: #6366f1 !important; }
+
+/* Scrollbar - light mode */
+html:not(.dark) ::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.04); }
+html:not(.dark) ::-webkit-scrollbar-thumb {
+  background: rgba(15, 23, 42, 0.18);
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+html:not(.dark) ::-webkit-scrollbar-thumb:hover {
+  background: rgba(15, 23, 42, 0.30);
+  background-clip: padding-box;
+}
 
 /* ============================================================
    STICKY NAV BLOCK (filter + dept tabs below header)
@@ -732,21 +828,6 @@ thead.bg-slate-100, thead.dark\:bg-slate-900\/50 {
   box-shadow: 0 0 20px rgba(99, 102, 241, 0.5);
 }
 
-/* Light mode loading overlay adjustments */
-html:not(.dark) .loading-overlay {
-  background: rgba(248, 250, 252, 0.95);
-}
-html:not(.dark) .loading-content h3 {
-  color: #1e293b;
-}
-html:not(.dark) .loading-content p {
-  color: #64748b;
-}
-html:not(.dark) .loading-logo {
-  background: rgba(99, 102, 241, 0.08);
-  border-color: rgba(99, 102, 241, 0.2);
-}
-
 /* Toast */
 #toast.toast-success { background: linear-gradient(135deg, #10b981, #047857); color: white; }
 #toast.toast-error   { background: linear-gradient(135deg, #ef4444, #b91c1c); color: white; }
@@ -1095,31 +1176,139 @@ footer { color: var(--text-muted); }
   font-style: italic;
 }
 
-/* Light-mode tweaks */
+/* ---------- Light-mode marketshare table ---------- */
 html:not(.dark) .ms-period-banner {
   background: #eef2ff;
   border-color: #c7d2fe;
   color: #3730a3;
 }
 html:not(.dark) .ms-table-wrap {
-  background: #ffffff;
-  border-color: #e2e8f0;
+  background: rgba(255, 255, 255, 0.5);
+  border-color: rgba(15, 23, 42, 0.13);
+}
+html:not(.dark) .ms-table {
+  background: rgba(255, 255, 255, 0.5);
+}
+html:not(.dark) .ms-table thead th {
+  background: rgba(241, 245, 249, 0.97);
+  color: #475569;
+}
+html:not(.dark) .ms-table thead tr.subhead th {
+  background: rgba(241, 245, 249, 0.97);
+  color: #64748b;
 }
 html:not(.dark) .ms-table tbody td {
   background: #ffffff;
   color: #1e293b;
+  border-color: rgba(15, 23, 42, 0.08);
 }
-html:not(.dark) .ms-table thead tr.subhead th {
-  background: #f1f5f9;
+html:not(.dark) .ms-table tbody tr.ms-empty-row td {
+  background: rgba(15, 23, 42, 0.04);
   color: #64748b;
+}
+html:not(.dark) .ms-table tbody tr:hover:not(.ms-empty-row) td {
+  background: rgba(99, 102, 241, 0.08);
+}
+html:not(.dark) .ms-table .ms-total-cell {
+  background: rgba(100, 116, 139, 0.18) !important;
+  color: #0f172a !important;
 }
 html:not(.dark) .ms-grand-row td {
   background: #faf5ff !important;
   color: #1e293b;
 }
+
+/* Brand header text - darker for contrast on light bg */
+html:not(.dark) .ms-brand-asus { background: rgba(245, 158, 11, 0.08) !important; color: #b45309 !important; }
+html:not(.dark) .ms-brand-lenovo { background: rgba(16, 185, 129, 0.08) !important; color: #047857 !important; }
+html:not(.dark) .ms-brand-acer { background: rgba(148, 163, 184, 0.08) !important; color: #475569 !important; }
+html:not(.dark) .ms-brand-apple { background: rgba(168, 162, 158, 0.08) !important; color: #57534e !important; }
+html:not(.dark) .ms-brand-axioo { background: rgba(99, 102, 241, 0.08) !important; color: #4338ca !important; }
+html:not(.dark) .ms-brand-advan { background: rgba(251, 146, 60, 0.08) !important; color: #c2410c !important; }
+html:not(.dark) .ms-brand-hp { background: rgba(244, 63, 94, 0.08) !important; color: #be123c !important; }
+html:not(.dark) .ms-brand-msi { background: rgba(59, 130, 246, 0.08) !important; color: #1d4ed8 !important; }
+html:not(.dark) .ms-brand-other { background: rgba(168, 85, 247, 0.08) !important; color: #7c3aed !important; }
+html:not(.dark) .ms-brand-epson { background: rgba(16, 185, 129, 0.08) !important; color: #047857 !important; }
+html:not(.dark) .ms-brand-canon { background: rgba(239, 68, 68, 0.08) !important; color: #be123c !important; }
+html:not(.dark) .ms-brand-samsung { background: rgba(59, 130, 246, 0.08) !important; color: #1d4ed8 !important; }
+html:not(.dark) .ms-brand-lg { background: rgba(168, 85, 247, 0.08) !important; color: #7c3aed !important; }
+html:not(.dark) .ms-brand-xiaomi { background: rgba(251, 146, 60, 0.08) !important; color: #c2410c !important; }
+html:not(.dark) .ms-brand-brother { background: rgba(6, 182, 212, 0.08) !important; color: #0e7490 !important; }
+html:not(.dark) .ms-brand-blueprint { background: rgba(14, 165, 233, 0.08) !important; color: #0369a1 !important; }
+html:not(.dark) .ms-brand-dell { background: rgba(59, 130, 246, 0.08) !important; color: #0e7490 !important; }
+html:not(.dark) .ms-brand-aoc { background: rgba(236, 72, 153, 0.08) !important; color: #be185d !important; }
+html:not(.dark) .ms-brand-benq { background: rgba(6, 182, 212, 0.08) !important; color: #0e7490 !important; }
+html:not(.dark) .ms-brand-philips { background: rgba(132, 204, 22, 0.08) !important; color: #4d7c0f !important; }
+
+/* Accent cells in light mode */
+html:not(.dark) .ms-head-mom,
+html:not(.dark) .ms-head-yoy {
+  background: rgba(245, 158, 11, 0.08) !important;
+  color: #b45309 !important;
+}
+html:not(.dark) .ms-head-est,
+html:not(.dark) .ms-head-growth {
+  background: rgba(16, 185, 129, 0.08) !important;
+  color: #047857 !important;
+}
+html:not(.dark) .ms-head-grand {
+  background: rgba(100, 116, 139, 0.12) !important;
+  color: #0f172a !important;
+}
+html:not(.dark) .ms-mom-cell,
+html:not(.dark) .ms-yoy-cell {
+  color: #b45309 !important;
+}
+html:not(.dark) .ms-est-cell,
+html:not(.dark) .ms-growth-cell {
+  color: #047857 !important;
+}
+html:not(.dark) .pct-flat { color: #475569 !important; }
+html:not(.dark) .pct-up { color: #047857 !important; }
+html:not(.dark) .pct-down { color: #dc2626 !important; }
+html:not(.dark) .ms-up { color: #047857 !important; }
+html:not(.dark) .ms-down { color: #dc2626 !important; }
+
+/* MS tab group light */
 html:not(.dark) .ms-tab-group {
-  background: #f1f5f9;
-  border-color: #e2e8f0;
+  background: rgba(15, 23, 42, 0.04);
+  border-color: rgba(15, 23, 42, 0.13);
 }
 html:not(.dark) .ms-tab { color: #64748b; }
-html:not(.dark) .ms-tab:hover { color: #1e293b; }
+html:not(.dark) .ms-tab:hover { color: #0f172a; }
+
+/* Loading overlay light */
+html:not(.dark) .loading-overlay {
+  background: rgba(238, 241, 247, 0.95);
+}
+html:not(.dark) .loading-content h3 {
+  color: #0f172a;
+}
+html:not(.dark) .loading-content p {
+  color: #475569;
+}
+html:not(.dark) .loading-logo {
+  background: rgba(99, 102, 241, 0.08);
+  border-color: rgba(99, 102, 241, 0.2);
+}
+html:not(.dark) .progress-bar {
+  background: rgba(15, 23, 42, 0.06);
+}
+html:not(.dark) .spinner {
+  border-color: rgba(99, 102, 241, 0.15);
+  border-top-color: #6366f1;
+}
+
+/* MS bulan cells in light mode */
+html:not(.dark) .ms-table tbody td.ms-bulan-cell {
+  background: rgba(99, 102, 241, 0.06);
+  color: #0f172a;
+}
+html:not(.dark) .ms-table tbody td.ms-bulan-cell.ms-empty-month {
+  color: #64748b;
+  background: rgba(15, 23, 42, 0.04);
+}
+html:not(.dark) .ms-qty-cell,
+html:not(.dark) .ms-share-cell {
+  color: #0f172a !important;
+}
