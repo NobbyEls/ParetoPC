@@ -57,14 +57,14 @@
   };
 
   // ============================================================
-  // Theme toggle (persisted)
+  // Theme toggle (persisted) - default is DARK for ELS-style
   // ============================================================
   const THEME_KEY = 'paretopc:theme';
   function applyStoredTheme() {
     const saved = localStorage.getItem(THEME_KEY);
-    const prefers = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    if (saved === 'dark' || (!saved && prefers)) document.documentElement.classList.add('dark');
-    else document.documentElement.classList.remove('dark');
+    // Default to dark unless user explicitly chose light
+    if (saved === 'light') document.documentElement.classList.remove('dark');
+    else document.documentElement.classList.add('dark');
   }
   applyStoredTheme();
 
@@ -171,13 +171,80 @@
   document.getElementById('btn-retry').addEventListener('click', () => loadAllSources(false));
 
   // ============================================================
-  // Filter handlers
+  // Year pills (header)
   // ============================================================
+  function renderYearPills() {
+    const wrap = document.getElementById('year-pills');
+    if (!wrap) return;
+    const years = [...new Set(state.records.map(r => r.year).filter(Boolean))].sort();
+    if (!years.length) { wrap.innerHTML = ''; return; }
+    const active = state.filters.tahun;
+    wrap.innerHTML = years.map(y => {
+      const isActive = String(active) === String(y);
+      return `
+        <button class="year-pill ${isActive ? 'active year-' + y : ''}" data-year="${y}">
+          <span class="dot"></span>
+          <span>${y}</span>
+        </button>
+      `;
+    }).join('');
+    wrap.querySelectorAll('.year-pill').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const y = btn.dataset.year;
+        // Toggle: clicking active pill resets to "all years"
+        state.filters.tahun = (String(state.filters.tahun) === y) ? '__all__' : y;
+        // Sync the dropdown filter too
+        const sel = document.getElementById('filter-tahun');
+        if (sel) sel.value = state.filters.tahun;
+        renderYearPills();
+        render();
+      });
+    });
+  }
+
+  // ============================================================
+  // Live clock pill in header
+  // ============================================================
+  function startClockPill() {
+    const el = document.getElementById('clock-pill-text');
+    if (!el) return;
+    const update = () => {
+      const d = new Date();
+      const fmt = d.toLocaleString('id-ID', {
+        day: '2-digit', month: 'short', year: 'numeric',
+        hour: '2-digit', minute: '2-digit'
+      });
+      el.textContent = fmt;
+    };
+    update();
+    setInterval(update, 30000);
+  }
+  startClockPill();
+
+  // Reset filters button
+  document.addEventListener('click', (e) => {
+    if (e.target.closest('#btn-reset-filters')) {
+      state.filters.kota = '__all__';
+      state.filters.bulan = '__all__';
+      state.filters.brand = '__all__';
+      state.filters.juta = '__all__';
+      state.filters.tahun = '__all__';
+      state.filters.search = '';
+      const search = document.getElementById('table-search');
+      if (search) search.value = '';
+      populateFilters();
+      renderYearPills();
+      render();
+      U.toast('Filter direset.', 'info');
+    }
+  });
   function bindFilter(elId, key) {
     const el = document.getElementById(elId);
     if (!el) return;
     el.addEventListener('change', () => {
       state.filters[key] = el.value || '__all__';
+      // Keep year pills in sync when tahun dropdown changes
+      if (key === 'tahun') renderYearPills();
       render();
     });
   }
@@ -307,6 +374,7 @@
 
     renderDeptTabs();
     populateFilters();
+    renderYearPills();
     render();
   }
 

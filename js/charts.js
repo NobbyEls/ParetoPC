@@ -9,9 +9,23 @@ PC.charts = (() => {
   // Set Chart.js defaults — picked up dynamically based on theme
   function applyTheme() {
     const isDark = document.documentElement.classList.contains('dark');
-    Chart.defaults.color = isDark ? '#cbd5e1' : '#475569';
-    Chart.defaults.borderColor = isDark ? 'rgba(148,163,184,0.15)' : 'rgba(100,116,139,0.15)';
+    Chart.defaults.color = isDark ? '#9aa3b9' : '#475569';
+    Chart.defaults.borderColor = isDark ? 'rgba(45,52,84,0.5)' : 'rgba(100,116,139,0.15)';
     Chart.defaults.font.family = 'Inter, system-ui, sans-serif';
+    Chart.defaults.font.size = 11;
+    Chart.defaults.plugins.tooltip.backgroundColor = isDark ? 'rgba(11,15,30,0.95)' : 'rgba(15,23,42,0.95)';
+    Chart.defaults.plugins.tooltip.borderColor = isDark ? '#2d3454' : '#cbd5e1';
+    Chart.defaults.plugins.tooltip.borderWidth = 1;
+    Chart.defaults.plugins.tooltip.padding = 12;
+    Chart.defaults.plugins.tooltip.cornerRadius = 8;
+    Chart.defaults.plugins.tooltip.titleFont = { size: 12, weight: 600 };
+    Chart.defaults.plugins.tooltip.bodyFont = { size: 12, weight: 500 };
+    Chart.defaults.plugins.tooltip.boxPadding = 6;
+    Chart.defaults.plugins.legend.labels.usePointStyle = true;
+    Chart.defaults.plugins.legend.labels.pointStyle = 'circle';
+    Chart.defaults.plugins.legend.labels.boxWidth = 8;
+    Chart.defaults.plugins.legend.labels.boxHeight = 8;
+    Chart.defaults.plugins.legend.labels.padding = 14;
   }
   applyTheme();
 
@@ -47,31 +61,45 @@ PC.charts = (() => {
   /* ---------- Charts ---------- */
 
   function trendChart(monthly) {
-    const datasets = monthly.datasets.map((ds, i) => ({
-      label: ds.label,
-      data: ds.data,
-      backgroundColor: (ds.color || U.paletteColor(i)) + '40',
-      borderColor: ds.color || U.paletteColor(i),
-      tension: 0.3,
-      borderWidth: 2,
-      pointRadius: 3,
-      pointHoverRadius: 5,
-      fill: false,
-    }));
+    const datasets = monthly.datasets.map((ds, i) => {
+      const color = ds.color || U.paletteColor(i);
+      return {
+        label: ds.label,
+        data: ds.data,
+        backgroundColor: color + '20',
+        borderColor: color,
+        tension: 0.4,                 // smoother bezier
+        cubicInterpolationMode: 'monotone',
+        borderWidth: 2.5,
+        pointRadius: 5,
+        pointHoverRadius: 8,
+        pointBackgroundColor: color,
+        pointBorderColor: '#0a0e1a',
+        pointBorderWidth: 2,
+        pointHoverBorderWidth: 3,
+        pointHoverBackgroundColor: color,
+        pointHoverBorderColor: '#fff',
+        fill: true,
+      };
+    });
     return _replace('chart-trend', {
       type: 'line',
       data: { labels: monthly.labels, datasets },
       options: {
         responsive: true, maintainAspectRatio: false,
+        interaction: { mode: 'nearest', axis: 'x', intersect: false },
         plugins: {
-          legend: { position: 'bottom', labels: { boxWidth: 10, padding: 12 } },
+          legend: { position: 'bottom', labels: { boxWidth: 8, boxHeight: 8, padding: 14, usePointStyle: true, pointStyle: 'circle' } },
           tooltip: {
             callbacks: { label: (c) => `${c.dataset.label}: ${U.formatIDR(c.parsed.y)}` }
           }
         },
         scales: {
-          y: { ticks: { callback: (v) => U.formatIDRCompact(v) }, grid: { drawBorder: false } },
-          x: { grid: { display: false } }
+          y: {
+            ticks: { callback: (v) => U.formatIDRCompact(v) },
+            grid: { color: 'rgba(45,52,84,0.35)', drawBorder: false }
+          },
+          x: { grid: { display: false }, ticks: { font: { weight: 500 } } }
         }
       }
     });
@@ -93,11 +121,11 @@ PC.charts = (() => {
     const colors = labels.map((l, i) => colorFn(l, i));
     return _replace(canvasId, {
       type: 'doughnut',
-      data: { labels, datasets: [{ data, backgroundColor: colors, borderWidth: 2, borderColor: 'transparent' }] },
+      data: { labels, datasets: [{ data, backgroundColor: colors, borderWidth: 3, borderColor: '#0a0e1a', hoverBorderWidth: 0, hoverOffset: 8 }] },
       options: {
-        responsive: true, maintainAspectRatio: false, cutout: '60%',
+        responsive: true, maintainAspectRatio: false, cutout: '65%',
         plugins: {
-          legend: { position: 'bottom', labels: { boxWidth: 10, padding: 10, font: { size: 11 } } },
+          legend: { position: 'bottom', labels: { boxWidth: 8, boxHeight: 8, padding: 12, usePointStyle: true, pointStyle: 'circle', font: { size: 11 } } },
           tooltip: {
             callbacks: {
               label: (c) => {
@@ -115,6 +143,8 @@ PC.charts = (() => {
   function topBarChart(canvasId, agg, label) {
     const labels = agg.map(d => d.key);
     const data = agg.map(d => d.total);
+    // Use ELS-inspired magenta-purple gradient palette
+    const palette = ['#ec4899','#a855f7','#06b6d4','#f59e0b','#10b981','#3b82f6','#f472b6','#8b5cf6','#facc15','#22d3ee'];
     return _replace(canvasId, {
       type: 'bar',
       data: {
@@ -122,8 +152,11 @@ PC.charts = (() => {
         datasets: [{
           label,
           data,
-          backgroundColor: labels.map((_, i) => U.paletteColor(i)),
-          borderRadius: 4,
+          backgroundColor: labels.map((_, i) => palette[i % palette.length] + 'cc'),
+          borderColor: labels.map((_, i) => palette[i % palette.length]),
+          borderWidth: 1,
+          borderRadius: 6,
+          barThickness: 'flex',
         }]
       },
       options: {
@@ -138,11 +171,15 @@ PC.charts = (() => {
           }
         },
         scales: {
-          x: { ticks: { callback: (v) => U.formatIDRCompact(v) }, grid: { drawBorder: false } },
+          x: {
+            ticks: { callback: (v) => U.formatIDRCompact(v) },
+            grid: { color: 'rgba(45,52,84,0.25)', drawBorder: false }
+          },
           y: {
             grid: { display: false },
             ticks: {
               autoSkip: false,
+              font: { weight: 500 },
               callback: function(value) {
                 const lbl = this.getLabelForValue(value);
                 if (typeof lbl === 'string' && lbl.length > 30) return lbl.slice(0, 28) + '…';
@@ -163,9 +200,10 @@ PC.charts = (() => {
     const totals = p.items.map(x => x.total);
     const cum = p.items.map(x => x.cumPct);
 
-    // Highlight items in 80%
+    // Highlight items in 80% with magenta gradient, rest in muted gray
     const cutoff = p.cutoffIdx === -1 ? p.items.length - 1 : p.cutoffIdx;
-    const colors = p.items.map((_, i) => i <= cutoff ? '#ef4444' : '#94a3b8');
+    const colors = p.items.map((_, i) => i <= cutoff ? '#ec4899' : 'rgba(148,163,184,0.4)');
+    const borders = p.items.map((_, i) => i <= cutoff ? '#f472b6' : 'rgba(148,163,184,0.6)');
 
     return _replace('chart-pareto', {
       data: {
@@ -176,18 +214,25 @@ PC.charts = (() => {
             label: 'Omzet',
             data: totals,
             backgroundColor: colors,
-            borderRadius: 3,
+            borderColor: borders,
+            borderWidth: 1,
+            borderRadius: 4,
             yAxisID: 'y',
           },
           {
             type: 'line',
             label: 'Kumulatif %',
             data: cum,
-            borderColor: '#6366f1',
-            backgroundColor: '#6366f180',
-            borderWidth: 2,
-            tension: 0.2,
-            pointRadius: 2,
+            borderColor: '#06b6d4',
+            backgroundColor: 'rgba(6,182,212,0.15)',
+            borderWidth: 2.5,
+            tension: 0.35,
+            cubicInterpolationMode: 'monotone',
+            pointRadius: 4,
+            pointHoverRadius: 7,
+            pointBackgroundColor: '#06b6d4',
+            pointBorderColor: '#0a0e1a',
+            pointBorderWidth: 2,
             yAxisID: 'y1',
           }
         ]
@@ -205,26 +250,21 @@ PC.charts = (() => {
               }
             }
           },
-          // 80% reference line via custom plugin
         },
         scales: {
           y: {
             position: 'left',
             ticks: { callback: (v) => U.formatIDRCompact(v) },
-            grid: { drawBorder: false }
+            grid: { color: 'rgba(45,52,84,0.25)', drawBorder: false }
           },
           y1: {
             position: 'right',
             min: 0, max: 100,
-            ticks: { callback: (v) => v + '%' },
+            ticks: { callback: (v) => v + '%', color: '#06b6d4' },
             grid: { drawOnChartArea: false }
           },
           x: {
-            ticks: {
-              autoSkip: false,
-              maxRotation: 60, minRotation: 45,
-              font: { size: 10 }
-            },
+            ticks: { autoSkip: false, maxRotation: 60, minRotation: 45, font: { size: 10 } },
             grid: { display: false }
           }
         }
@@ -235,6 +275,7 @@ PC.charts = (() => {
   function distChart(canvasId, agg, label) {
     const labels = agg.map(d => d.key);
     const data = agg.map(d => d.qty);
+    const palette = ['#ec4899','#a855f7','#06b6d4','#f59e0b','#10b981','#3b82f6','#f472b6','#8b5cf6'];
     return _replace(canvasId, {
       type: 'bar',
       data: {
@@ -242,8 +283,10 @@ PC.charts = (() => {
         datasets: [{
           label,
           data,
-          backgroundColor: labels.map((_, i) => U.paletteColor(i)),
-          borderRadius: 4,
+          backgroundColor: labels.map((_, i) => palette[i % palette.length] + 'cc'),
+          borderColor: labels.map((_, i) => palette[i % palette.length]),
+          borderWidth: 1,
+          borderRadius: 6,
         }]
       },
       options: {
@@ -257,42 +300,59 @@ PC.charts = (() => {
           }
         },
         scales: {
-          y: { ticks: { callback: (v) => U.formatNumber(v) }, grid: { drawBorder: false } },
-          x: { grid: { display: false } }
+          y: { ticks: { callback: (v) => U.formatNumber(v) }, grid: { color: 'rgba(45,52,84,0.25)', drawBorder: false } },
+          x: { grid: { display: false }, ticks: { font: { weight: 500 } } }
         }
       }
     });
   }
 
   function yoyChart(yoy) {
-    // Use distinct colors per year, with the latest year highlighted
-    const yearColors = ['#94a3b8', '#6366f1', '#10b981', '#f59e0b', '#ef4444'];
+    // Year palette inspired by ELS: 2024 gray, 2025 cyan-blue, 2026 magenta
+    const yearColors = {
+      2023: '#475569',
+      2024: '#94a3b8',
+      2025: '#3b82f6',
+      2026: '#ec4899',
+      2027: '#10b981',
+    };
     const datasets = yoy.datasets.map((ds, i) => {
-      const isLatest = i === yoy.datasets.length - 1;
-      const baseColor = yearColors[i % yearColors.length];
+      const yr = parseInt(ds.label, 10);
+      const color = yearColors[yr] || U.paletteColor(i);
       return {
-        label: ds.label,
+        label: `${ds.label} - Omzet`,
         data: ds.data,
-        backgroundColor: isLatest ? baseColor : baseColor + '99',
-        borderColor: baseColor,
-        borderWidth: isLatest ? 0 : 1,
-        borderRadius: 4,
+        backgroundColor: color + '15',
+        borderColor: color,
+        tension: 0.4,
+        cubicInterpolationMode: 'monotone',
+        borderWidth: 2.5,
+        pointRadius: 5,
+        pointHoverRadius: 8,
+        pointBackgroundColor: color,
+        pointBorderColor: '#0a0e1a',
+        pointBorderWidth: 2,
+        fill: false,
       };
     });
     return _replace('chart-yoy', {
-      type: 'bar',
+      type: 'line',
       data: { labels: yoy.labels, datasets },
       options: {
         responsive: true, maintainAspectRatio: false,
+        interaction: { mode: 'nearest', axis: 'x', intersect: false },
         plugins: {
-          legend: { position: 'bottom', labels: { boxWidth: 12, padding: 12 } },
+          legend: { position: 'top', align: 'end', labels: { boxWidth: 8, boxHeight: 8, padding: 16, usePointStyle: true, pointStyle: 'circle' } },
           tooltip: {
             callbacks: { label: (c) => `${c.dataset.label}: ${U.formatIDR(c.parsed.y)}` }
           }
         },
         scales: {
-          y: { ticks: { callback: (v) => U.formatIDRCompact(v) }, grid: { drawBorder: false } },
-          x: { grid: { display: false } }
+          y: {
+            ticks: { callback: (v) => U.formatIDRCompact(v) },
+            grid: { color: 'rgba(45,52,84,0.35)', drawBorder: false }
+          },
+          x: { grid: { display: false }, ticks: { font: { weight: 500 } } }
         }
       }
     });
