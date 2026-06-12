@@ -34,7 +34,7 @@
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.6/dist/chart.umd.min.js"></script>
 
-  <link rel="stylesheet" href="css/style.css?v=23" />
+  <link rel="stylesheet" href="css/style.css?v=24" />
 </head>
 <body class="bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 font-sans antialiased min-h-screen">
 
@@ -147,10 +147,9 @@
               <label class="filter-label">Brand</label>
               <select id="filter-brand" class="w-full text-sm px-3 py-2"></select>
             </div>
-            <div class="flex-1" style="min-width:150px">
-              <label class="filter-label">Range Harga</label>
-              <select id="filter-juta" class="w-full text-sm px-3 py-2"></select>
-            </div>
+            <!-- Range Harga filter removed per user request. The hidden select is kept
+                 so existing JS bindings (bindFilter, populateFilters) don't crash. -->
+            <select id="filter-juta" class="hidden"></select>
             <div id="filter-cekink-wrap" class="flex-1 hidden" style="min-width:150px">
               <label class="filter-label" id="filter-cekink-label">Tipe Printer</label>
               <select id="filter-cekink" class="w-full text-sm px-3 py-2"></select>
@@ -264,15 +263,8 @@
         <p id="pareto-summary" class="text-sm text-slate-600 dark:text-slate-400 mt-3 px-1"></p>
       </div>
 
-      <!-- Row 4: Range Harga + Ink Tank -->
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <div id="card-juta" class="chart-card">
-          <div class="chart-header">
-            <h3 class="chart-title" id="title-juta">Distribusi Range Harga</h3>
-            <p class="chart-sub">Jumlah unit terjual per range (Cek Juta)</p>
-          </div>
-          <div class="chart-body"><canvas id="chart-juta"></canvas></div>
-        </div>
+      <!-- Row 4: Komposisi Tipe Printer (Ink Tank, only on Printer tab) — Range Harga chart removed -->
+      <div class="grid grid-cols-1 gap-4">
         <div id="card-ink" class="chart-card">
           <div class="chart-header">
             <h3 class="chart-title">Komposisi Tipe Printer</h3>
@@ -291,11 +283,11 @@
     </footer>
   </main>
 
-  <script src="js/utils.js?v=23"></script>
-  <script src="js/parser.js?v=23"></script>
-  <script src="js/sheets.js?v=23"></script>
-  <script src="js/analytics.js?v=23"></script>
-  <script src="js/charts.js?v=23"></script>
-  <script src="js/app.js?v=23"></script>
+  <script src="js/utils.js?v=24"></script>
+  <script src="js/parser.js?v=24"></script>
+  <script src="js/sheets.js?v=24"></script>
+  <script src="js/analytics.js?v=24"></script>
+  <script src="js/charts.js?v=24"></script>
+  <script src="js/app.js?v=24"></script>
 </body>
 </html>

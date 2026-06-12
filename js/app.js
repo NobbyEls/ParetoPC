@@ -568,15 +568,16 @@
 
   function renderYoy(filtered) {
     const card = document.getElementById('yoy-card');
-    // Use full filtered (including all years) to compute YoY,
-    // unless user picked a specific year — then hide YoY chart.
-    if (state.filters.tahun && state.filters.tahun !== '__all__') {
-      card.classList.add('hidden');
-      return;
-    }
+
     // Compute YoY based on QTY (jumlah unit terjual) — per user request
     const yoy = A.yoyByMonth(filtered, { sumField: 'qty' });
-    if (yoy.years.length < 2) { card.classList.add('hidden'); return; }
+
+    // Hide the card only if there is literally nothing to chart.
+    if (!yoy.years.length) { card.classList.add('hidden'); return; }
+
+    // Always show the chart — even when only 1 year is selected. With 1 year
+    // the chart simply renders 1 line for that year (still useful as a monthly
+    // trend view).
     card.classList.remove('hidden');
     Ch.yoyChart(yoy, {
       seriesLabel: 'Unit',
@@ -586,39 +587,16 @@
 
     // Update card subtitle to reflect qty mode
     const subEl = card.querySelector('.chart-sub');
-    if (subEl) subEl.textContent = 'Perbandingan unit terjual per bulan antar tahun';
+    if (subEl) {
+      subEl.textContent = yoy.years.length === 1
+        ? `Unit terjual per bulan — Tahun ${yoy.years[0]}`
+        : 'Perbandingan unit terjual per bulan antar tahun';
+    }
 
-    // Build a rich summary based on QTY too
-    const sQty = A.yoySummary(filtered, { sumField: 'qty' });
-    const lines = [];
-
-    const fmtUnit = (n) => U.formatNumber(n) + ' unit';
-
-    const fullParts = sQty.years.map(y => {
-      let part = `<strong>${y}</strong>: ${fmtUnit(sQty.totals[y])}`;
-      const g = sQty.growth[y];
-      if (g !== null && g !== undefined) {
-        const arrow = g >= 0 ? '▲' : '▼';
-        const cls = g >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400';
-        part += ` <span class="${cls}">${arrow} ${g.toFixed(1)}%</span>`;
-      }
-      return part;
-    });
-    lines.push(`<div class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400 mb-0.5">Total Unit per Tahun</div><div>${fullParts.join(' · ')}</div>`);
-
-    if (sQty.samePeriod && !sQty.samePeriod.fullYear) {
-      const sp = sQty.samePeriod;
-      const periodLabel = sp.months.length === 1
-        ? sp.months[0]
-        : `${sp.months[0]} – ${sp.months[sp.months.length - 1]}`;
-      const spParts = sQty.years.map(y => {
-        let part = `<strong>${y}</strong>: ${fmtUnit(sp.totals[y])}`;
-        const g = sp.growth[y];
-        if (g !== null && g !== undefined) {
-          const arrow = g >= 0 ? '▲' : '▼';
-          const cls = g >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400';
-          part += ` <span class="${cls} font-semibold">${arrow} ${g.toFixed(1)}%</span>`;
-        }
+    // Summary text removed per user request — chart speaks for itself.
+    const summaryEl = document.getElementById('yoy-summary');
+    if (summaryEl) summaryEl.innerHTML = '';
+  }
         return part;
       });
       lines.push(`<div class="mt-2 text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400 mb-0.5">📐 Same-period YoY (${periodLabel}) — apel-ke-apel</div><div>${spParts.join(' · ')}</div>`);

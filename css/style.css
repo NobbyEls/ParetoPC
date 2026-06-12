@@ -1264,10 +1264,8 @@ html:not(.dark) .ms-growth-cell {
   color: #047857 !important;
 }
 html:not(.dark) .pct-flat { color: #475569 !important; }
-html:not(.dark) .pct-up { color: #047857 !important; }
-html:not(.dark) .pct-down { color: #dc2626 !important; }
-html:not(.dark) .ms-up { color: #047857 !important; }
-html:not(.dark) .ms-down { color: #dc2626 !important; }
+/* pct-up / pct-down / ms-up / ms-down keep their dark-mode colors in light mode too,
+   per user request — formatting bersyarat tetap konsisten antar tema. */
 
 /* MS tab group light */
 html:not(.dark) .ms-tab-group {
