@@ -28,6 +28,11 @@
     },
   ];
 
+  // The "current" year is fetched fresh on every page load.
+  // Older years are cached in localStorage and only re-fetched
+  // when the user clicks "Clear Cache".
+  const CURRENT_YEAR = String(new Date().getFullYear());
+
   // The 4 main department tabs - shown in this exact order
   const DEPT_TABS = ['Printer', 'Projector', 'Monitor', 'PC Branded'];
 
@@ -81,8 +86,11 @@
 
   // ============================================================
   // Data fetching - load all sources in parallel & merge
+  // Historical years (≠ CURRENT_YEAR) load from localStorage cache.
+  // Current year always fetches fresh.
   // ============================================================
-  async function loadAllSources(silent = false) {
+  async function loadAllSources(silent = false, options = {}) {
+    const { ignoreCache = false } = options;
     if (!SOURCES.length) {
       showError('Belum ada sumber data terdaftar. Edit array SOURCES di js/app.js.');
       return;
@@ -97,16 +105,32 @@
 
       const results = await Promise.all(
         SOURCES.map(async (src) => {
+          const useCache = !ignoreCache && src.label !== CURRENT_YEAR;
           try {
-            const r = await PC.sheets.loadSheet(src.url);
-            return { src, records: r.records, fetchedAt: r.fetchedAt, error: null };
+            const r = await PC.sheets.loadSheet(src.url, {
+              cacheKey: src.label,
+              useCache,
+            });
+            return {
+              src,
+              records: r.records,
+              fetchedAt: r.fetchedAt,
+              fromCache: !!r.fromCache,
+              savedAt: r.savedAt || null,
+              error: null,
+            };
           } catch (e) {
-            return { src, records: [], fetchedAt: new Date(), error: e.message || String(e) };
+            return {
+              src,
+              records: [],
+              fetchedAt: new Date(),
+              fromCache: false,
+              error: e.message || String(e),
+            };
           }
         })
       );
 
-      // Merge records, tagging each with its source label
       const merged = [];
       const sourceInfo = [];
       for (const res of results) {
@@ -116,13 +140,14 @@
           url: res.src.url,
           count: res.records.length,
           fetchedAt: res.fetchedAt,
+          fromCache: res.fromCache,
+          savedAt: res.savedAt,
           error: res.error,
         });
       }
 
       const errored = results.filter(r => r.error);
       if (errored.length === results.length) {
-        // All sources failed
         throw new Error(errored.map(e => `[${e.src.label}] ${e.error}`).join(' · '));
       }
 
@@ -131,18 +156,16 @@
       state.fetchedAt = new Date();
 
       onDataLoaded();
+
       if (errored.length) {
-        U.toast(`${errored.length} sumber gagal dimuat: ${errored.map(e => e.src.label).join(', ')}`, 'error');
+        U.toast(`${errored.length} sumber gagal: ${errored.map(e => e.src.label).join(', ')}`, 'error');
       } else if (silent) {
-        U.toast('Data berhasil di-refresh.', 'success');
+        U.toast('Data ter-update.', 'success');
       }
     } catch (err) {
       console.error(err);
-      if (silent) {
-        U.toast('Gagal refresh: ' + err.message, 'error');
-      } else {
-        showError(err.message || 'Tidak bisa fetch data.');
-      }
+      if (silent) U.toast('Gagal refresh: ' + err.message, 'error');
+      else showError(err.message || 'Tidak bisa fetch data.');
     } finally {
       U.hideLoading();
       spinRefreshIcon(false);
@@ -176,7 +199,27 @@
   document.getElementById('btn-retry').addEventListener('click', () => loadAllSources(false));
 
   // ============================================================
-  // Year pills (header)
+  // Clear Cache button — wipes localStorage CSV cache and refetches all
+  // ============================================================
+  const btnClear = document.getElementById('btn-clear-cache');
+  if (btnClear) {
+    btnClear.addEventListener('click', async () => {
+      const cached = PC.sheets.listCachedKeys();
+      const cachedYears = cached.map(c => c.label).join(', ') || '(tidak ada)';
+      const ok = confirm(
+        `Hapus cache lokal untuk tahun: ${cachedYears}?\n\n` +
+        `Setelah dihapus, semua data akan di-fetch ulang dari Google Sheets.\n` +
+        `Pakai ini kalau spreadsheet tahun lama Anda diubah dan Anda mau ambil versi terbaru.`
+      );
+      if (!ok) return;
+      const cleared = PC.sheets.clearAllCache();
+      U.toast(`${cleared} entri cache dihapus. Memuat ulang…`, 'info');
+      await loadAllSources(false, { ignoreCache: true });
+    });
+  }
+
+  // ============================================================
+  // Year pills (header) — visual indicator: cached (green ⚡) vs live (red ●)
   // ============================================================
   function renderYearPills() {
     const wrap = document.getElementById('year-pills');
@@ -184,11 +227,21 @@
     const years = [...new Set(state.records.map(r => r.year).filter(Boolean))].sort();
     if (!years.length) { wrap.innerHTML = ''; return; }
     const active = state.filters.tahun;
+    // Build a map of which year came from cache (uses last fetch's source info)
+    const cachedYears = new Set((state.sources || []).filter(s => s.fromCache).map(s => s.label));
+
     wrap.innerHTML = years.map(y => {
-      const isActive = String(active) === String(y);
+      const yStr = String(y);
+      const isActive = String(active) === yStr;
+      const isCached = cachedYears.has(yStr);
+      const stateClass = isCached ? 'cached' : 'live';
+      const iconHtml = isCached
+        ? '<span class="pill-icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M13 2L3 14h7l-1 8 10-12h-7l1-8z"/></svg></span>'
+        : '<span class="pill-dot"></span>';
+      const tip = isCached ? `Cached locally — klik tombol Clear Cache untuk re-fetch` : `Live — fetched fresh setiap reload`;
       return `
-        <button class="year-pill ${isActive ? 'active year-' + y : ''}" data-year="${y}">
-          <span class="dot"></span>
+        <button class="year-pill ${stateClass} ${isActive ? 'active' : ''}" data-year="${y}" title="${tip}">
+          ${iconHtml}
           <span>${y}</span>
         </button>
       `;
@@ -196,9 +249,7 @@
     wrap.querySelectorAll('.year-pill').forEach(btn => {
       btn.addEventListener('click', () => {
         const y = btn.dataset.year;
-        // Toggle: clicking active pill resets to "all years"
         state.filters.tahun = (String(state.filters.tahun) === y) ? '__all__' : y;
-        // Sync the dropdown filter too
         const sel = document.getElementById('filter-tahun');
         if (sel) sel.value = state.filters.tahun;
         renderYearPills();
@@ -499,20 +550,29 @@
       card.classList.add('hidden');
       return;
     }
-    // Compute YoY from records that match all filters EXCEPT year (already true)
-    const yoy = A.yoyByMonth(filtered);
+    // Compute YoY based on QTY (jumlah unit terjual) — per user request
+    const yoy = A.yoyByMonth(filtered, { sumField: 'qty' });
     if (yoy.years.length < 2) { card.classList.add('hidden'); return; }
     card.classList.remove('hidden');
-    Ch.yoyChart(yoy);
+    Ch.yoyChart(yoy, {
+      seriesLabel: 'Unit',
+      valueFormatter: (v) => U.formatNumber(v) + ' unit',
+      axisFormatter: (v) => U.formatNumber(v),
+    });
 
-    // Build a rich summary: full-year totals + same-period (apple-to-apple) growth
-    const s = A.yoySummary(filtered);
+    // Update card subtitle to reflect qty mode
+    const subEl = card.querySelector('.chart-sub');
+    if (subEl) subEl.textContent = 'Perbandingan unit terjual per bulan antar tahun';
+
+    // Build a rich summary based on QTY too
+    const sQty = A.yoySummary(filtered, { sumField: 'qty' });
     const lines = [];
 
-    // Line 1: full-year totals per year
-    const fullParts = s.years.map(y => {
-      let part = `<strong>${y}</strong>: ${U.formatIDR(s.totals[y])}`;
-      const g = s.growth[y];
+    const fmtUnit = (n) => U.formatNumber(n) + ' unit';
+
+    const fullParts = sQty.years.map(y => {
+      let part = `<strong>${y}</strong>: ${fmtUnit(sQty.totals[y])}`;
+      const g = sQty.growth[y];
       if (g !== null && g !== undefined) {
         const arrow = g >= 0 ? '▲' : '▼';
         const cls = g >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400';
@@ -520,16 +580,15 @@
       }
       return part;
     });
-    lines.push(`<div class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400 mb-0.5">Total per Tahun</div><div>${fullParts.join(' · ')}</div>`);
+    lines.push(`<div class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400 mb-0.5">Total Unit per Tahun</div><div>${fullParts.join(' · ')}</div>`);
 
-    // Line 2: same-period comparison if available and not = full year
-    if (s.samePeriod && !s.samePeriod.fullYear) {
-      const sp = s.samePeriod;
+    if (sQty.samePeriod && !sQty.samePeriod.fullYear) {
+      const sp = sQty.samePeriod;
       const periodLabel = sp.months.length === 1
         ? sp.months[0]
         : `${sp.months[0]} – ${sp.months[sp.months.length - 1]}`;
-      const spParts = s.years.map(y => {
-        let part = `<strong>${y}</strong>: ${U.formatIDR(sp.totals[y])}`;
+      const spParts = sQty.years.map(y => {
+        let part = `<strong>${y}</strong>: ${fmtUnit(sp.totals[y])}`;
         const g = sp.growth[y];
         if (g !== null && g !== undefined) {
           const arrow = g >= 0 ? '▲' : '▼';

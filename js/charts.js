@@ -307,7 +307,12 @@ PC.charts = (() => {
     });
   }
 
-  function yoyChart(yoy) {
+  function yoyChart(yoy, opts = {}) {
+    const {
+      seriesLabel = 'Omzet',
+      valueFormatter = U.formatIDR,
+      axisFormatter = U.formatIDRCompact,
+    } = opts;
     // Year palette inspired by ELS: 2024 gray, 2025 cyan-blue, 2026 magenta
     const yearColors = {
       2023: '#475569',
@@ -320,7 +325,7 @@ PC.charts = (() => {
       const yr = parseInt(ds.label, 10);
       const color = yearColors[yr] || U.paletteColor(i);
       return {
-        label: `${ds.label} - Omzet`,
+        label: `${ds.label} - ${seriesLabel}`,
         data: ds.data,
         backgroundColor: color + '15',
         borderColor: color,
@@ -344,12 +349,12 @@ PC.charts = (() => {
         plugins: {
           legend: { position: 'top', align: 'end', labels: { boxWidth: 8, boxHeight: 8, padding: 16, usePointStyle: true, pointStyle: 'circle' } },
           tooltip: {
-            callbacks: { label: (c) => `${c.dataset.label}: ${U.formatIDR(c.parsed.y)}` }
+            callbacks: { label: (c) => `${c.dataset.label}: ${valueFormatter(c.parsed.y)}` }
           }
         },
         scales: {
           y: {
-            ticks: { callback: (v) => U.formatIDRCompact(v) },
+            ticks: { callback: (v) => axisFormatter(v) },
             grid: { color: 'rgba(45,52,84,0.35)', drawBorder: false }
           },
           x: { grid: { display: false }, ticks: { font: { weight: 500 } } }

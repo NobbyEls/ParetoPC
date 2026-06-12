@@ -30,9 +30,11 @@ PC.analytics = (() => {
 
   /**
    * Year-over-year monthly comparison.
-   * Returns { years: [...], labels: ['Januari',...'Desember'], datasets: [{label: '2025', data: [...]}, {label:'2026', data: [...]}] }
+   * opts.sumField — 'total' (default) or 'qty'
+   * Returns { years, labels: ['Januari',...], datasets: [{label, data:[...]}, ...] }
    */
-  function yoyByMonth(records) {
+  function yoyByMonth(records, opts = {}) {
+    const { sumField = 'total' } = opts;
     const MONTHS = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
     const yearsSet = new Set();
     for (const r of records) if (r.year) yearsSet.add(r.year);
@@ -41,20 +43,21 @@ PC.analytics = (() => {
       label: String(y),
       data: MONTHS.map(mo => U.sumBy(
         records.filter(r => r.year === y && r.bulan === mo),
-        r => r.total
+        r => r[sumField] || 0
       )),
     }));
-    return { years, labels: MONTHS, datasets };
+    return { years, labels: MONTHS, datasets, sumField };
   }
 
-  /** YoY summary: returns { years, totals, growth, samePeriod } */
-  function yoySummary(records) {
+  /** YoY summary: returns { years, totals, growth, samePeriod, sumField } */
+  function yoySummary(records, opts = {}) {
+    const { sumField = 'total' } = opts;
     const yearsSet = new Set();
     for (const r of records) if (r.year) yearsSet.add(r.year);
     const years = [...yearsSet].sort((a, b) => a - b);
     const totals = {};
     for (const y of years) {
-      totals[y] = U.sumBy(records.filter(r => r.year === y), r => r.total);
+      totals[y] = U.sumBy(records.filter(r => r.year === y), r => r[sumField] || 0);
     }
     const growth = {};
     for (let i = 1; i < years.length; i++) {
@@ -62,40 +65,34 @@ PC.analytics = (() => {
       growth[cur] = totals[prev] ? ((totals[cur] - totals[prev]) / totals[prev]) * 100 : null;
     }
 
-    // Same-period YoY: only compare months that have data in BOTH years.
-    // This is meaningful when the latest year is incomplete (e.g. YTD).
-    const samePeriod = computeSamePeriod(records, years);
+    // Same-period YoY: only compare months present in ALL years (apple-to-apple)
+    const samePeriod = computeSamePeriod(records, years, sumField);
 
-    return { years, totals, growth, samePeriod };
+    return { years, totals, growth, samePeriod, sumField };
   }
 
   /**
    * Compute apples-to-apples YoY using the intersection of months
-   * that appear in all years. Returns:
-   *   { months: [...], totals: { [year]: revenue }, growth: { [year]: % vs prev } }
-   * or null if intersection is empty.
+   * present in all years.
    */
-  function computeSamePeriod(records, years) {
+  function computeSamePeriod(records, years, sumField = 'total') {
     if (!years || years.length < 2) return null;
-    // For each year, set of months present
     const monthsByYear = {};
     for (const y of years) {
       monthsByYear[y] = new Set(records.filter(r => r.year === y).map(r => r.bulan).filter(Boolean));
     }
-    // Intersection across all years
     let common = null;
     for (const y of years) {
       common = common === null ? new Set(monthsByYear[y]) : new Set([...common].filter(m => monthsByYear[y].has(m)));
     }
     if (!common || common.size === 0) return null;
 
-    // Sort common months in calendar order
     const orderedMonths = U.sortBulan([...common]);
     const totals = {};
     for (const y of years) {
       totals[y] = U.sumBy(
         records.filter(r => r.year === y && common.has(r.bulan)),
-        r => r.total
+        r => r[sumField] || 0
       );
     }
     const growth = {};
@@ -103,7 +100,6 @@ PC.analytics = (() => {
       const cur = years[i], prev = years[i-1];
       growth[cur] = totals[prev] ? ((totals[cur] - totals[prev]) / totals[prev]) * 100 : null;
     }
-    // Detect if same-period equals full year (i.e. all years have all 12 months)
     const fullYear = orderedMonths.length === 12;
     return { months: orderedMonths, totals, growth, fullYear };
   }

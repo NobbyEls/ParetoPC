@@ -81,8 +81,8 @@ header.sticky {
 .year-pill {
   display: inline-flex;
   align-items: center;
-  gap: 0.35rem;
-  padding: 0.4rem 0.85rem;
+  gap: 0.4rem;
+  padding: 0.4rem 0.75rem 0.4rem 0.7rem;
   border-radius: 0.55rem;
   font-size: 0.78rem;
   font-weight: 600;
@@ -95,24 +95,63 @@ header.sticky {
   font-variant-numeric: tabular-nums;
 }
 .year-pill:hover {
-  background: rgba(168,85,247,0.08);
-  color: var(--text-primary);
-  border-color: var(--accent-purple);
+  transform: translateY(-1px);
 }
-.year-pill .dot {
-  width: 6px; height: 6px;
+.year-pill .pill-icon {
+  width: 12px; height: 12px;
+  display: inline-flex; align-items: center; justify-content: center;
+}
+.year-pill .pill-icon svg { width: 12px; height: 12px; }
+
+/* CACHED year (lightning bolt icon, green theme) */
+.year-pill.cached {
+  border-color: rgba(34,197,94,0.4);
+  color: #86efac;
+}
+.year-pill.cached .pill-icon { color: #22c55e; filter: drop-shadow(0 0 4px rgba(34,197,94,0.5)); }
+.year-pill.cached:hover {
+  background: rgba(34,197,94,0.10);
+  border-color: rgba(34,197,94,0.6);
+}
+.year-pill.cached.active {
+  background: rgba(34,197,94,0.18);
+  border-color: rgba(34,197,94,0.7);
+  color: #86efac;
+  box-shadow: 0 0 18px rgba(34,197,94,0.30), inset 0 0 0 1px rgba(34,197,94,0.4);
+}
+
+/* LIVE year (pulsing dot, red theme) */
+.year-pill.live {
+  border-color: rgba(239,68,68,0.4);
+  color: #fca5a5;
+}
+.year-pill.live .pill-dot {
+  width: 7px; height: 7px;
   border-radius: 50%;
-  background: currentColor;
-  box-shadow: 0 0 6px currentColor;
+  background: #ef4444;
+  box-shadow: 0 0 10px rgba(239,68,68,0.7);
+  animation: pulse-dot 1.6s ease-in-out infinite;
 }
-.year-pill.active {
-  color: white;
-  border-color: transparent;
-  box-shadow: 0 0 0 1px currentColor;
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.6; transform: scale(0.85); }
 }
-.year-pill.active.year-2024 { background: rgba(34,197,94,0.22);  color: #22c55e; box-shadow: 0 0 18px rgba(34,197,94,0.35), 0 0 0 1px rgba(34,197,94,0.5); }
-.year-pill.active.year-2025 { background: rgba(251,191,36,0.20); color: #fbbf24; box-shadow: 0 0 18px rgba(251,191,36,0.35), 0 0 0 1px rgba(251,191,36,0.5); }
-.year-pill.active.year-2026 { background: rgba(239,68,68,0.22);  color: #fca5a5; box-shadow: 0 0 22px rgba(239,68,68,0.45), 0 0 0 1px rgba(239,68,68,0.6); }
+.year-pill.live:hover {
+  background: rgba(239,68,68,0.10);
+  border-color: rgba(239,68,68,0.6);
+}
+.year-pill.live.active {
+  background: rgba(239,68,68,0.20);
+  border-color: rgba(239,68,68,0.7);
+  color: #fecaca;
+  box-shadow: 0 0 22px rgba(239,68,68,0.40), inset 0 0 0 1px rgba(239,68,68,0.5);
+}
+
+/* Loading state: dimmed pill while a year is being fetched */
+.year-pill.loading {
+  opacity: 0.5;
+  pointer-events: none;
+}
 
 /* ============================================================
    BUTTONS in header
@@ -140,6 +179,21 @@ header.sticky {
   border-color: var(--accent-purple) !important;
   color: white !important;
   box-shadow: 0 4px 14px rgba(168,85,247,0.3);
+}
+
+/* Clear Cache button: red theme matching the screenshot */
+#btn-clear-cache, .btn-clear {
+  background: rgba(239,68,68,0.10) !important;
+  border: 1px solid rgba(239,68,68,0.4) !important;
+  color: #fca5a5 !important;
+  border-radius: 0.6rem !important;
+  transition: all 0.15s ease;
+}
+#btn-clear-cache:hover, .btn-clear:hover {
+  background: rgba(239,68,68,0.22) !important;
+  border-color: rgba(239,68,68,0.7) !important;
+  color: #fee2e2 !important;
+  box-shadow: 0 4px 14px rgba(239,68,68,0.30);
 }
 
 /* ============================================================
