@@ -31,7 +31,10 @@ PC.analytics = (() => {
   /**
    * Year-over-year monthly comparison.
    * opts.sumField — 'total' (default) or 'qty'
-   * Returns { years, labels: ['Januari',...], datasets: [{label, data:[...]}, ...] }
+   *
+   * Months WITHOUT any records get null (so Chart.js won't extend the line into
+   * the future / unsold months — the line stops at the latest month with data).
+   * Months that have records but sum to zero stay as 0 (genuine zero sales).
    */
   function yoyByMonth(records, opts = {}) {
     const { sumField = 'total' } = opts;
@@ -39,13 +42,29 @@ PC.analytics = (() => {
     const yearsSet = new Set();
     for (const r of records) if (r.year) yearsSet.add(r.year);
     const years = [...yearsSet].sort((a, b) => a - b);
-    const datasets = years.map(y => ({
-      label: String(y),
-      data: MONTHS.map(mo => U.sumBy(
-        records.filter(r => r.year === y && r.bulan === mo),
-        r => r[sumField] || 0
-      )),
-    }));
+
+    const datasets = years.map(y => {
+      // Which months have at least 1 record for this year?
+      const monthsWithData = new Set();
+      for (const r of records) {
+        if (r.year === y && r.bulan) monthsWithData.add(r.bulan);
+      }
+      // Find the LAST month (calendar order) that has data.
+      let latestIdx = -1;
+      MONTHS.forEach((m, i) => { if (monthsWithData.has(m)) latestIdx = i; });
+
+      return {
+        label: String(y),
+        data: MONTHS.map((mo, i) => {
+          // Beyond the latest month with data → null (no line drawn there)
+          if (i > latestIdx) return null;
+          return U.sumBy(
+            records.filter(r => r.year === y && r.bulan === mo),
+            r => r[sumField] || 0
+          );
+        }),
+      };
+    });
     return { years, labels: MONTHS, datasets, sumField };
   }
 

@@ -1310,3 +1310,173 @@ html:not(.dark) .ms-qty-cell,
 html:not(.dark) .ms-share-cell {
   color: #0f172a !important;
 }
+
+
+
+/* ============================================================
+   3D BAR CHART per DEPARTEMEN (CSS-only perspective bars)
+   ============================================================ */
+.dept3d-stage {
+  position: relative;
+  height: 380px;
+  padding: 36px 24px 0;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-around;
+  gap: 24px;
+  perspective: 1200px;
+  transform-style: preserve-3d;
+}
+@media (min-width: 1024px) { .dept3d-stage { height: 420px; } }
+
+.dept3d-group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  height: 100%;
+  min-width: 0;
+}
+.dept3d-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 14px;
+  flex: 1;
+  width: 100%;
+  justify-content: center;
+  transform-style: preserve-3d;
+}
+
+.dept3d-bar-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  flex: 0 0 auto;
+}
+.dept3d-bar-value {
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  margin-bottom: 4px;
+}
+
+/* The 3D bar itself: front face. Top + side are pseudo-elements for the 3D illusion. */
+.dept3d-bar {
+  position: relative;
+  width: 36px;
+  height: var(--bar-h, 0%);
+  background: linear-gradient(180deg, var(--c-light, #6366f1), var(--c, #4338ca));
+  border-radius: 2px 2px 0 0;
+  transform-style: preserve-3d;
+  transform: rotateY(-18deg) rotateX(2deg);
+  transition: transform 0.3s ease, height 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+  box-shadow:
+    0 4px 14px rgba(0, 0, 0, 0.4),
+    inset -2px 0 6px rgba(0, 0, 0, 0.18);
+  min-height: 4px;
+}
+
+/* Top face — angled cap on top of the bar */
+.dept3d-bar::before {
+  content: '';
+  position: absolute;
+  top: -10px;
+  left: 0;
+  width: 100%;
+  height: 14px;
+  background: var(--c-light, #6366f1);
+  transform: rotateX(-65deg);
+  transform-origin: bottom;
+  border-radius: 2px 2px 0 0;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.06) inset;
+}
+
+/* Right side face — gives the depth illusion */
+.dept3d-bar::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: -12px;
+  width: 14px;
+  height: 100%;
+  background: var(--c-dark, #312e81);
+  transform: rotateY(75deg);
+  transform-origin: left;
+  box-shadow: 0 0 12px rgba(0, 0, 0, 0.45) inset;
+}
+
+.dept3d-bar:hover {
+  transform: rotateY(-25deg) rotateX(4deg) translateZ(12px) scale(1.04);
+  filter: brightness(1.15);
+}
+
+.dept3d-bar-year {
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  margin-top: 6px;
+}
+
+/* Floor / shelf line under all bars */
+.dept3d-stage::after {
+  content: '';
+  position: absolute;
+  bottom: 28px;
+  left: 24px;
+  right: 24px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.12), transparent);
+  pointer-events: none;
+}
+
+.dept3d-label {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  text-align: center;
+  padding: 8px 4px 4px;
+  border-top: 2px solid var(--border-medium);
+  width: 90%;
+  letter-spacing: 0.02em;
+}
+.dept3d-label .dept3d-icon { margin-right: 6px; font-size: 1rem; }
+
+/* Year color legend (small chips under the chart) */
+.dept3d-legend {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 8px 0 4px;
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+.dept3d-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.dept3d-legend-swatch {
+  width: 12px; height: 12px;
+  border-radius: 2px;
+  background: var(--c, #6366f1);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+}
+
+/* Light-mode tweaks */
+html:not(.dark) .dept3d-bar {
+  box-shadow:
+    0 4px 14px rgba(15, 23, 42, 0.18),
+    inset -2px 0 6px rgba(0, 0, 0, 0.10);
+}
+html:not(.dark) .dept3d-stage::after {
+  background: linear-gradient(90deg, transparent, rgba(15,23,42,0.18), transparent);
+}
+html:not(.dark) .dept3d-label { border-top-color: rgba(15,23,42,0.13); }

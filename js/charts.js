@@ -338,6 +338,7 @@ PC.charts = (() => {
         pointBorderColor: '#0a0e1a',
         pointBorderWidth: 2,
         fill: false,
+        spanGaps: false,             // do NOT draw line through null months (future)
       };
     });
     return _replace('chart-yoy', {
@@ -345,6 +346,7 @@ PC.charts = (() => {
       data: { labels: yoy.labels, datasets },
       options: {
         responsive: true, maintainAspectRatio: false,
+        spanGaps: false,
         interaction: { mode: 'nearest', axis: 'x', intersect: false },
         plugins: {
           legend: { position: 'top', align: 'end', labels: { boxWidth: 8, boxHeight: 8, padding: 16, usePointStyle: true, pointStyle: 'circle' } },

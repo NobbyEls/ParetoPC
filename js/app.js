@@ -526,6 +526,9 @@
     // Marketshare per Brand (monthly detail table) — sits below YoY card.
     renderMarketshare();
 
+    // 3D bar chart per departemen — total qty per dept × year
+    renderDept3D();
+
     // Single-line trend (just for active dept)
     Ch.trendChart(A.monthlyTrend(filtered, { byDept: false }));
 
@@ -820,6 +823,96 @@
       `<thead>${headRow1}${headRow2}</thead>` +
       `<tbody>${body}</tbody>` +
       `<tfoot><tr class="ms-grand-row">${grandCells.join('')}</tr></tfoot>`;
+  }
+
+  // ============================================================
+  // 3D BAR CHART per Departemen — pure CSS perspective bars
+  // ============================================================
+  const DEPT_3D_INFO = {
+    'Printer':    { icon: '🖨️', light: '#fca5a5', main: '#ef4444', dark: '#7f1d1d' },
+    'Projector':  { icon: '📽️', light: '#fdba74', main: '#f59e0b', dark: '#7c2d12' },
+    'Monitor':    { icon: '🖥️', light: '#93c5fd', main: '#3b82f6', dark: '#1e3a8a' },
+    'PC Branded': { icon: '💻', light: '#86efac', main: '#10b981', dark: '#064e3b' },
+  };
+  // Year-shading: each year shifts the lightness of the dept color (older = darker)
+  const YEAR_3D_TINT = {
+    2024: { l: '#94a3b8', m: '#475569', d: '#1e293b' },  // gray (old)
+    2025: { l: '#a5b4fc', m: '#6366f1', d: '#312e81' },  // indigo (mid)
+    2026: { l: '#f9a8d4', m: '#ec4899', d: '#831843' },  // pink (latest)
+    2027: { l: '#86efac', m: '#10b981', d: '#064e3b' },  // emerald (future)
+  };
+
+  function renderDept3D() {
+    const card = document.getElementById('dept3d-card');
+    const stage = document.getElementById('dept3d-stage');
+    const legend = document.getElementById('dept3d-legend');
+    if (!card || !stage) return;
+
+    if (!state.records.length) { card.classList.add('hidden'); return; }
+
+    // Apply non-dept filters (kota/bulan/brand/cekInk/tahun) to records
+    // — but ignore the dept filter so we can show ALL departments side by side.
+    const baseRecords = state.records.filter(r => {
+      if (state.filters.kota   && state.filters.kota   !== '__all__' && r.kota   !== state.filters.kota)   return false;
+      if (state.filters.bulan  && state.filters.bulan  !== '__all__' && r.bulan  !== state.filters.bulan)  return false;
+      if (state.filters.brand  && state.filters.brand  !== '__all__' && r.brand  !== state.filters.brand)  return false;
+      if (state.filters.cekInk && state.filters.cekInk !== '__all__' && r.cekInk !== state.filters.cekInk) return false;
+      if (state.filters.tahun  && state.filters.tahun  !== '__all__' && String(r.year) !== String(state.filters.tahun)) return false;
+      return true;
+    });
+
+    if (!baseRecords.length) { card.classList.add('hidden'); return; }
+
+    const depts = ['Printer', 'Projector', 'Monitor', 'PC Branded'];
+    const presentDepts = depts.filter(d => baseRecords.some(r => r.dept === d));
+    if (!presentDepts.length) { card.classList.add('hidden'); return; }
+
+    const years = [...new Set(baseRecords.map(r => r.year).filter(Boolean))].sort();
+
+    // Compute matrix data[dept][year] = qty, find global max
+    const data = {};
+    let maxQty = 0;
+    for (const d of presentDepts) {
+      data[d] = {};
+      for (const y of years) {
+        const q = U.sumBy(baseRecords.filter(r => r.dept === d && r.year === y), r => r.qty);
+        data[d][y] = q;
+        if (q > maxQty) maxQty = q;
+      }
+    }
+    if (maxQty === 0) { card.classList.add('hidden'); return; }
+    card.classList.remove('hidden');
+
+    // Render bars
+    let html = '';
+    for (const d of presentDepts) {
+      const info = DEPT_3D_INFO[d] || { icon: '📊', light: '#a78bfa', main: '#8b5cf6', dark: '#3b0764' };
+      html += `<div class="dept3d-group"><div class="dept3d-bars">`;
+      for (const y of years) {
+        const q = data[d][y];
+        const heightPct = maxQty ? (q / maxQty * 100) : 0;
+        const tint = YEAR_3D_TINT[y] || { l: info.light, m: info.main, d: info.dark };
+        html += `
+          <div class="dept3d-bar-wrap">
+            <span class="dept3d-bar-value">${U.formatNumber(q)}</span>
+            <div class="dept3d-bar"
+                 title="${escapeAttr(d)} ${y}: ${U.formatNumber(q)} unit"
+                 style="--bar-h: ${Math.max(heightPct, 1)}%; --c-light: ${tint.l}; --c: ${tint.m}; --c-dark: ${tint.d};">
+            </div>
+            <span class="dept3d-bar-year">${y}</span>
+          </div>`;
+      }
+      html += `</div><div class="dept3d-label"><span class="dept3d-icon">${info.icon}</span>${escapeHtml(d)}</div></div>`;
+    }
+    stage.innerHTML = html;
+
+    // Legend
+    if (legend) {
+      legend.innerHTML = years.map(y => {
+        const t = YEAR_3D_TINT[y] || { m: '#6366f1' };
+        return `<span class="dept3d-legend-item"><span class="dept3d-legend-swatch" style="--c:${t.m}"></span>${y}</span>`;
+      }).join('');
+    }
   }
 
   // ============================================================
