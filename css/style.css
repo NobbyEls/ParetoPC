@@ -59,35 +59,25 @@ body { font-feature-settings: 'cv11', 'ss01'; }
 /* Borders (dark mode) */
 .dark .border-slate-200 { border-color: var(--border) !important; }
 
-/* Header sticky bar — full width, same visual width as filter & nav */
+/* Header bar — same max-width as filter/nav (1400px centered) */
 .header-bar {
-  background: rgba(8, 11, 26, 0.95);
+  background: rgba(14, 18, 38, 0.75);
   backdrop-filter: blur(18px) saturate(180%);
   -webkit-backdrop-filter: blur(18px) saturate(180%);
   border-bottom: 1px solid var(--border);
 }
-.dark header.sticky, .dark .header-floating {
-  background: transparent !important;
-  border: none !important;
-  box-shadow: none !important;
-}
 html:not(.dark) .header-bar {
-  background: rgba(255, 255, 255, 0.95);
+  background: rgba(255, 255, 255, 0.75);
   border-bottom: 1px solid #e2e8f0;
-}
-/* Light mode header */
-html:not(.dark) header.sticky {
-  background: transparent !important;
-  border-bottom: none !important;
 }
 
 /* Light mode sticky nav */
 html:not(.dark) .filter-card-sticky {
-  background: rgba(255, 255, 255, 0.95) !important;
+  background: rgba(255, 255, 255, 0.75) !important;
   border-top-color: #e2e8f0 !important;
 }
 html:not(.dark) .dept-tabs-sticky {
-  background: rgba(255, 255, 255, 0.95) !important;
+  background: rgba(255, 255, 255, 0.75) !important;
   border-color: #e2e8f0 !important;
 }
 html:not(.dark) .dept-tabs-sticky .dept-tab {
@@ -160,14 +150,14 @@ html:not(.dark) .th:hover { color: #6366f1 !important; }
   border-right: none !important;
   margin-bottom: 0 !important;
   padding: 0.5rem 1rem !important;
-  background: rgba(8, 11, 26, 0.95) !important;
+  background: rgba(14, 18, 38, 0.72) !important;
   backdrop-filter: blur(16px) saturate(160%);
   -webkit-backdrop-filter: blur(16px) saturate(160%);
   border-top: 1px solid var(--border) !important;
 }
 
 .dept-tabs-sticky {
-  background: rgba(8, 11, 26, 0.95) !important;
+  background: rgba(14, 18, 38, 0.72) !important;
   backdrop-filter: blur(16px) saturate(160%);
   -webkit-backdrop-filter: blur(16px) saturate(160%);
   border-top: 1px solid var(--border-bright) !important;
