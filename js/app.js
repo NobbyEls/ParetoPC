@@ -597,13 +597,6 @@
     const summaryEl = document.getElementById('yoy-summary');
     if (summaryEl) summaryEl.innerHTML = '';
   }
-        return part;
-      });
-      lines.push(`<div class="mt-2 text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400 mb-0.5">📐 Same-period YoY (${periodLabel}) — apel-ke-apel</div><div>${spParts.join(' · ')}</div>`);
-    }
-
-    document.getElementById('yoy-summary').innerHTML = lines.join('');
-  }
 
   // ============================================================
   // Marketshare per Brand — Detail Bulanan (table)
