@@ -50,6 +50,7 @@
       brand: '__all__',
       juta: '__all__',
       tahun: '__all__',
+      cekInk: '__all__',
       search: '',
     },
     table: {
@@ -233,6 +234,7 @@
       state.filters.brand = '__all__';
       state.filters.juta = '__all__';
       state.filters.tahun = '__all__';
+      state.filters.cekInk = '__all__';
       state.filters.search = '';
       const search = document.getElementById('table-search');
       if (search) search.value = '';
@@ -257,6 +259,7 @@
   bindFilter('filter-bulan', 'bulan');
   bindFilter('filter-brand', 'brand');
   bindFilter('filter-juta', 'juta');
+  bindFilter('filter-cekink', 'cekInk');
 
   document.getElementById('table-search').addEventListener('input', (e) => {
     state.filters.search = e.target.value;
@@ -302,6 +305,7 @@
         state.filters.bulan = '__all__';
         state.filters.brand = '__all__';
         state.filters.juta = '__all__';
+        state.filters.cekInk = '__all__';
         state.table.page = 1;
         renderDeptTabs();
         populateFilters();
@@ -326,6 +330,10 @@
     fillSelect('filter-bulan', U.sortBulan(uniqueSorted(base.map(r => r.bulan))), state.filters.bulan);
     fillSelect('filter-brand', uniqueSorted(base.map(r => r.brand)), state.filters.brand);
     fillSelect('filter-juta', uniqueSorted(base.map(r => r.cekJuta)), state.filters.juta);
+
+    // Cek Ink Tank filter (kolom U) - dynamic options based on dept
+    const cekInkOpts = uniqueSorted(base.map(r => r.cekInk).filter(v => v && v !== ''));
+    fillSelect('filter-cekink', cekInkOpts, state.filters.cekInk);
   }
   function uniqueSorted(arr) {
     return [...new Set(arr.filter(v => v !== '' && v !== null && v !== undefined))]
@@ -401,6 +409,30 @@
 
     // Show/hide cards based on dept
     showCard('card-ink', dept === 'Printer');     // Ink Tank only for Printer
+
+    // Show/hide Cek Ink Tank filter — only when current dept has multiple values in column U
+    const distinctCekInk = [...new Set(state.records
+      .filter(r => r.dept === dept && r.cekInk && r.cekInk !== '')
+      .map(r => r.cekInk))];
+    const cekInkWrap = document.getElementById('filter-cekink-wrap');
+    const cekInkLabel = document.getElementById('filter-cekink-label');
+    if (cekInkWrap) {
+      if (distinctCekInk.length >= 2) {
+        cekInkWrap.classList.remove('hidden');
+        if (cekInkLabel) {
+          // Adapt label per dept
+          if (dept === 'Printer') cekInkLabel.textContent = 'Tipe Printer';
+          else if (dept === 'PC Branded') cekInkLabel.textContent = 'Tipe PC';
+          else cekInkLabel.textContent = 'Tipe (Kolom U)';
+        }
+      } else {
+        cekInkWrap.classList.add('hidden');
+        // Reset filter when not visible
+        if (state.filters.cekInk !== '__all__') {
+          state.filters.cekInk = '__all__';
+        }
+      }
+    }
 
     // KPIs
     const sum = A.summary(filtered);

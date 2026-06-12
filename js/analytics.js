@@ -7,9 +7,9 @@ window.PC = window.PC || {};
 PC.analytics = (() => {
   const U = PC.utils;
 
-  /** Apply filters to records. filters = { dept, kota, bulan, brand, juta, tahun, search } */
+  /** Apply filters to records. filters = { dept, kota, bulan, brand, juta, tahun, cekInk, search } */
   function filterRecords(records, filters = {}) {
-    const { dept, kota, bulan, brand, juta, tahun, search } = filters;
+    const { dept, kota, bulan, brand, juta, tahun, cekInk, search } = filters;
     const q = search ? search.toLowerCase() : '';
     const yr = tahun && tahun !== '__all__' ? parseInt(tahun, 10) : null;
     return records.filter(r => {
@@ -18,6 +18,7 @@ PC.analytics = (() => {
       if (bulan && bulan !== '__all__' && r.bulan !== bulan) return false;
       if (brand && brand !== '__all__' && r.brand !== brand) return false;
       if (juta && juta !== '__all__' && r.cekJuta !== juta) return false;
+      if (cekInk && cekInk !== '__all__' && r.cekInk !== cekInk) return false;
       if (yr !== null && r.year !== yr) return false;
       if (q) {
         const hay = `${r.namaBarang} ${r.brand} ${r.kodeSales} ${r.kodeBarang} ${r.kota} ${r.dept} ${r.noDok}`.toLowerCase();

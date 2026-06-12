@@ -34,7 +34,7 @@
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.6/dist/chart.umd.min.js"></script>
 
-  <link rel="stylesheet" href="css/style.css?v=6" />
+  <link rel="stylesheet" href="css/style.css?v=7" />
 </head>
 <body class="bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 font-sans antialiased min-h-screen">
 
@@ -131,26 +131,30 @@
         <div class="filter-section-icon shrink-0">
           <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
         </div>
-        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 flex-1 min-w-0">
-          <div>
+        <div class="flex flex-wrap gap-3 flex-1 min-w-0">
+          <div class="flex-1" style="min-width:150px">
             <label class="filter-label">Tahun</label>
             <select id="filter-tahun" class="w-full text-sm px-3 py-2"></select>
           </div>
-          <div>
+          <div class="flex-1" style="min-width:150px">
             <label class="filter-label">Kota / Cabang</label>
             <select id="filter-kota" class="w-full text-sm px-3 py-2"></select>
           </div>
-          <div>
+          <div class="flex-1" style="min-width:150px">
             <label class="filter-label">Bulan</label>
             <select id="filter-bulan" class="w-full text-sm px-3 py-2"></select>
           </div>
-          <div>
+          <div class="flex-1" style="min-width:150px">
             <label class="filter-label">Brand</label>
             <select id="filter-brand" class="w-full text-sm px-3 py-2"></select>
           </div>
-          <div>
+          <div class="flex-1" style="min-width:150px">
             <label class="filter-label">Range Harga</label>
             <select id="filter-juta" class="w-full text-sm px-3 py-2"></select>
+          </div>
+          <div id="filter-cekink-wrap" class="flex-1 hidden" style="min-width:150px">
+            <label class="filter-label" id="filter-cekink-label">Tipe Printer</label>
+            <select id="filter-cekink" class="w-full text-sm px-3 py-2"></select>
           </div>
         </div>
         <button id="btn-reset-filters" class="btn-reset px-4 py-2 text-sm self-end shrink-0">
@@ -325,11 +329,11 @@
     </footer>
   </main>
 
-  <script src="js/utils.js?v=6"></script>
-  <script src="js/parser.js?v=6"></script>
-  <script src="js/sheets.js?v=6"></script>
-  <script src="js/analytics.js?v=6"></script>
-  <script src="js/charts.js?v=6"></script>
-  <script src="js/app.js?v=6"></script>
+  <script src="js/utils.js?v=7"></script>
+  <script src="js/parser.js?v=7"></script>
+  <script src="js/sheets.js?v=7"></script>
+  <script src="js/analytics.js?v=7"></script>
+  <script src="js/charts.js?v=7"></script>
+  <script src="js/app.js?v=7"></script>
 </body>
 </html>
