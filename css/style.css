@@ -136,13 +136,13 @@ html:not(.dark) .th:hover { color: #6366f1 !important; }
    ============================================================ */
 .sticky-nav-block {
   position: sticky;
-  top: 52px; /* flush with header bottom */
+  top: 48px; /* flush with slimmer header */
   z-index: 25;
   display: flex;
   flex-direction: column;
   gap: 0;
-  margin-top: -0.75rem; /* collapse gap between header and this block */
-  margin-bottom: 0.5rem;
+  margin-top: 0 !important; /* override space-y-* from parent */
+  margin-bottom: 0.75rem;
 }
 
 .filter-card-sticky {
