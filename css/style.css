@@ -777,26 +777,34 @@ footer { color: var(--text-muted); }
 .ms-table th, .ms-table td {
   padding: 4px 8px;
   text-align: center;
-  border-right: 1px solid var(--border-subtle);
+  border-right: 1px solid rgba(255,255,255,0.04);
+  border-bottom: 1px solid rgba(255,255,255,0.04);
 }
 
 /* ---------- Header rows ---------- */
 .ms-head-bulan {
-  background: linear-gradient(135deg, #ec4899, #a855f7) !important;
+  background: linear-gradient(180deg, #7c3aed 0%, #1e1b4b 100%) !important;
   color: white !important;
   font-weight: 800;
-  letter-spacing: 0.08em;
-  border-top: 3px solid #f472b6 !important;
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  min-width: 80px;
+  padding: 10px 12px !important;
+  border-top: none !important;
 }
 
 /* Per-brand header: dark bg + colored top stripe + colored brand text */
 .ms-head-brand {
-  background: rgba(0, 0, 0, 0.5) !important;
+  background: #0f1424 !important;
   color: var(--ms-c, #94a3b8) !important;
-  border-top: 3px solid var(--ms-c, #94a3b8) !important;
   font-weight: 700 !important;
+  font-size: 0.72rem;
   letter-spacing: 0.06em;
-  text-shadow: 0 0 8px rgba(0, 0, 0, 0.5);
+  text-transform: uppercase;
+  padding: 8px 6px !important;
+  border-top: none !important;
+  border-bottom: 2px solid var(--ms-c, #94a3b8) !important;
 }
 
 /* Special right-side columns (one rule per column type — keeps colours in sync with COLOR_* constants in JS) */
@@ -805,16 +813,19 @@ footer { color: var(--text-muted); }
 .ms-head-yoy,
 .ms-head-est,
 .ms-head-growth {
-  background: rgba(0, 0, 0, 0.5) !important;
+  background: #161b2e !important;
   font-weight: 700;
   letter-spacing: 0.05em;
   vertical-align: middle;
+  padding: 8px 8px !important;
+  border-top: none !important;
+  border-bottom: 2px solid transparent !important;
 }
-.ms-head-grand  { color: #cbd5e1 !important; border-top: 3px solid #cbd5e1 !important; }
-.ms-head-mom    { color: #fbbf24 !important; border-top: 3px solid #fbbf24 !important; background: linear-gradient(180deg, rgba(120,53,15,0.35), rgba(0,0,0,0.5)) !important; }
-.ms-head-yoy    { color: #f472b6 !important; border-top: 3px solid #f472b6 !important; background: linear-gradient(180deg, rgba(131,24,67,0.35), rgba(0,0,0,0.5)) !important; }
-.ms-head-est    { color: #a78bfa !important; border-top: 3px solid #a78bfa !important; background: linear-gradient(180deg, rgba(49,46,129,0.35), rgba(0,0,0,0.5)) !important; }
-.ms-head-growth { color: #34d399 !important; border-top: 3px solid #34d399 !important; background: linear-gradient(180deg, rgba(6,78,59,0.35), rgba(0,0,0,0.5)) !important; }
+.ms-head-grand  { color: #e2e8f0 !important; border-bottom-color: #475569 !important; }
+.ms-head-mom    { color: #fbbf24 !important; border-bottom-color: #fbbf24 !important; }
+.ms-head-yoy    { color: #f472b6 !important; border-bottom-color: #f472b6 !important; }
+.ms-head-est    { color: #c4b5fd !important; border-bottom-color: #c4b5fd !important; }
+.ms-head-growth { color: #34d399 !important; border-bottom-color: #34d399 !important; }
 
 /* Stack main + sub label vertically inside special headers */
 .ms-head-main { display: block; font-size: 0.72rem; font-weight: 800; }
@@ -822,43 +833,55 @@ footer { color: var(--text-muted); }
 
 /* Subhead row — QTY / % labels */
 .ms-table thead tr.subhead th {
-  font-size: 0.6rem;
-  color: var(--text-muted);
-  padding: 2px 8px;
-  background: rgba(0, 0, 0, 0.45);
+  font-size: 0.58rem;
+  color: #64748b;
+  padding: 3px 8px;
+  background: #0a0e1a;
   font-weight: 600;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
 }
 
 /* ---------- Body cells ---------- */
 .ms-table tbody td {
-  background: rgba(0, 0, 0, 0.18);
-  line-height: 1.2;
+  background: #0f1424;
+  line-height: 1.25;
   color: var(--text-primary);
 }
 .ms-table tbody td.month-cell {
-  background: linear-gradient(135deg, #ec4899, #a855f7) !important;
-  color: white !important;
+  background: linear-gradient(180deg, #4c1d95, #1e1b4b) !important;
+  color: #f1f5f9 !important;
   font-weight: 700;
-  padding: 5px 8px;
-  letter-spacing: 0.04em;
+  font-size: 0.8rem;
+  padding: 6px 10px;
+  text-align: left;
+  letter-spacing: 0.02em;
+  min-width: 70px;
 }
-.ms-table tbody tr:hover td:not(.month-cell):not(.ms-growth-cell) { background: rgba(255, 255, 255, 0.04); }
+.ms-table tbody td.month-cell.month-empty {
+  background: #0f1424 !important;
+  color: #475569 !important;
+  font-weight: 500;
+}
+.ms-table tbody tr:hover td:not(.month-cell):not(.ms-growth-cell) { background: rgba(255, 255, 255, 0.03); }
 
-/* Conditional formatting (▲▼) */
-.ms-up    { color: #4ade80; font-weight: 600; }
-.ms-down  { color: #f87171; font-weight: 600; }
-.ms-empty { color: var(--text-muted); }
+.ms-up    { color: #4ade80 !important; font-weight: 600; }
+.ms-down  { color: #f87171 !important; font-weight: 600; }
+.ms-empty { color: #334155; }
 
 /* ---------- Grand total row (tfoot) ---------- */
 .ms-grand-row td {
   font-weight: 800;
-  background: rgba(168, 85, 247, 0.08) !important;
-  border-top: 2px solid var(--border-strong);
-  color: #cbd5e1;
+  background: linear-gradient(90deg, #4c1d95, #1e1b4b) !important;
+  border-top: 2px solid #7c3aed;
+  color: #f1f5f9;
 }
 .ms-grand-row td.month-cell {
-  background: linear-gradient(135deg, #ec4899, #a855f7) !important;
+  background: linear-gradient(180deg, #7c3aed, #3b0764) !important;
+  color: white !important;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
 }
 
 .ms-qty-cell    { font-weight: 700; font-size: 0.78rem; color: #f1f5f9; }

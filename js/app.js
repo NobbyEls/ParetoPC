@@ -741,10 +741,9 @@
     let body = '';
     rows.forEach((row, idx) => {
       const cells = [];
-      // Month label cell (gradient pink/purple)
-      cells.push(`<td class="month-cell">${escapeHtml(row.month)}</td>`);
-
+      // Month label cell — purple gradient for data rows, dim for empty
       const hasData = row.grandTotal > 0;
+      cells.push(`<td class="month-cell ${hasData ? '' : 'month-empty'}">${escapeHtml(row.month.slice(0,3))}</td>`);
       for (const c of brandCols) {
         const qty = row.qtyPerBrand[c.key] || 0;
         const share = row.sharePerBrand[c.key];
@@ -754,7 +753,10 @@
           cells.push(`<td class="ms-qty-cell ms-empty"></td><td class="ms-share-cell ms-empty"></td>`);
         } else {
           cells.push(`<td class="ms-qty-cell">${U.formatNumber(qty)}</td>`);
-          cells.push(`<td class="ms-share-cell">${(share || 0).toFixed(2)}%${fmtShareDelta(delta)}</td>`);
+          // Entire share % cell colored by delta direction
+          const deltaCls = (delta === null || delta === undefined || isNaN(delta) || Math.abs(delta) < 0.005) ? '' : (delta >= 0 ? 'ms-up' : 'ms-down');
+          const arrowChar = (delta === null || delta === undefined || isNaN(delta) || Math.abs(delta) < 0.005) ? '' : (delta >= 0 ? '▲ ' : '▼ ');
+          cells.push(`<td class="ms-share-cell ${deltaCls}">${arrowChar}${(share || 0).toFixed(2)}%</td>`);
         }
       }
       // Grand Total
