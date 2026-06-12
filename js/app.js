@@ -590,23 +590,40 @@
     const card = document.getElementById('marketshare-card');
     if (!card) return;
 
-    // Determine focus year: most recent year present in data; need at least 1 year.
+    // Determine focus year:
+    //  - If user picked a specific year in the Tahun dropdown → use that year
+    //  - Otherwise → use the most recent year in the dataset
     const yearsInData = [...new Set(state.records.map(r => r.year).filter(Boolean))].sort((a,b) => a - b);
     if (!yearsInData.length) { card.classList.add('hidden'); return; }
-    const focusYear = yearsInData[yearsInData.length - 1];
+
+    let focusYear;
+    if (state.filters.tahun && state.filters.tahun !== '__all__') {
+      focusYear = parseInt(state.filters.tahun, 10);
+    } else {
+      focusYear = yearsInData[yearsInData.length - 1];
+    }
     const prevYear = focusYear - 1;
 
     const dept = state.filters.dept;
     const category = state.filters.msCategory || '__all__';
 
-    // For the marketshare aggregation we ignore the bulan filter (always show 12 months)
-    // and ignore the brand/kota/juta filters too — but we DO honor dept and the
-    // category (Gaming/Non Gaming) sub-tab. The dept filter scopes which records
-    // we look at; categories drill further.
-    const data = A.marketshareTable(state.records, {
+    // Apply ALL active filters EXCEPT `tahun` and `bulan`:
+    //  - tahun is owned by the marketshareTable function itself (year/prevYear params)
+    //  - bulan would conflict with the per-month breakdown (always 12 rows)
+    // Honor: dept, kota, brand, juta, cekInk
+    const baseRecords = state.records.filter(r => {
+      if (state.filters.dept   && state.filters.dept   !== '__all__' && r.dept   !== state.filters.dept)   return false;
+      if (state.filters.kota   && state.filters.kota   !== '__all__' && r.kota   !== state.filters.kota)   return false;
+      if (state.filters.brand  && state.filters.brand  !== '__all__' && r.brand  !== state.filters.brand)  return false;
+      if (state.filters.juta   && state.filters.juta   !== '__all__' && r.cekJuta !== state.filters.juta)  return false;
+      if (state.filters.cekInk && state.filters.cekInk !== '__all__' && r.cekInk !== state.filters.cekInk) return false;
+      return true;
+    });
+
+    const data = A.marketshareTable(baseRecords, {
       year: focusYear,
       prevYear,
-      dept,
+      dept: '__all__',   // already filtered above
       category,
       topN: 8,
     });
