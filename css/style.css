@@ -775,7 +775,7 @@ footer { color: var(--text-muted); }
   font-variant-numeric: tabular-nums;
 }
 .ms-table th, .ms-table td {
-  padding: 8px 10px;
+  padding: 4px 8px;
   text-align: center;
   border-right: 1px solid var(--border-subtle);
 }
@@ -785,23 +785,23 @@ footer { color: var(--text-muted); }
   text-transform: uppercase;
   font-weight: 700;
   color: white;
-  padding: 10px 8px;
+  padding: 6px 6px;
 }
 .ms-table thead tr.subhead th {
   font-size: 0.6rem;
   color: var(--text-muted);
-  padding: 4px 10px;
+  padding: 2px 8px;
   background: rgba(0,0,0,0.3);
   font-weight: 600;
 }
-.ms-table tbody td { background: rgba(0,0,0,0.1); }
+.ms-table tbody td { background: rgba(0,0,0,0.1); line-height: 1.2; }
 .ms-table tbody td.month-cell {
   background: linear-gradient(135deg, #ec4899, #a855f7);
   color: white;
   font-weight: 700;
-  padding: 12px 10px;
+  padding: 5px 8px;
 }
-.ms-table tbody tr:hover td:not(.month-cell) { background: rgba(255,255,255,0.03); }
+.ms-table tbody tr:hover td:not(.month-cell):not(.ms-growth-cell) { background: rgba(255,255,255,0.03); }
 .ms-up    { color: #34d399; }
 .ms-down  { color: #f87171; }
 .ms-empty { color: var(--text-muted); }
@@ -815,13 +815,45 @@ footer { color: var(--text-muted); }
   background: linear-gradient(135deg, #ec4899, #a855f7) !important;
 }
 
-.ms-qty-cell    { font-weight: 700; font-size: 0.82rem; }
-.ms-share-cell  { font-size: 0.7rem; }
+.ms-qty-cell    { font-weight: 700; font-size: 0.78rem; }
+.ms-share-cell  { font-size: 0.68rem; }
 .ms-special-cell {
-  font-size: 0.72rem;
+  font-size: 0.7rem;
   color: var(--text-secondary);
   white-space: pre-line;
-  line-height: 1.4;
+  line-height: 1.3;
+}
+
+/* Merged Growth column (rowspan = 12) */
+.ms-growth-cell {
+  vertical-align: middle;
+  background: linear-gradient(180deg, rgba(16,185,129,0.10), rgba(16,185,129,0.04)) !important;
+  border-left: 2px solid rgba(16,185,129,0.3);
+  min-width: 130px;
+}
+.ms-growth-merged {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 8px;
+}
+.ms-growth-pct {
+  font-size: 1.4rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+.ms-growth-period {
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+  line-height: 1.3;
+  font-weight: 500;
+}
+.ms-growth-note {
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  font-style: italic;
 }
 
 /* Light-mode tweaks */

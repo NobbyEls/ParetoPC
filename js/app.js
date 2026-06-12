@@ -659,7 +659,7 @@
   const COLOR_GROW  = '#064e3b';
 
   function fmtPct(v, decimals = 2) {
-    if (v === null || v === undefined || isNaN(v)) return '-';
+    if (v === null || v === undefined || isNaN(v)) return '';
     const arrow = v >= 0 ? '▲' : '▼';
     const cls = v >= 0 ? 'ms-up' : 'ms-down';
     return `<span class="${cls}">${arrow} ${Math.abs(v).toFixed(decimals)}%</span>`;
@@ -708,6 +708,19 @@
     headRow2 += `</tr>`;
 
     // ----- BODY -----
+    // Pre-compute the merged Growth cell content (rendered once with rowspan=12)
+    let growthMergedHtml = '';
+    if (growth && growth.pct !== null && growth.pct !== undefined && !isNaN(growth.pct)) {
+      const arrow = growth.pct >= 0 ? '▲' : '▼';
+      const cls   = growth.pct >= 0 ? 'ms-up' : 'ms-down';
+      growthMergedHtml = `
+        <div class="ms-growth-merged">
+          <span class="${cls} ms-growth-pct"><strong>${arrow} ${Math.abs(growth.pct).toFixed(2)}%</strong></span>
+          <div class="ms-growth-period">${escapeHtml(growth.periodLabel)}</div>
+          ${growth.note ? `<div class="ms-growth-note">${escapeHtml(growth.note)}</div>` : ''}
+        </div>`;
+    }
+
     let body = '';
     rows.forEach((row, idx) => {
       const cells = [];
@@ -720,38 +733,32 @@
         const share = row.sharePerBrand[c.key];
         const delta = row.shareDelta ? row.shareDelta[c.key] : null;
         if (!hasData) {
-          cells.push(`<td class="ms-qty-cell ms-empty">-</td><td class="ms-share-cell ms-empty">-</td>`);
+          // Empty cells (no '-' placeholder per user request)
+          cells.push(`<td class="ms-qty-cell ms-empty"></td><td class="ms-share-cell ms-empty"></td>`);
         } else {
           cells.push(`<td class="ms-qty-cell">${U.formatNumber(qty)}</td>`);
           cells.push(`<td class="ms-share-cell">${(share || 0).toFixed(2)}%${fmtShareDelta(delta)}</td>`);
         }
       }
       // Grand Total
-      cells.push(`<td class="ms-qty-cell">${hasData ? U.formatNumber(row.grandTotal) : '-'}</td>`);
+      cells.push(`<td class="ms-qty-cell">${hasData ? U.formatNumber(row.grandTotal) : ''}</td>`);
       // MoM
-      cells.push(`<td class="ms-share-cell">${hasData ? fmtPct(row.mom) : '-'}</td>`);
+      cells.push(`<td class="ms-share-cell">${hasData ? fmtPct(row.mom) : ''}</td>`);
       // YoY
-      cells.push(`<td class="ms-share-cell">${hasData ? fmtPct(row.yoy) : '-'}</td>`);
+      cells.push(`<td class="ms-share-cell">${hasData ? fmtPct(row.yoy) : ''}</td>`);
 
       // Estimasi Closing — only the row matching estimasiClosing.monthName
-      let estHtml = '-';
+      let estHtml = '';
       if (estimasiClosing && estimasiClosing.monthName === row.month) {
         estHtml = `<strong>${U.formatNumber(estimasiClosing.value)}</strong>\n${estimasiClosing.daysElapsed}/${estimasiClosing.daysInMonth} hari`;
       }
       cells.push(`<td class="ms-special-cell">${estHtml}</td>`);
 
-      // Growth — only the row matching estimasiClosing.monthName (or last month with data)
-      let growthHtml = '-';
-      if (growth && growth.anchorMonth === row.month) {
-        const gpct = growth.pct;
-        const arrow = (gpct === null || gpct === undefined) ? '' : (gpct >= 0 ? '▲' : '▼');
-        const cls = (gpct === null || gpct === undefined) ? '' : (gpct >= 0 ? 'ms-up' : 'ms-down');
-        const headLine = (gpct === null || gpct === undefined)
-          ? '<span class="ms-empty">-</span>'
-          : `<span class="${cls}"><strong>${arrow} ${Math.abs(gpct).toFixed(2)}%</strong></span>`;
-        growthHtml = `${headLine}\n${growth.periodLabel}${growth.note ? '\n' + growth.note : ''}`;
+      // Growth — MERGED across all 12 rows. Only render the cell on the FIRST row
+      // with rowspan = total number of months. Other rows skip this column.
+      if (idx === 0) {
+        cells.push(`<td class="ms-special-cell ms-growth-cell" rowspan="${rows.length}">${growthMergedHtml}</td>`);
       }
-      cells.push(`<td class="ms-special-cell">${growthHtml}</td>`);
 
       body += `<tr>${cells.join('')}</tr>`;
     });
@@ -766,10 +773,10 @@
       grandCells.push(`<td class="ms-share-cell">${share.toFixed(2)}%</td>`);
     }
     grandCells.push(`<td class="ms-qty-cell">${U.formatNumber(grandRow.grandTotal)}</td>`);
-    grandCells.push(`<td class="ms-share-cell">-</td>`);
-    grandCells.push(`<td class="ms-share-cell">-</td>`);
-    grandCells.push(`<td class="ms-special-cell">-</td>`);
-    grandCells.push(`<td class="ms-special-cell">-</td>`);
+    grandCells.push(`<td class="ms-share-cell"></td>`);
+    grandCells.push(`<td class="ms-share-cell"></td>`);
+    grandCells.push(`<td class="ms-special-cell"></td>`);
+    grandCells.push(`<td class="ms-special-cell"></td>`); // Growth column placeholder for tfoot row
 
     table.innerHTML =
       `<thead>${headRow1}${headRow2}</thead>` +
