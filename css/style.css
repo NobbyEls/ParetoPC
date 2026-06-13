@@ -892,6 +892,16 @@ thead.bg-slate-100, thead.dark\:bg-slate-900\/50 {
   -webkit-text-fill-color: transparent;
 }
 
+/* Header logo image (like omset's .logo-img) */
+.header-logo-img {
+  height: 46px;
+  width: auto;
+  margin-left: 14px;
+  flex-shrink: 0;
+  border-radius: 6px;
+  object-fit: contain;
+}
+
 /* ============================================================
    Footer
    ============================================================ */
