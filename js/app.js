@@ -881,16 +881,19 @@
 
     if (!filtered.length) { card.classList.add('hidden'); return; }
 
-    // Top 8 brands
+    // Top brands (qty) — exclude "Other"/"Unknown" from ranking, they go to bucket
     const brandTotals = new Map();
     for (const r of filtered) {
       const b = r.brand || 'Unknown';
       brandTotals.set(b, (brandTotals.get(b) || 0) + (r.qty || 0));
     }
-    const sortedBrands = [...brandTotals.entries()].sort((a, b) => b[1] - a[1]);
-    const topBrands = sortedBrands.slice(0, 8).map(([k]) => k);
-    const otherBrands = new Set(sortedBrands.slice(8).map(([k]) => k));
-    const hasOther = otherBrands.size > 0;
+    const isOtherLike = (b) => /^(other|unknown)$/i.test(String(b).trim());
+    const allEntries = [...brandTotals.entries()].sort((a, b) => b[1] - a[1]);
+    const realBrandEntries = allEntries.filter(([k]) => !isOtherLike(k));
+    const otherDataBrands = new Set(allEntries.filter(([k]) => isOtherLike(k)).map(([k]) => k));
+    const topBrands = realBrandEntries.slice(0, 8).map(([k]) => k);
+    const overflowBrands = new Set(realBrandEntries.slice(8).map(([k]) => k));
+    const hasOther = overflowBrands.size > 0 || otherDataBrands.size > 0;
     const allKeys = hasOther ? [...topBrands, 'Other'] : [...topBrands];
 
     if (!allKeys.length) { card.classList.add('hidden'); return; }
@@ -911,7 +914,7 @@
     for (const r of filtered) {
       const mIdx = MONTHS_FULL.indexOf(r.bulan);
       if (mIdx < 0) continue;
-      const key = topBrands.includes(r.brand) ? r.brand : (otherBrands.has(r.brand) ? 'Other' : null);
+      const key = topBrands.includes(r.brand) ? r.brand : ((overflowBrands.has(r.brand) || otherDataBrands.has(r.brand)) ? 'Other' : null);
       if (key) matrix[key][mIdx] += (r.qty || 0);
     }
 

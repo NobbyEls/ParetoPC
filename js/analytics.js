@@ -274,14 +274,21 @@ PC.analytics = (() => {
     }
 
     // Compute total qty per brand in current year — pick top N.
+    // Brands literally named "Other" / "Unknown" / "OTHER" are EXCLUDED from
+    // top-ranking and always grouped into the OTHER bucket at the end.
     const brandTotals = new Map();
     for (const r of curYear) {
       const k = r.brand || 'Unknown';
       brandTotals.set(k, (brandTotals.get(k) || 0) + (r.qty || 0));
     }
-    const sortedBrands = [...brandTotals.entries()].sort((a, b) => b[1] - a[1]);
-    const topBrands = sortedBrands.slice(0, nBrands).map(([k]) => k);
-    const otherBrands = sortedBrands.slice(nBrands).map(([k]) => k);
+    const isOtherLike = (b) => /^(other|unknown)$/i.test(String(b).trim());
+    const allEntries = [...brandTotals.entries()].sort((a, b) => b[1] - a[1]);
+    const realBrandEntries = allEntries.filter(([k]) => !isOtherLike(k));
+    const otherDataBrands  = allEntries.filter(([k]) =>  isOtherLike(k)).map(([k]) => k);
+
+    const topBrands = realBrandEntries.slice(0, nBrands).map(([k]) => k);
+    const overflowBrands = realBrandEntries.slice(nBrands).map(([k]) => k);
+    const otherBrands = [...overflowBrands, ...otherDataBrands];
     const otherSet = new Set(otherBrands);
     const otherCount = otherBrands.length;
 
