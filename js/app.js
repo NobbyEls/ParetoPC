@@ -826,21 +826,35 @@
   }
 
   // ============================================================
-  // 3D BAR CHART per Departemen — pure CSS perspective bars
+  // 3D BAR CHART — Market Brand per Bulan (sesuai tahun aktif)
   // ============================================================
-  const DEPT_3D_INFO = {
-    'Printer':    { icon: '🖨️', light: '#fca5a5', main: '#ef4444', dark: '#7f1d1d' },
-    'Projector':  { icon: '📽️', light: '#fdba74', main: '#f59e0b', dark: '#7c2d12' },
-    'Monitor':    { icon: '🖥️', light: '#93c5fd', main: '#3b82f6', dark: '#1e3a8a' },
-    'PC Branded': { icon: '💻', light: '#86efac', main: '#10b981', dark: '#064e3b' },
+  const BRAND_3D_COLORS = {
+    'Epson':    { l: '#6ee7b7', m: '#10b981', d: '#064e3b' },
+    'Canon':    { l: '#fca5a5', m: '#ef4444', d: '#7f1d1d' },
+    'HP':       { l: '#fda4af', m: '#ec4899', d: '#831843' },
+    'Samsung':  { l: '#93c5fd', m: '#3b82f6', d: '#1e3a8a' },
+    'LG':       { l: '#d8b4fe', m: '#a855f7', d: '#3b0764' },
+    'Lenovo':   { l: '#86efac', m: '#22c55e', d: '#14532d' },
+    'ASUS':     { l: '#fde68a', m: '#f59e0b', d: '#78350f' },
+    'Xiaomi':   { l: '#fdba74', m: '#f97316', d: '#7c2d12' },
+    'Brother':  { l: '#67e8f9', m: '#06b6d4', d: '#164e63' },
+    'MSI':      { l: '#93c5fd', m: '#3b82f6', d: '#1e3a8a' },
+    'ACER':     { l: '#bef264', m: '#84cc16', d: '#365314' },
+    'Other':    { l: '#c4b5fd', m: '#8b5cf6', d: '#4c1d95' },
+    '_default': { l: '#a5b4fc', m: '#6366f1', d: '#312e81' },
   };
-  // Year-shading: each year shifts the lightness of the dept color (older = darker)
-  const YEAR_3D_TINT = {
-    2024: { l: '#94a3b8', m: '#475569', d: '#1e293b' },  // gray (old)
-    2025: { l: '#a5b4fc', m: '#6366f1', d: '#312e81' },  // indigo (mid)
-    2026: { l: '#f9a8d4', m: '#ec4899', d: '#831843' },  // pink (latest)
-    2027: { l: '#86efac', m: '#10b981', d: '#064e3b' },  // emerald (future)
-  };
+
+  function getBrand3DColor(brand) {
+    const key = String(brand || '').trim();
+    if (BRAND_3D_COLORS[key]) return BRAND_3D_COLORS[key];
+    const titleCase = key.charAt(0).toUpperCase() + key.slice(1).toLowerCase();
+    if (BRAND_3D_COLORS[titleCase]) return BRAND_3D_COLORS[titleCase];
+    const upper = key.toUpperCase();
+    if (BRAND_3D_COLORS[upper]) return BRAND_3D_COLORS[upper];
+    return BRAND_3D_COLORS._default;
+  }
+
+  const MONTHS_SHORT = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
 
   function renderDept3D() {
     const card = document.getElementById('dept3d-card');
@@ -850,67 +864,103 @@
 
     if (!state.records.length) { card.classList.add('hidden'); return; }
 
-    // Apply non-dept filters (kota/bulan/brand/cekInk/tahun) to records
-    // — but ignore the dept filter so we can show ALL departments side by side.
-    const baseRecords = state.records.filter(r => {
+    // Determine focus year: picked tahun, or most recent year in data
+    const yearsInData = [...new Set(state.records.map(r => r.year).filter(Boolean))].sort();
+    let focusYear;
+    if (state.filters.tahun && state.filters.tahun !== '__all__') {
+      focusYear = parseInt(state.filters.tahun, 10);
+    } else {
+      focusYear = yearsInData[yearsInData.length - 1];
+    }
+
+    // Apply all active filters (dept, kota, cekInk) + restrict to focus year
+    const filtered = state.records.filter(r => {
+      if (r.year !== focusYear) return false;
+      if (state.filters.dept   && state.filters.dept   !== '__all__' && r.dept   !== state.filters.dept)   return false;
       if (state.filters.kota   && state.filters.kota   !== '__all__' && r.kota   !== state.filters.kota)   return false;
-      if (state.filters.bulan  && state.filters.bulan  !== '__all__' && r.bulan  !== state.filters.bulan)  return false;
       if (state.filters.brand  && state.filters.brand  !== '__all__' && r.brand  !== state.filters.brand)  return false;
       if (state.filters.cekInk && state.filters.cekInk !== '__all__' && r.cekInk !== state.filters.cekInk) return false;
-      if (state.filters.tahun  && state.filters.tahun  !== '__all__' && String(r.year) !== String(state.filters.tahun)) return false;
       return true;
     });
 
-    if (!baseRecords.length) { card.classList.add('hidden'); return; }
+    if (!filtered.length) { card.classList.add('hidden'); return; }
 
-    const depts = ['Printer', 'Projector', 'Monitor', 'PC Branded'];
-    const presentDepts = depts.filter(d => baseRecords.some(r => r.dept === d));
-    if (!presentDepts.length) { card.classList.add('hidden'); return; }
-
-    const years = [...new Set(baseRecords.map(r => r.year).filter(Boolean))].sort();
-
-    // Compute matrix data[dept][year] = qty, find global max
-    const data = {};
-    let maxQty = 0;
-    for (const d of presentDepts) {
-      data[d] = {};
-      for (const y of years) {
-        const q = U.sumBy(baseRecords.filter(r => r.dept === d && r.year === y), r => r.qty);
-        data[d][y] = q;
-        if (q > maxQty) maxQty = q;
-      }
+    // Get top 6 brands by qty in this year + dept combo
+    const brandTotals = new Map();
+    for (const r of filtered) {
+      const b = r.brand || 'Unknown';
+      brandTotals.set(b, (brandTotals.get(b) || 0) + (r.qty || 0));
     }
-    if (maxQty === 0) { card.classList.add('hidden'); return; }
+    const sortedBrands = [...brandTotals.entries()].sort((a, b) => b[1] - a[1]);
+    const topBrands = sortedBrands.slice(0, 6).map(([k]) => k);
+
+    if (!topBrands.length) { card.classList.add('hidden'); return; }
     card.classList.remove('hidden');
 
-    // Render bars
+    // Update title
+    const titleEl = card.querySelector('.chart-title');
+    const subEl = card.querySelector('.chart-sub');
+    const dept = state.filters.dept && state.filters.dept !== '__all__' ? state.filters.dept : '';
+    if (titleEl) titleEl.textContent = `📦 Market Brand per Bulan${dept ? ' — ' + dept : ''} (${focusYear})`;
+    if (subEl) subEl.textContent = `Top ${topBrands.length} brand, jumlah unit terjual per bulan`;
+
+    // Build matrix: brand × month → qty
+    const MONTHS_FULL = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+    const matrix = {};
+    for (const b of topBrands) {
+      matrix[b] = new Array(12).fill(0);
+    }
+    for (const r of filtered) {
+      if (!topBrands.includes(r.brand)) continue;
+      const mIdx = MONTHS_FULL.indexOf(r.bulan);
+      if (mIdx < 0) continue;
+      matrix[r.brand][mIdx] += (r.qty || 0);
+    }
+
+    // Find last month with data
+    let lastMonthIdx = -1;
+    for (let m = 0; m < 12; m++) {
+      for (const b of topBrands) {
+        if (matrix[b][m] > 0) { lastMonthIdx = m; break; }
+      }
+    }
+    if (lastMonthIdx < 0) { card.classList.add('hidden'); return; }
+
+    // Global max for scale
+    let maxQty = 0;
+    for (const b of topBrands) {
+      for (let m = 0; m <= lastMonthIdx; m++) {
+        if (matrix[b][m] > maxQty) maxQty = matrix[b][m];
+      }
+    }
+    if (maxQty === 0) maxQty = 1;
+
+    // Render: grouped by MONTH, bars per brand within each month
     let html = '';
-    for (const d of presentDepts) {
-      const info = DEPT_3D_INFO[d] || { icon: '📊', light: '#a78bfa', main: '#8b5cf6', dark: '#3b0764' };
+    for (let m = 0; m <= lastMonthIdx; m++) {
       html += `<div class="dept3d-group"><div class="dept3d-bars">`;
-      for (const y of years) {
-        const q = data[d][y];
-        const heightPct = maxQty ? (q / maxQty * 100) : 0;
-        const tint = YEAR_3D_TINT[y] || { l: info.light, m: info.main, d: info.dark };
+      for (const b of topBrands) {
+        const q = matrix[b][m];
+        const heightPct = (q / maxQty * 100);
+        const tint = getBrand3DColor(b);
         html += `
           <div class="dept3d-bar-wrap">
-            <span class="dept3d-bar-value">${U.formatNumber(q)}</span>
+            <span class="dept3d-bar-value">${q > 0 ? U.formatNumber(q) : ''}</span>
             <div class="dept3d-bar"
-                 title="${escapeAttr(d)} ${y}: ${U.formatNumber(q)} unit"
-                 style="--bar-h: ${Math.max(heightPct, 1)}%; --c-light: ${tint.l}; --c: ${tint.m}; --c-dark: ${tint.d};">
+                 title="${escapeAttr(b)} ${MONTHS_SHORT[m]} ${focusYear}: ${U.formatNumber(q)} unit"
+                 style="--bar-h: ${Math.max(heightPct, q > 0 ? 2 : 0)}%; --c-light: ${tint.l}; --c: ${tint.m}; --c-dark: ${tint.d};">
             </div>
-            <span class="dept3d-bar-year">${y}</span>
           </div>`;
       }
-      html += `</div><div class="dept3d-label"><span class="dept3d-icon">${info.icon}</span>${escapeHtml(d)}</div></div>`;
+      html += `</div><div class="dept3d-label">${MONTHS_SHORT[m]}</div></div>`;
     }
     stage.innerHTML = html;
 
-    // Legend
+    // Legend (brands)
     if (legend) {
-      legend.innerHTML = years.map(y => {
-        const t = YEAR_3D_TINT[y] || { m: '#6366f1' };
-        return `<span class="dept3d-legend-item"><span class="dept3d-legend-swatch" style="--c:${t.m}"></span>${y}</span>`;
+      legend.innerHTML = topBrands.map(b => {
+        const t = getBrand3DColor(b);
+        return `<span class="dept3d-legend-item"><span class="dept3d-legend-swatch" style="--c:${t.m}"></span>${escapeHtml(b)}</span>`;
       }).join('');
     }
   }
