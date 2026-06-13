@@ -774,8 +774,8 @@ thead.bg-slate-100, thead.dark\:bg-slate-900\/50 {
 }
 .loading-logo {
   margin: 0 auto 24px;
-  width: 64px;
-  height: 64px;
+  width: 80px;
+  height: 80px;
   border-radius: 16px;
   background: rgba(255, 255, 255, 0.04);
   border: 1px solid rgba(255, 255, 255, 0.1);
@@ -783,6 +783,14 @@ thead.bg-slate-100, thead.dark\:bg-slate-900\/50 {
   align-items: center;
   justify-content: center;
   box-shadow: 0 0 40px rgba(99, 102, 241, 0.4);
+  overflow: hidden;
+}
+.loading-logo-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  padding: 6px;
+  border-radius: 12px;
 }
 .loading-content h3 {
   margin: 16px 0 8px;

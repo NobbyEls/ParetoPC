@@ -828,12 +828,13 @@
   // ============================================================
   // STACKED BAR CHART — Market Brand per Bulan (Chart.js)
   // ============================================================
+  // High-contrast brand colors (each visually distinct from neighbors)
   const BRAND_STACK_COLORS = {
-    'Epson':    '#10b981', 'Canon':    '#ef4444', 'HP':       '#ec4899',
-    'Samsung':  '#3b82f6', 'LG':       '#a855f7', 'Lenovo':   '#22c55e',
-    'ASUS':     '#f59e0b', 'Xiaomi':   '#f97316', 'Brother':  '#06b6d4',
-    'MSI':      '#3b82f6', 'ACER':     '#84cc16', 'Other':    '#8b5cf6',
-    'Blueprint':'#0ea5e9', 'Unknown':  '#64748b', '_default': '#6366f1',
+    'Epson':    '#10b981', 'Canon':    '#dc2626', 'HP':       '#d946ef',
+    'Samsung':  '#2563eb', 'LG':       '#7c3aed', 'Lenovo':   '#15803d',
+    'ASUS':     '#ca8a04', 'Xiaomi':   '#ea580c', 'Brother':  '#0891b2',
+    'MSI':      '#4f46e5', 'ACER':     '#65a30d', 'Other':    '#6b7280',
+    'Blueprint':'#0284c7', 'Unknown':  '#a1a1aa', '_default': '#6366f1',
   };
 
   function getStackColor(brand) {
@@ -939,8 +940,15 @@
             labels: { boxWidth: 10, boxHeight: 10, padding: 14, usePointStyle: true, pointStyle: 'rect', font: { size: 11, weight: 500 } },
           },
           tooltip: {
+            mode: 'index',
+            intersect: false,
             callbacks: {
-              label: (c) => `${c.dataset.label}: ${U.formatNumber(c.parsed.y)} unit`,
+              title: (items) => items.length ? items[0].label + ' ' + focusYear : '',
+              label: (c) => {
+                const total = c.chart.data.datasets.reduce((s, ds) => s + (ds.data[c.dataIndex] || 0), 0);
+                const pct = total > 0 ? ((c.parsed.y / total) * 100).toFixed(1) : '0.0';
+                return ` ${c.dataset.label}: ${U.formatNumber(c.parsed.y)} unit (${pct}%)`;
+              },
               footer: (items) => {
                 const total = items.reduce((s, i) => s + i.parsed.y, 0);
                 return `Total: ${U.formatNumber(total)} unit`;
