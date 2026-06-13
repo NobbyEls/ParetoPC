@@ -826,45 +826,34 @@
   }
 
   // ============================================================
-  // 3D BAR CHART — Market Brand per Bulan (sesuai tahun aktif)
+  // STACKED BAR CHART — Market Brand per Bulan (Chart.js)
   // ============================================================
-  const BRAND_3D_COLORS = {
-    'Epson':    { l: '#6ee7b7', m: '#10b981', d: '#064e3b' },
-    'Canon':    { l: '#fca5a5', m: '#ef4444', d: '#7f1d1d' },
-    'HP':       { l: '#fda4af', m: '#ec4899', d: '#831843' },
-    'Samsung':  { l: '#93c5fd', m: '#3b82f6', d: '#1e3a8a' },
-    'LG':       { l: '#d8b4fe', m: '#a855f7', d: '#3b0764' },
-    'Lenovo':   { l: '#86efac', m: '#22c55e', d: '#14532d' },
-    'ASUS':     { l: '#fde68a', m: '#f59e0b', d: '#78350f' },
-    'Xiaomi':   { l: '#fdba74', m: '#f97316', d: '#7c2d12' },
-    'Brother':  { l: '#67e8f9', m: '#06b6d4', d: '#164e63' },
-    'MSI':      { l: '#93c5fd', m: '#3b82f6', d: '#1e3a8a' },
-    'ACER':     { l: '#bef264', m: '#84cc16', d: '#365314' },
-    'Other':    { l: '#c4b5fd', m: '#8b5cf6', d: '#4c1d95' },
-    '_default': { l: '#a5b4fc', m: '#6366f1', d: '#312e81' },
+  const BRAND_STACK_COLORS = {
+    'Epson':    '#10b981', 'Canon':    '#ef4444', 'HP':       '#ec4899',
+    'Samsung':  '#3b82f6', 'LG':       '#a855f7', 'Lenovo':   '#22c55e',
+    'ASUS':     '#f59e0b', 'Xiaomi':   '#f97316', 'Brother':  '#06b6d4',
+    'MSI':      '#3b82f6', 'ACER':     '#84cc16', 'Other':    '#8b5cf6',
+    'Blueprint':'#0ea5e9', 'Unknown':  '#64748b', '_default': '#6366f1',
   };
 
-  function getBrand3DColor(brand) {
-    const key = String(brand || '').trim();
-    if (BRAND_3D_COLORS[key]) return BRAND_3D_COLORS[key];
-    const titleCase = key.charAt(0).toUpperCase() + key.slice(1).toLowerCase();
-    if (BRAND_3D_COLORS[titleCase]) return BRAND_3D_COLORS[titleCase];
-    const upper = key.toUpperCase();
-    if (BRAND_3D_COLORS[upper]) return BRAND_3D_COLORS[upper];
-    return BRAND_3D_COLORS._default;
+  function getStackColor(brand) {
+    if (BRAND_STACK_COLORS[brand]) return BRAND_STACK_COLORS[brand];
+    const tc = brand.charAt(0).toUpperCase() + brand.slice(1).toLowerCase();
+    if (BRAND_STACK_COLORS[tc]) return BRAND_STACK_COLORS[tc];
+    if (BRAND_STACK_COLORS[brand.toUpperCase()]) return BRAND_STACK_COLORS[brand.toUpperCase()];
+    return BRAND_STACK_COLORS._default;
   }
 
-  const MONTHS_SHORT = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
+  let stackedChartInstance = null;
 
   function renderDept3D() {
     const card = document.getElementById('dept3d-card');
-    const stage = document.getElementById('dept3d-stage');
-    const legend = document.getElementById('dept3d-legend');
-    if (!card || !stage) return;
+    const canvas = document.getElementById('chart-stacked');
+    if (!card || !canvas) return;
 
     if (!state.records.length) { card.classList.add('hidden'); return; }
 
-    // Determine focus year: picked tahun, or most recent year in data
+    // Focus year
     const yearsInData = [...new Set(state.records.map(r => r.year).filter(Boolean))].sort();
     let focusYear;
     if (state.filters.tahun && state.filters.tahun !== '__all__') {
@@ -873,7 +862,7 @@
       focusYear = yearsInData[yearsInData.length - 1];
     }
 
-    // Apply all active filters (dept, kota, cekInk) + restrict to focus year
+    // Apply active filters + restrict to focus year
     const filtered = state.records.filter(r => {
       if (r.year !== focusYear) return false;
       if (state.filters.dept   && state.filters.dept   !== '__all__' && r.dept   !== state.filters.dept)   return false;
@@ -885,84 +874,94 @@
 
     if (!filtered.length) { card.classList.add('hidden'); return; }
 
-    // Get top 6 brands by qty in this year + dept combo
+    // Top 8 brands
     const brandTotals = new Map();
     for (const r of filtered) {
       const b = r.brand || 'Unknown';
       brandTotals.set(b, (brandTotals.get(b) || 0) + (r.qty || 0));
     }
     const sortedBrands = [...brandTotals.entries()].sort((a, b) => b[1] - a[1]);
-    const topBrands = sortedBrands.slice(0, 6).map(([k]) => k);
+    const topBrands = sortedBrands.slice(0, 8).map(([k]) => k);
+    const otherBrands = new Set(sortedBrands.slice(8).map(([k]) => k));
+    const hasOther = otherBrands.size > 0;
+    const allKeys = hasOther ? [...topBrands, 'Other'] : [...topBrands];
 
-    if (!topBrands.length) { card.classList.add('hidden'); return; }
+    if (!allKeys.length) { card.classList.add('hidden'); return; }
     card.classList.remove('hidden');
 
-    // Update title
-    const titleEl = card.querySelector('.chart-title');
-    const subEl = card.querySelector('.chart-sub');
+    // Update titles
     const dept = state.filters.dept && state.filters.dept !== '__all__' ? state.filters.dept : '';
+    const titleEl = document.getElementById('stacked-title');
+    const subEl = document.getElementById('stacked-sub');
     if (titleEl) titleEl.textContent = `📦 Market Brand per Bulan${dept ? ' — ' + dept : ''} (${focusYear})`;
-    if (subEl) subEl.textContent = `Top ${topBrands.length} brand, jumlah unit terjual per bulan`;
+    if (subEl) subEl.textContent = `Top ${topBrands.length} brand, unit terjual per bulan (stacked)`;
 
-    // Build matrix: brand × month → qty
+    // Build matrix brand × month
     const MONTHS_FULL = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+    const MONTHS_SHORT = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
     const matrix = {};
-    for (const b of topBrands) {
-      matrix[b] = new Array(12).fill(0);
-    }
+    for (const k of allKeys) matrix[k] = new Array(12).fill(0);
     for (const r of filtered) {
-      if (!topBrands.includes(r.brand)) continue;
       const mIdx = MONTHS_FULL.indexOf(r.bulan);
       if (mIdx < 0) continue;
-      matrix[r.brand][mIdx] += (r.qty || 0);
+      const key = topBrands.includes(r.brand) ? r.brand : (otherBrands.has(r.brand) ? 'Other' : null);
+      if (key) matrix[key][mIdx] += (r.qty || 0);
     }
 
     // Find last month with data
-    let lastMonthIdx = -1;
+    let lastIdx = -1;
     for (let m = 0; m < 12; m++) {
-      for (const b of topBrands) {
-        if (matrix[b][m] > 0) { lastMonthIdx = m; break; }
-      }
+      for (const k of allKeys) { if (matrix[k][m] > 0) { lastIdx = m; break; } }
     }
-    if (lastMonthIdx < 0) { card.classList.add('hidden'); return; }
+    if (lastIdx < 0) { card.classList.add('hidden'); return; }
 
-    // Global max for scale
-    let maxQty = 0;
-    for (const b of topBrands) {
-      for (let m = 0; m <= lastMonthIdx; m++) {
-        if (matrix[b][m] > maxQty) maxQty = matrix[b][m];
-      }
-    }
-    if (maxQty === 0) maxQty = 1;
+    const labels = MONTHS_SHORT.slice(0, lastIdx + 1);
+    const datasets = allKeys.map(brand => ({
+      label: brand,
+      data: matrix[brand].slice(0, lastIdx + 1),
+      backgroundColor: getStackColor(brand) + 'cc',
+      borderColor: getStackColor(brand),
+      borderWidth: 1,
+      borderRadius: 3,
+    }));
 
-    // Render: grouped by MONTH, bars per brand within each month
-    let html = '';
-    for (let m = 0; m <= lastMonthIdx; m++) {
-      html += `<div class="dept3d-group"><div class="dept3d-bars">`;
-      for (const b of topBrands) {
-        const q = matrix[b][m];
-        const heightPct = (q / maxQty * 100);
-        const tint = getBrand3DColor(b);
-        html += `
-          <div class="dept3d-bar-wrap">
-            <span class="dept3d-bar-value">${q > 0 ? U.formatNumber(q) : ''}</span>
-            <div class="dept3d-bar"
-                 title="${escapeAttr(b)} ${MONTHS_SHORT[m]} ${focusYear}: ${U.formatNumber(q)} unit"
-                 style="--bar-h: ${Math.max(heightPct, q > 0 ? 2 : 0)}%; --c-light: ${tint.l}; --c: ${tint.m}; --c-dark: ${tint.d};">
-            </div>
-          </div>`;
+    // Destroy old + create new
+    if (stackedChartInstance) { stackedChartInstance.destroy(); stackedChartInstance = null; }
+    stackedChartInstance = new Chart(canvas.getContext('2d'), {
+      type: 'bar',
+      data: { labels, datasets },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: 'bottom',
+            labels: { boxWidth: 10, boxHeight: 10, padding: 14, usePointStyle: true, pointStyle: 'rect', font: { size: 11, weight: 500 } },
+          },
+          tooltip: {
+            callbacks: {
+              label: (c) => `${c.dataset.label}: ${U.formatNumber(c.parsed.y)} unit`,
+              footer: (items) => {
+                const total = items.reduce((s, i) => s + i.parsed.y, 0);
+                return `Total: ${U.formatNumber(total)} unit`;
+              }
+            }
+          }
+        },
+        scales: {
+          x: {
+            stacked: true,
+            grid: { display: false },
+            ticks: { font: { weight: 600 } },
+          },
+          y: {
+            stacked: true,
+            ticks: { callback: (v) => U.formatNumber(v) },
+            grid: { color: 'rgba(45,52,84,0.25)', drawBorder: false },
+          }
+        }
       }
-      html += `</div><div class="dept3d-label">${MONTHS_SHORT[m]}</div></div>`;
-    }
-    stage.innerHTML = html;
-
-    // Legend (brands)
-    if (legend) {
-      legend.innerHTML = topBrands.map(b => {
-        const t = getBrand3DColor(b);
-        return `<span class="dept3d-legend-item"><span class="dept3d-legend-swatch" style="--c:${t.m}"></span>${escapeHtml(b)}</span>`;
-      }).join('');
-    }
+    });
   }
 
   // ============================================================

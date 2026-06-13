@@ -34,7 +34,7 @@
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.6/dist/chart.umd.min.js"></script>
 
-  <link rel="stylesheet" href="css/style.css?v=26" />
+  <link rel="stylesheet" href="css/style.css?v=27" />
 </head>
 <body class="bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 font-sans antialiased min-h-screen">
 
@@ -199,14 +199,13 @@
         </div>
       </div>
 
-      <!-- 3D Bar Chart per Departemen -->
+      <!-- Stacked Bar Chart — Market Brand per Bulan -->
       <div id="dept3d-card" class="chart-card hidden">
         <div class="chart-header">
-          <h3 class="chart-title">📦 Penjualan per Departemen — 3D View</h3>
-          <p class="chart-sub">Perbandingan total unit terjual per departemen × tahun (perspective view)</p>
+          <h3 class="chart-title" id="stacked-title">📦 Market Brand per Bulan</h3>
+          <p class="chart-sub" id="stacked-sub">Top brand, jumlah unit terjual per bulan (stacked)</p>
         </div>
-        <div id="dept3d-stage" class="dept3d-stage"></div>
-        <div id="dept3d-legend" class="dept3d-legend"></div>
+        <div class="chart-body chart-body-tall"><canvas id="chart-stacked"></canvas></div>
       </div>
 
       <!-- Row 1: Trend + Mix Brand -->
@@ -293,11 +292,11 @@
     </footer>
   </main>
 
-  <script src="js/utils.js?v=26"></script>
-  <script src="js/parser.js?v=26"></script>
-  <script src="js/sheets.js?v=26"></script>
-  <script src="js/analytics.js?v=26"></script>
-  <script src="js/charts.js?v=26"></script>
-  <script src="js/app.js?v=26"></script>
+  <script src="js/utils.js?v=27"></script>
+  <script src="js/parser.js?v=27"></script>
+  <script src="js/sheets.js?v=27"></script>
+  <script src="js/analytics.js?v=27"></script>
+  <script src="js/charts.js?v=27"></script>
+  <script src="js/app.js?v=27"></script>
 </body>
 </html>
