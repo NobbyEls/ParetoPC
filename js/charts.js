@@ -91,12 +91,12 @@ PC.charts = (() => {
         plugins: {
           legend: { position: 'bottom', labels: { boxWidth: 8, boxHeight: 8, padding: 14, usePointStyle: true, pointStyle: 'circle' } },
           tooltip: {
-            callbacks: { label: (c) => `${c.dataset.label}: ${U.formatIDR(c.parsed.y)}` }
+            callbacks: { label: (c) => `${c.dataset.label}: ${U.formatNumber(c.parsed.y)} unit` }
           }
         },
         scales: {
           y: {
-            ticks: { callback: (v) => U.formatIDRCompact(v) },
+            ticks: { callback: (v) => U.formatNumber(v) },
             grid: { color: 'rgba(45,52,84,0.35)', drawBorder: false }
           },
           x: { grid: { display: false }, ticks: { font: { weight: 500 } } }
@@ -131,7 +131,7 @@ PC.charts = (() => {
               label: (c) => {
                 const tot = c.dataset.data.reduce((a,b) => a+b, 0);
                 const pct = tot ? ((c.parsed / tot) * 100).toFixed(1) : 0;
-                return `${c.label}: ${U.formatIDR(c.parsed)} (${pct}%)`;
+                return `${c.label}: ${U.formatNumber(c.parsed)} unit (${pct}%)`;
               }
             }
           }
@@ -166,13 +166,13 @@ PC.charts = (() => {
           legend: { display: false },
           tooltip: {
             callbacks: {
-              label: (c) => `${U.formatIDR(c.parsed.x)} · ${U.formatNumber(agg[c.dataIndex].qty)} unit`
+              label: (c) => `${U.formatNumber(c.parsed.x)} unit`
             }
           }
         },
         scales: {
           x: {
-            ticks: { callback: (v) => U.formatIDRCompact(v) },
+            ticks: { callback: (v) => U.formatNumber(v) },
             grid: { color: 'rgba(45,52,84,0.25)', drawBorder: false }
           },
           y: {

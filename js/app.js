@@ -479,11 +479,11 @@
     const dept = state.filters.dept;
     const deptLabel = dept || 'Semua';
 
-    // Update chart titles to reflect active dept
-    setText('title-trend',  `Tren Penjualan Bulanan — ${deptLabel}`);
-    setText('sub-trend',    `Total omzet ${deptLabel} per bulan`);
+    // Update chart titles to reflect active dept — all now QTY-based
+    setText('title-trend',  `Tren Unit Terjual Bulanan — ${deptLabel}`);
+    setText('sub-trend',    `Total unit ${deptLabel} per bulan`);
     setText('title-mix',    `Mix Brand di ${deptLabel}`);
-    setText('sub-mix',      `Kontribusi % omzet per brand`);
+    setText('sub-mix',      `Kontribusi % unit per brand`);
     setText('title-brand',  `Top 10 Brand — ${deptLabel}`);
     setText('title-product',`Top 10 Produk — ${deptLabel}`);
     setText('title-kota',   `Penjualan per Kota — ${deptLabel}`);
@@ -529,17 +529,23 @@
     // 3D bar chart per departemen — total qty per dept × year
     renderDept3D();
 
-    // Single-line trend (just for active dept)
-    Ch.trendChart(A.monthlyTrend(filtered, { byDept: false }));
+    // Single-line trend (QTY-based)
+    const sortedMonths = U.sortBulan([...new Set(filtered.map(r => r.bulan).filter(Boolean))]);
+    const trendQty = {
+      labels: sortedMonths,
+      datasets: [{ label: 'Unit Terjual', data: sortedMonths.map(mo => U.sumBy(filtered.filter(r => r.bulan === mo), r => r.qty)) }]
+    };
+    Ch.trendChart(trendQty);
 
-    // Mix Brand pie (top brands' share within active dept)
-    const topBrands = A.topN(filtered, r => r.brand, 8);
-    Ch.brandMixChart(topBrands);
+    // Mix Brand donut (QTY-based)
+    const brandsByQty = A.aggBy(filtered, r => r.brand, { sumKey: 'qty' }).slice(0, 8).map(b => ({ ...b, total: b.qty }));
+    Ch.brandMixChart(brandsByQty);
 
-    Ch.topBarChart('chart-brand', A.topN(filtered, r => r.brand, 10), 'Brand');
-    Ch.topBarChart('chart-product', A.topN(filtered, r => r.namaBarang, 10), 'Produk');
-    Ch.topBarChart('chart-kota', A.aggBy(filtered, r => r.kota), 'Kota');
-    Ch.topBarChart('chart-sales', A.topN(filtered, r => r.kodeSales, 10), 'Sales');
+    // Top 10 charts (ALL QTY-based)
+    Ch.topBarChart('chart-brand', A.aggBy(filtered, r => r.brand, { sumKey: 'qty' }).slice(0, 10).map(b => ({ ...b, total: b.qty })), 'Brand');
+    Ch.topBarChart('chart-product', A.aggBy(filtered, r => r.namaBarang, { sumKey: 'qty' }).slice(0, 10).map(b => ({ ...b, total: b.qty })), 'Produk');
+    Ch.topBarChart('chart-kota', A.aggBy(filtered, r => r.kota, { sumKey: 'qty' }).map(b => ({ ...b, total: b.qty })), 'Kota');
+    Ch.topBarChart('chart-sales', A.aggBy(filtered, r => r.kodeSales, { sumKey: 'qty' }).slice(0, 10).map(b => ({ ...b, total: b.qty })), 'Sales');
 
     const p = A.pareto(filtered, r => r.namaBarang, 30);
     Ch.paretoChart(p);
