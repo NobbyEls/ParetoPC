@@ -748,7 +748,7 @@
       prevYear,
       dept: '__all__',   // already filtered above
       category,
-      topN: 8,
+      topN: 6,
       sumField: state.filters.msMode === 'value' ? 'total' : 'qty',
     });
 
@@ -1179,8 +1179,8 @@
     const allEntries = [...brandTotals.entries()].sort((a, b) => b[1] - a[1]);
     const realBrandEntries = allEntries.filter(([k]) => !isOtherLike(k));
     const otherDataBrands = new Set(allEntries.filter(([k]) => isOtherLike(k)).map(([k]) => k));
-    const topBrands = realBrandEntries.slice(0, 8).map(([k]) => k);
-    const overflowBrands = new Set(realBrandEntries.slice(8).map(([k]) => k));
+    const topBrands = realBrandEntries.slice(0, 6).map(([k]) => k);
+    const overflowBrands = new Set(realBrandEntries.slice(6).map(([k]) => k));
     const hasOther = overflowBrands.size > 0 || otherDataBrands.size > 0;
     const allKeys = hasOther ? [...topBrands, 'Other'] : [...topBrands];
 

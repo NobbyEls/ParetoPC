@@ -967,7 +967,7 @@ footer { color: var(--text-muted); }
 }
 
 .ms-table-wrap {
-  overflow-x: auto;
+  overflow-x: hidden;
   border: 1px solid var(--border-medium);
   border-radius: 10px;
   background: rgba(0,0,0,0.15);
@@ -978,6 +978,8 @@ footer { color: var(--text-muted); }
   font-size: 0.7rem;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
+  table-layout: auto;
+  overflow: hidden;
 }
 .ms-table th, .ms-table td {
   padding: 3px 5px;
@@ -1651,10 +1653,10 @@ html:not(.dark) .dept3d-label { border-top-color: rgba(15,23,42,0.13); }
   #yoy-summary { font-size: 0.7rem !important; }
 
   /* Marketshare table: smaller cells on mobile */
-  .ms-table { font-size: 0.7rem !important; min-width: 920px; }
-  .ms-table th, .ms-table td { padding: 3px 5px !important; }
-  .ms-qty-cell { font-size: 0.72rem !important; }
-  .ms-share-cell { font-size: 0.62rem !important; }
+  .ms-table { font-size: 0.62rem !important; min-width: 0 !important; }
+  .ms-table th, .ms-table td { padding: 2px 3px !important; }
+  .ms-qty-cell { font-size: 0.6rem !important; }
+  .ms-share-cell { font-size: 0.55rem !important; }
   .ms-growth-pct { font-size: 1rem !important; }
   .ms-growth-period { font-size: 0.6rem !important; }
   .ms-growth-note { font-size: 0.55rem !important; }
