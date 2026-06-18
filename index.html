@@ -35,7 +35,7 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.6/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 
-  <link rel="stylesheet" href="css/style.css?v=44" />
+  <link rel="stylesheet" href="css/style.css?v=45" />
 </head>
 <body class="bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 font-sans antialiased min-h-screen">
 
@@ -189,6 +189,27 @@
           </div>
         </div>
         <div class="chart-body chart-body-tall"><canvas id="chart-yoy"></canvas></div>
+      </div>
+
+      <!-- Marketshare per Tipe PC — Detail Bulanan (only PC Branded) -->
+      <div id="marketshare-tipepc-card" class="chart-card hidden">
+        <div class="chart-header flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h3 class="chart-title">Marketshare by Tipe PC — Detail Bulanan</h3>
+            <p class="chart-sub">Growth, MoM, YoY, dan estimasi closing per tipe PC (AIO, Tower, Mini PC).</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <button class="btn-png" title="Download sebagai PNG" data-target="marketshare-tipepc-card">⬇ PNG</button>
+            <div id="ms-tipepc-mode-toggle" class="inline-flex rounded-lg overflow-hidden border" style="border-color:var(--border-subtle);">
+              <button class="ms-tipepc-mode-btn active" data-mode="qty">QTY</button>
+              <button class="ms-tipepc-mode-btn" data-mode="value">Value (Rp)</button>
+            </div>
+          </div>
+        </div>
+        <div id="ms-tipepc-period-banner" class="ms-period-banner"></div>
+        <div class="ms-table-wrap">
+          <table id="ms-tipepc-table" class="ms-table"></table>
+        </div>
       </div>
 
       <!-- Marketshare per Brand — Detail Bulanan (table) -->
@@ -361,11 +382,11 @@
     </footer>
   </main>
 
-  <script src="js/utils.js?v=44"></script>
-  <script src="js/parser.js?v=44"></script>
-  <script src="js/sheets.js?v=44"></script>
-  <script src="js/analytics.js?v=44"></script>
-  <script src="js/charts.js?v=44"></script>
-  <script src="js/app.js?v=44"></script>
+  <script src="js/utils.js?v=45"></script>
+  <script src="js/parser.js?v=45"></script>
+  <script src="js/sheets.js?v=45"></script>
+  <script src="js/analytics.js?v=45"></script>
+  <script src="js/charts.js?v=45"></script>
+  <script src="js/app.js?v=45"></script>
 </body>
 </html>

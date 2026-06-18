@@ -252,7 +252,7 @@ PC.analytics = (() => {
    * @returns marketshare data object (see briefing for shape).
    */
   function marketshareTable(records, opts = {}) {
-    const { year, prevYear, dept, category = '__all__', topN: nBrands = 8, sumField = 'qty' } = opts;
+    const { year, prevYear, dept, category = '__all__', topN: nBrands = 8, sumField = 'qty', groupByField = 'brand' } = opts;
     if (!year) return null;
 
     // Filter by dept + category
@@ -274,12 +274,12 @@ PC.analytics = (() => {
       };
     }
 
-    // Compute total per brand in current year using the selected sumField — pick top N.
+    // Compute total per group (brand or cekInk) in current year using the selected sumField.
     // Brands literally named "Other" / "Unknown" / "OTHER" are EXCLUDED from
     // top-ranking and always grouped into the OTHER bucket at the end.
     const brandTotals = new Map();
     for (const r of curYear) {
-      const k = r.brand || 'Unknown';
+      const k = r[groupByField] || 'Unknown';
       brandTotals.set(k, (brandTotals.get(k) || 0) + (r[sumField] || 0));
     }
     const isOtherLike = (b) => /^(other|unknown)$/i.test(String(b).trim());
@@ -305,7 +305,7 @@ PC.analytics = (() => {
     for (const r of curYear) {
       const mIdx = MS_MONTHS.indexOf(r.bulan);
       if (mIdx < 0) continue;
-      const key = topBrands.includes(r.brand) ? r.brand : (otherSet.has(r.brand) ? '__other__' : '__other__');
+      const key = topBrands.includes(r[groupByField]) ? r[groupByField] : (otherSet.has(r[groupByField]) ? '__other__' : '__other__');
       matrix[mIdx][key] = (matrix[mIdx][key] || 0) + (r[sumField] || 0);
       // Track latest day in each month for estimasi closing
       if (r.tgl instanceof Date && !isNaN(r.tgl)) {
@@ -345,7 +345,7 @@ PC.analytics = (() => {
     let prvDecGrand = 0;
     for (const r of prvYear) {
       if (r.bulan !== 'Desember') continue;
-      const key = topBrands.includes(r.brand) ? r.brand : '__other__';
+      const key = topBrands.includes(r[groupByField]) ? r[groupByField] : '__other__';
       prvDecPerBrand[key] += (r[sumField] || 0);
       prvDecGrand += (r[sumField] || 0);
     }

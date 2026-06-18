@@ -959,7 +959,7 @@ footer { color: var(--text-muted); }
 }
 
 /* Toggle buttons for Marketshare mode (QTY / Value) and Chart type (Bar / Line) */
-.ms-mode-btn, .ms-kota-mode-btn, .chart-type-btn {
+.ms-mode-btn, .ms-kota-mode-btn, .ms-tipepc-mode-btn, .chart-type-btn {
   padding: 6px 14px;
   background: transparent;
   color: var(--text-muted);
@@ -969,8 +969,8 @@ footer { color: var(--text-muted); }
   font-weight: 600;
   transition: all 0.15s;
 }
-.ms-mode-btn:hover, .ms-kota-mode-btn:hover, .chart-type-btn:hover { color: var(--text-primary); }
-.ms-mode-btn.active, .ms-kota-mode-btn.active, .chart-type-btn.active {
+.ms-mode-btn:hover, .ms-kota-mode-btn:hover, .ms-tipepc-mode-btn:hover, .chart-type-btn:hover { color: var(--text-primary); }
+.ms-mode-btn.active, .ms-kota-mode-btn.active, .ms-tipepc-mode-btn.active, .chart-type-btn.active {
   background: linear-gradient(135deg, #ec4899, #a855f7);
   color: white;
   box-shadow: 0 2px 8px rgba(236,72,153,0.3);

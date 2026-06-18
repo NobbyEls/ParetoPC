@@ -60,6 +60,7 @@
       msCategory: '__all__',  // Marketshare table category sub-tab
       msMode: 'qty',          // 'qty' or 'value' for marketshare toggle
       msKotaMode: 'qty',      // 'qty' or 'value' for marketshare kota toggle
+      msTipePcMode: 'qty',    // 'qty' or 'value' for marketshare tipe PC toggle
       search: '',
     },
   };
@@ -397,6 +398,21 @@
   });
 
   // ============================================================
+  // Marketshare per Tipe PC QTY / Value toggle
+  // ============================================================
+  document.addEventListener('click', (e) => {
+    const btn = e.target.closest('.ms-tipepc-mode-btn');
+    if (!btn) return;
+    const mode = btn.dataset.mode;
+    if (mode === state.filters.msTipePcMode) return;
+    state.filters.msTipePcMode = mode;
+    document.querySelectorAll('.ms-tipepc-mode-btn').forEach(b => {
+      b.classList.toggle('active', b.dataset.mode === mode);
+    });
+    renderMarketshareByTipePc();
+  });
+
+  // ============================================================
   // Stacked chart type toggle (Bar / Line)
   // ============================================================
   document.addEventListener('click', (e) => {
@@ -586,6 +602,7 @@
 
     // Show/hide cards based on dept
     showCard('card-dimensi', dept === 'Monitor'); // Dimensi only for Monitor
+    showCard('marketshare-tipepc-card', dept === 'PC Branded'); // Tipe PC only for PC Branded
 
     // Show/hide Cek Ink Tank filter — only when current dept has multiple values in column U
     const distinctCekInk = [...new Set(state.records
@@ -625,6 +642,11 @@
 
     // Marketshare per Brand (monthly detail table) — sits below YoY card.
     renderMarketshare();
+
+    // Marketshare per Tipe PC (monthly detail table) — only for PC Branded dept.
+    if (dept === 'PC Branded') {
+      renderMarketshareByTipePc();
+    }
 
     // Marketshare per Cabang (monthly detail table) — sits below brand marketshare.
     renderMarketshareKota();
@@ -771,6 +793,180 @@
     });
 
     renderMarketshareTableHtml(data);
+  }
+
+  // ============================================================
+  // Marketshare per Tipe PC — Detail Bulanan (table)
+  // Only visible when dept === 'PC Branded'. Groups by cekInk.
+  // ============================================================
+  function renderMarketshareByTipePc() {
+    const card = document.getElementById('marketshare-tipepc-card');
+    if (!card) return;
+
+    // Only show for PC Branded
+    if (state.filters.dept !== 'PC Branded') {
+      card.classList.add('hidden');
+      return;
+    }
+
+    const yearsInData = [...new Set(state.records.map(r => r.year).filter(Boolean))].sort((a, b) => a - b);
+    if (!yearsInData.length) { card.classList.add('hidden'); return; }
+
+    let focusYear;
+    if (state.filters.tahun && state.filters.tahun !== '__all__') {
+      focusYear = parseInt(state.filters.tahun, 10);
+    } else {
+      focusYear = yearsInData[yearsInData.length - 1];
+    }
+    const prevYear = focusYear - 1;
+
+    // Apply filters except tahun, bulan (table is per-month breakdown)
+    // Also skip cekInk filter since we are grouping BY cekInk
+    const baseRecords = state.records.filter(r => {
+      if (r.dept !== 'PC Branded') return false;
+      if (state.filters.kota  && state.filters.kota  !== '__all__' && r.kota  !== state.filters.kota)  return false;
+      if (state.filters.brand && state.filters.brand !== '__all__' && r.brand !== state.filters.brand) return false;
+      if (state.filters.juta  && state.filters.juta  !== '__all__' && r.cekJuta !== state.filters.juta) return false;
+      return true;
+    });
+
+    const data = A.marketshareTable(baseRecords, {
+      year: focusYear,
+      prevYear,
+      dept: '__all__',
+      category: '__all__',
+      topN: 8,
+      sumField: state.filters.msTipePcMode === 'value' ? 'total' : 'qty',
+      groupByField: 'cekInk',
+    });
+
+    if (!data || !data.topBrands.length) {
+      card.classList.add('hidden');
+      return;
+    }
+    card.classList.remove('hidden');
+
+    // Period banner
+    const banner = document.getElementById('ms-tipepc-period-banner');
+    if (banner) {
+      banner.innerHTML = `<span>📊 Tahun <strong>${focusYear}</strong> · YoY dibandingkan <strong>${prevYear}</strong> · Dept: <strong>PC Branded</strong></span>`;
+    }
+
+    renderMarketshareByTipePcTableHtml(data);
+  }
+
+  function renderMarketshareByTipePcTableHtml(data) {
+    const table = document.getElementById('ms-tipepc-table');
+    if (!table) return;
+    const { topBrands, otherCount, rows, grandRow, estimasiClosing, growth, yearLabel, prevYearLabel, sumField } = data;
+    const isValue = sumField === 'total';
+    const valLabel = isValue ? 'VALUE' : 'QTY';
+
+    // Build column list (topBrands here are actually tipe PC values like AIO, TOWER, MINI PC)
+    const tipeCols = topBrands.map((b, i) => ({
+      key: b,
+      label: String(b).toUpperCase(),
+      color: BRAND_PALETTE[i % BRAND_PALETTE.length],
+    }));
+    if (otherCount > 0) {
+      tipeCols.push({ key: '__other__', label: `OTHER (${otherCount})`, color: COLOR_OTHER });
+    }
+
+    // ----- HEAD -----
+    let headRow1 = `<tr class="brand-row">`;
+    headRow1 += `<th rowspan="2" class="ms-head-bulan">BULAN</th>`;
+    for (const c of tipeCols) {
+      headRow1 += `<th colspan="2" class="ms-head-brand">${escapeHtml(c.label)}</th>`;
+    }
+    headRow1 += `<th rowspan="2" class="ms-head-grand"><span class="ms-head-main">GRAND</span><span class="ms-head-sub">TOTAL</span></th>`;
+    headRow1 += `<th rowspan="2" class="ms-head-mom"><span class="ms-head-main">MOM</span><span class="ms-head-sub">${yearLabel}</span></th>`;
+    headRow1 += `<th rowspan="2" class="ms-head-yoy"><span class="ms-head-main">YOY</span><span class="ms-head-sub">vs ${prevYearLabel}</span></th>`;
+    headRow1 += `<th rowspan="2" class="ms-head-est"><span class="ms-head-main">ESTIMASI</span><span class="ms-head-sub">CLOSING</span></th>`;
+    headRow1 += `<th rowspan="2" class="ms-head-growth"><span class="ms-head-main">GROWTH</span><span class="ms-head-sub">${yearLabel} vs ${prevYearLabel}</span></th>`;
+    headRow1 += `</tr>`;
+
+    let headRow2 = `<tr class="subhead">`;
+    for (let i = 0; i < tipeCols.length; i++) {
+      headRow2 += `<th>${valLabel}</th><th>%</th>`;
+    }
+    headRow2 += `</tr>`;
+
+    // ----- BODY -----
+    let growthMergedHtml = '';
+    if (growth && growth.pct !== null && growth.pct !== undefined && !isNaN(growth.pct)) {
+      const arrow = growth.pct >= 0 ? '▲' : '▼';
+      const cls   = growth.pct >= 0 ? 'ms-up' : 'ms-down';
+      growthMergedHtml = `
+        <div class="ms-growth-merged">
+          <span class="${cls} ms-growth-pct"><strong>${arrow} ${Math.abs(growth.pct).toFixed(2)}%</strong></span>
+          <div class="ms-growth-period">${escapeHtml(growth.periodLabel)}</div>
+          ${growth.note ? `<div class="ms-growth-note">${escapeHtml(growth.note)}</div>` : ''}
+        </div>`;
+    }
+
+    let body = '';
+    rows.forEach((row, idx) => {
+      const cells = [];
+      const hasData = row.grandTotal > 0;
+      const bulanCls = hasData ? 'ms-bulan-cell' : 'ms-bulan-cell ms-empty-month';
+      cells.push(`<td class="${bulanCls}">${escapeHtml(row.month.slice(0,3))}</td>`);
+      for (const c of tipeCols) {
+        const qty = row.qtyPerBrand[c.key] || 0;
+        const share = row.sharePerBrand[c.key];
+        const delta = row.shareDelta ? row.shareDelta[c.key] : null;
+        if (!hasData) {
+          cells.push(`<td class="ms-qty-cell ms-empty"></td><td class="ms-share-cell ms-empty"></td>`);
+        } else {
+          const fmtVal = isValue ? fmtValueShort(qty) : U.formatNumber(qty);
+          cells.push(`<td class="ms-qty-cell">${fmtVal}</td>`);
+          const isFlat = (delta === null || delta === undefined || isNaN(delta) || Math.abs(delta) < 0.005);
+          const pctCls = isFlat ? 'pct-flat' : (delta >= 0 ? 'pct-up' : 'pct-down');
+          const arrowChar = isFlat ? '' : (delta >= 0 ? '▲ ' : '▼ ');
+          cells.push(`<td class="ms-share-cell ${pctCls}">${arrowChar}${(share || 0).toFixed(2)}%</td>`);
+        }
+      }
+      // Grand Total
+      cells.push(`<td class="ms-qty-cell ms-total-cell">${hasData ? (isValue ? fmtValueShort(row.grandTotal) : U.formatNumber(row.grandTotal)) : ''}</td>`);
+      // MoM
+      cells.push(`<td class="ms-share-cell ms-mom-cell">${hasData ? fmtPct(row.mom) : ''}</td>`);
+      // YoY
+      cells.push(`<td class="ms-share-cell ms-yoy-cell">${hasData ? fmtPct(row.yoy) : ''}</td>`);
+      // Estimasi Closing
+      let estHtml = '';
+      if (estimasiClosing && estimasiClosing.monthName === row.month) {
+        const estFmt = isValue ? fmtValueShort(estimasiClosing.value) : U.formatNumber(estimasiClosing.value);
+        estHtml = `<strong>${estFmt}</strong>\n${estimasiClosing.daysElapsed}/${estimasiClosing.daysInMonth} hari`;
+      }
+      cells.push(`<td class="ms-est-cell">${estHtml}</td>`);
+      // Growth merged
+      if (idx === 0) {
+        cells.push(`<td class="ms-growth-cell" rowspan="${rows.length}">${growthMergedHtml}</td>`);
+      }
+
+      const rowCls = hasData ? '' : ' class="ms-empty-row"';
+      body += `<tr${rowCls}>${cells.join('')}</tr>`;
+    });
+
+    // ----- GRAND TOTAL ROW -----
+    const grandCells = [];
+    grandCells.push(`<td class="ms-bulan-cell">Grand Total</td>`);
+    for (const c of tipeCols) {
+      const qty = grandRow.qtyPerBrand[c.key] || 0;
+      const share = grandRow.sharePerBrand[c.key] || 0;
+      const fmtVal = isValue ? fmtValueShort(qty) : U.formatNumber(qty);
+      grandCells.push(`<td class="ms-qty-cell">${fmtVal}</td>`);
+      grandCells.push(`<td class="ms-share-cell">${share.toFixed(2)}%</td>`);
+    }
+    grandCells.push(`<td class="ms-qty-cell ms-total-cell">${isValue ? fmtValueShort(grandRow.grandTotal) : U.formatNumber(grandRow.grandTotal)}</td>`);
+    grandCells.push(`<td class="ms-share-cell ms-mom-cell"></td>`);
+    grandCells.push(`<td class="ms-share-cell ms-yoy-cell"></td>`);
+    grandCells.push(`<td class="ms-est-cell"></td>`);
+    grandCells.push(`<td class="ms-growth-cell"></td>`);
+
+    table.innerHTML =
+      `<thead>${headRow1}${headRow2}</thead>` +
+      `<tbody>${body}</tbody>` +
+      `<tfoot><tr class="ms-grand-row">${grandCells.join('')}</tr></tfoot>`;
   }
 
   // Brand color palette + known brand colors (matches reference screenshot)
