@@ -1352,6 +1352,45 @@
   }
 
   // ============================================================
+  // PNG DOWNLOAD — capture card as image using html2canvas
+  // ============================================================
+  document.addEventListener('click', (e) => {
+    const btn = e.target.closest('.btn-png');
+    if (!btn) return;
+    const targetId = btn.dataset.target;
+    const card = document.getElementById(targetId);
+    if (!card) return;
+
+    btn.disabled = true;
+    const origText = btn.textContent;
+    btn.textContent = '⏳';
+
+    // Determine background color based on current theme
+    const isDark = document.documentElement.classList.contains('dark');
+    const bgColor = isDark ? '#07091a' : '#eef1f7';
+
+    html2canvas(card, {
+      scale: 2,
+      backgroundColor: bgColor,
+      useCORS: true,
+      logging: false,
+    }).then((canvas) => {
+      const link = document.createElement('a');
+      const now = new Date();
+      const dateStr = now.toISOString().slice(0, 10);
+      link.download = `${targetId}_${dateStr}.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    }).catch((err) => {
+      console.error('PNG capture failed:', err);
+      U.toast('Gagal capture PNG: ' + err.message, 'error');
+    }).finally(() => {
+      btn.disabled = false;
+      btn.textContent = origText;
+    });
+  });
+
+  // ============================================================
   // Boot — fetch fresh on every page open
   // ============================================================
   if (document.readyState === 'loading') {
