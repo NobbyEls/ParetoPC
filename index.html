@@ -35,7 +35,7 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.6/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 
-  <link rel="stylesheet" href="css/style.css?v=43" />
+  <link rel="stylesheet" href="css/style.css?v=44" />
 </head>
 <body class="bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 font-sans antialiased min-h-screen">
 
@@ -178,28 +178,32 @@
 
       <!-- YoY Comparison (full width) -->
       <div id="yoy-card" class="chart-card hidden">
-        <button class="btn-png" title="Download sebagai PNG" data-target="yoy-card">📷</button>
-        <div class="chart-header flex flex-wrap items-start justify-between gap-3">
+        <div class="chart-header flex flex-wrap items-center justify-between gap-3">
           <div>
             <h3 class="chart-title">📅 Year-over-Year Comparison</h3>
             <p class="chart-sub">Perbandingan unit terjual per bulan antar tahun</p>
           </div>
-          <div id="yoy-summary" class="text-sm"></div>
+          <div class="flex items-center gap-2">
+            <button class="btn-png" title="Download sebagai PNG" data-target="yoy-card">⬇ PNG</button>
+            <div id="yoy-summary" class="text-sm"></div>
+          </div>
         </div>
         <div class="chart-body chart-body-tall"><canvas id="chart-yoy"></canvas></div>
       </div>
 
       <!-- Marketshare per Brand — Detail Bulanan (table) -->
       <div id="marketshare-card" class="chart-card hidden">
-        <button class="btn-png" title="Download sebagai PNG" data-target="marketshare-card">📷</button>
         <div class="chart-header flex flex-wrap items-center justify-between gap-3">
           <div>
             <h3 class="chart-title">Marketshare per Brand — Detail Bulanan</h3>
             <p class="chart-sub">Growth, MoM, YoY, dan estimasi closing per brand. Pilih kategori di tab.</p>
           </div>
-          <div id="ms-mode-toggle" class="inline-flex rounded-lg overflow-hidden border" style="border-color:var(--border-subtle);">
-            <button class="ms-mode-btn active" data-mode="qty">QTY</button>
-            <button class="ms-mode-btn" data-mode="value">Value (Rp)</button>
+          <div class="flex items-center gap-2">
+            <button class="btn-png" title="Download sebagai PNG" data-target="marketshare-card">⬇ PNG</button>
+            <div id="ms-mode-toggle" class="inline-flex rounded-lg overflow-hidden border" style="border-color:var(--border-subtle);">
+              <button class="ms-mode-btn active" data-mode="qty">QTY</button>
+              <button class="ms-mode-btn" data-mode="value">Value (Rp)</button>
+            </div>
           </div>
         </div>
         <div id="ms-period-banner" class="ms-period-banner"></div>
@@ -210,15 +214,17 @@
 
       <!-- Marketshare per Cabang — Detail Bulanan (table) -->
       <div id="marketshare-kota-card" class="chart-card hidden">
-        <button class="btn-png" title="Download sebagai PNG" data-target="marketshare-kota-card">📷</button>
         <div class="chart-header flex flex-wrap items-center justify-between gap-3">
           <div>
             <h3 class="chart-title">Marketshare per Cabang — Detail Bulanan</h3>
             <p class="chart-sub">Growth, MoM, YoY, dan estimasi closing per kota/cabang.</p>
           </div>
-          <div id="ms-kota-mode-toggle" class="inline-flex rounded-lg overflow-hidden border" style="border-color:var(--border-subtle);">
-            <button class="ms-kota-mode-btn active" data-mode="qty">QTY</button>
-            <button class="ms-kota-mode-btn" data-mode="value">Value (Rp)</button>
+          <div class="flex items-center gap-2">
+            <button class="btn-png" title="Download sebagai PNG" data-target="marketshare-kota-card">⬇ PNG</button>
+            <div id="ms-kota-mode-toggle" class="inline-flex rounded-lg overflow-hidden border" style="border-color:var(--border-subtle);">
+              <button class="ms-kota-mode-btn active" data-mode="qty">QTY</button>
+              <button class="ms-kota-mode-btn" data-mode="value">Value (Rp)</button>
+            </div>
           </div>
         </div>
         <div id="ms-kota-period-banner" class="ms-period-banner"></div>
@@ -229,10 +235,12 @@
 
       <!-- Dimensi Monitor table (below marketshare, only visible when dept === Monitor) -->
       <div id="card-dimensi" class="chart-card hidden">
-        <button class="btn-png" title="Download sebagai PNG" data-target="card-dimensi">📷</button>
-        <div class="chart-header">
-          <h3 class="chart-title" id="title-dimensi">Report per Dimensi — Monitor</h3>
-          <p class="chart-sub">Breakdown unit terjual per ukuran layar (terkecil → terbesar)</p>
+        <div class="chart-header flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h3 class="chart-title" id="title-dimensi">Report per Dimensi — Monitor</h3>
+            <p class="chart-sub">Breakdown unit terjual per ukuran layar (terkecil → terbesar)</p>
+          </div>
+          <button class="btn-png" title="Download sebagai PNG" data-target="card-dimensi">⬇ PNG</button>
         </div>
         <div class="overflow-x-auto">
           <table id="table-dimensi" class="ms-table" style="min-width:600px"></table>
@@ -241,15 +249,17 @@
 
       <!-- Stacked Bar Chart — Market Brand per Bulan -->
       <div id="dept3d-card" class="chart-card hidden">
-        <button class="btn-png" title="Download sebagai PNG" data-target="dept3d-card">📷</button>
         <div class="chart-header flex flex-wrap items-center justify-between gap-3">
           <div>
             <h3 class="chart-title" id="stacked-title">📦 Market Brand per Bulan</h3>
             <p class="chart-sub" id="stacked-sub">Top brand, jumlah unit terjual per bulan (stacked)</p>
           </div>
-          <div id="chart-type-toggle" class="inline-flex rounded-lg overflow-hidden border" style="border-color:var(--border-subtle);">
-            <button class="chart-type-btn active" data-type="bar">Bar</button>
-            <button class="chart-type-btn" data-type="line">Line</button>
+          <div class="flex items-center gap-2">
+            <button class="btn-png" title="Download sebagai PNG" data-target="dept3d-card">⬇ PNG</button>
+            <div id="chart-type-toggle" class="inline-flex rounded-lg overflow-hidden border" style="border-color:var(--border-subtle);">
+              <button class="chart-type-btn active" data-type="bar">Bar</button>
+              <button class="chart-type-btn" data-type="line">Line</button>
+            </div>
           </div>
         </div>
         <div class="chart-body chart-body-tall"><canvas id="chart-stacked"></canvas></div>
@@ -258,18 +268,22 @@
       <!-- Row 1: Trend + Mix Brand -->
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <div id="card-trend" class="chart-card lg:col-span-2">
-          <button class="btn-png" title="Download sebagai PNG" data-target="card-trend">📷</button>
-          <div class="chart-header">
-            <h3 class="chart-title" id="title-trend">Tren Penjualan Bulanan</h3>
-            <p class="chart-sub" id="sub-trend">Total omzet per bulan</p>
+          <div class="chart-header flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h3 class="chart-title" id="title-trend">Tren Penjualan Bulanan</h3>
+              <p class="chart-sub" id="sub-trend">Total omzet per bulan</p>
+            </div>
+            <button class="btn-png" title="Download sebagai PNG" data-target="card-trend">⬇ PNG</button>
           </div>
           <div class="chart-body"><canvas id="chart-trend"></canvas></div>
         </div>
         <div id="card-mix" class="chart-card">
-          <button class="btn-png" title="Download sebagai PNG" data-target="card-mix">📷</button>
-          <div class="chart-header">
-            <h3 class="chart-title" id="title-mix">Mix Brand</h3>
-            <p class="chart-sub" id="sub-mix">Kontribusi % omzet per brand</p>
+          <div class="chart-header flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h3 class="chart-title" id="title-mix">Mix Brand</h3>
+              <p class="chart-sub" id="sub-mix">Kontribusi % omzet per brand</p>
+            </div>
+            <button class="btn-png" title="Download sebagai PNG" data-target="card-mix">⬇ PNG</button>
           </div>
           <div class="chart-body"><canvas id="chart-mix"></canvas></div>
         </div>
@@ -278,18 +292,22 @@
       <!-- Row 2: Top Brand + Top Produk -->
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <div id="card-brand" class="chart-card">
-          <button class="btn-png" title="Download sebagai PNG" data-target="card-brand">📷</button>
-          <div class="chart-header">
-            <h3 class="chart-title" id="title-brand">Top 10 Produk (Value)</h3>
-            <p class="chart-sub">Berdasarkan total value (Rp)</p>
+          <div class="chart-header flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h3 class="chart-title" id="title-brand">Top 10 Produk (Value)</h3>
+              <p class="chart-sub">Berdasarkan total value (Rp)</p>
+            </div>
+            <button class="btn-png" title="Download sebagai PNG" data-target="card-brand">⬇ PNG</button>
           </div>
           <div class="chart-body"><canvas id="chart-brand"></canvas></div>
         </div>
         <div id="card-product" class="chart-card">
-          <button class="btn-png" title="Download sebagai PNG" data-target="card-product">📷</button>
-          <div class="chart-header">
-            <h3 class="chart-title" id="title-product">Top 10 Produk</h3>
-            <p class="chart-sub">Berdasarkan total omzet</p>
+          <div class="chart-header flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h3 class="chart-title" id="title-product">Top 10 Produk</h3>
+              <p class="chart-sub">Berdasarkan total omzet</p>
+            </div>
+            <button class="btn-png" title="Download sebagai PNG" data-target="card-product">⬇ PNG</button>
           </div>
           <div class="chart-body"><canvas id="chart-product"></canvas></div>
         </div>
@@ -298,18 +316,22 @@
       <!-- Row 3: Per Kota + Per Sales -->
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <div id="card-kota" class="chart-card">
-          <button class="btn-png" title="Download sebagai PNG" data-target="card-kota">📷</button>
-          <div class="chart-header">
-            <h3 class="chart-title" id="title-kota">Penjualan per Kota / Cabang</h3>
-            <p class="chart-sub">Total omzet</p>
+          <div class="chart-header flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h3 class="chart-title" id="title-kota">Penjualan per Kota / Cabang</h3>
+              <p class="chart-sub">Total omzet</p>
+            </div>
+            <button class="btn-png" title="Download sebagai PNG" data-target="card-kota">⬇ PNG</button>
           </div>
           <div class="chart-body"><canvas id="chart-kota"></canvas></div>
         </div>
         <div id="card-sales" class="chart-card">
-          <button class="btn-png" title="Download sebagai PNG" data-target="card-sales">📷</button>
-          <div class="chart-header">
-            <h3 class="chart-title" id="title-sales">Top 10 Sales</h3>
-            <p class="chart-sub">Berdasarkan total omzet</p>
+          <div class="chart-header flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h3 class="chart-title" id="title-sales">Top 10 Sales</h3>
+              <p class="chart-sub">Berdasarkan total omzet</p>
+            </div>
+            <button class="btn-png" title="Download sebagai PNG" data-target="card-sales">⬇ PNG</button>
           </div>
           <div class="chart-body"><canvas id="chart-sales"></canvas></div>
         </div>
@@ -317,10 +339,12 @@
 
       <!-- Pareto -->
       <div id="card-pareto" class="chart-card">
-        <button class="btn-png" title="Download sebagai PNG" data-target="card-pareto">📷</button>
-        <div class="chart-header">
-          <h3 class="chart-title" id="title-pareto">📊 Analisa Pareto 80/20 — Top Produk</h3>
-          <p class="chart-sub">Produk yang berkontribusi 80% omzet (highlight ditandai)</p>
+        <div class="chart-header flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h3 class="chart-title" id="title-pareto">📊 Analisa Pareto 80/20 — Top Produk</h3>
+            <p class="chart-sub">Produk yang berkontribusi 80% omzet (highlight ditandai)</p>
+          </div>
+          <button class="btn-png" title="Download sebagai PNG" data-target="card-pareto">⬇ PNG</button>
         </div>
         <div class="chart-body chart-body-tall"><canvas id="chart-pareto"></canvas></div>
         <p id="pareto-summary" class="text-sm text-slate-600 dark:text-slate-400 mt-3 px-1"></p>
@@ -337,11 +361,11 @@
     </footer>
   </main>
 
-  <script src="js/utils.js?v=43"></script>
-  <script src="js/parser.js?v=43"></script>
-  <script src="js/sheets.js?v=43"></script>
-  <script src="js/analytics.js?v=43"></script>
-  <script src="js/charts.js?v=43"></script>
-  <script src="js/app.js?v=43"></script>
+  <script src="js/utils.js?v=44"></script>
+  <script src="js/parser.js?v=44"></script>
+  <script src="js/sheets.js?v=44"></script>
+  <script src="js/analytics.js?v=44"></script>
+  <script src="js/charts.js?v=44"></script>
+  <script src="js/app.js?v=44"></script>
 </body>
 </html>

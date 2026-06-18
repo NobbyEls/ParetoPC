@@ -444,23 +444,24 @@ html:not(.dark) ::-webkit-scrollbar-thumb:hover {
 .chart-header { margin-bottom: 0.85rem; }
 
 /* PNG download button on each card */
+/* PNG download button — inline with toggle buttons (not absolute) */
 .btn-png {
-  position: absolute;
-  top: 8px;
-  right: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   background: var(--bg-glass);
   border: 1px solid var(--border-medium);
   color: var(--text-muted);
-  padding: 4px 8px;
-  border-radius: 6px;
-  font-size: 0.7rem;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 0.72rem;
+  font-weight: 600;
   cursor: pointer;
-  opacity: 0.6;
   transition: all 0.15s ease;
-  z-index: 5;
+  white-space: nowrap;
 }
-.btn-png:hover { opacity: 1; color: var(--text-primary); border-color: var(--border-strong); }
-.btn-png:disabled { opacity: 0.3; cursor: wait; }
+.btn-png:hover { color: var(--text-primary); border-color: var(--border-strong); background: var(--bg-card-2); }
+.btn-png:disabled { opacity: 0.4; cursor: wait; }
 .chart-title {
   font-weight: 700;
   font-size: 1rem;
@@ -958,7 +959,7 @@ footer { color: var(--text-muted); }
 }
 
 /* Toggle buttons for Marketshare mode (QTY / Value) and Chart type (Bar / Line) */
-.ms-mode-btn, .chart-type-btn {
+.ms-mode-btn, .ms-kota-mode-btn, .chart-type-btn {
   padding: 6px 14px;
   background: transparent;
   color: var(--text-muted);
@@ -968,8 +969,8 @@ footer { color: var(--text-muted); }
   font-weight: 600;
   transition: all 0.15s;
 }
-.ms-mode-btn:hover, .chart-type-btn:hover { color: var(--text-primary); }
-.ms-mode-btn.active, .chart-type-btn.active {
+.ms-mode-btn:hover, .ms-kota-mode-btn:hover, .chart-type-btn:hover { color: var(--text-primary); }
+.ms-mode-btn.active, .ms-kota-mode-btn.active, .chart-type-btn.active {
   background: linear-gradient(135deg, #ec4899, #a855f7);
   color: white;
   box-shadow: 0 2px 8px rgba(236,72,153,0.3);
