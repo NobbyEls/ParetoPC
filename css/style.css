@@ -967,7 +967,7 @@ footer { color: var(--text-muted); }
 }
 
 .ms-table-wrap {
-  overflow-x: hidden;
+  overflow-x: auto;
   border: 1px solid var(--border-medium);
   border-radius: 10px;
   background: rgba(0,0,0,0.15);
@@ -1191,31 +1191,39 @@ footer { color: var(--text-muted); }
   vertical-align: middle;
   background: rgba(16, 185, 129, 0.08) !important;
   border-left: 2px solid rgba(16, 185, 129, 0.3);
-  min-width: 130px;
+  min-width: 90px;
+  max-width: 120px;
+  white-space: normal !important;
+  overflow: visible !important;
 }
 .ms-growth-merged {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  padding: 12px 8px;
+  gap: 3px;
+  padding: 6px 3px;
 }
 .ms-growth-pct {
-  font-size: 1.4rem;
+  font-size: 1rem;
   font-weight: 800;
   letter-spacing: -0.02em;
+  white-space: nowrap;
 }
 .ms-growth-period {
-  font-size: 0.7rem;
+  font-size: 0.52rem;
   color: var(--text-secondary);
-  line-height: 1.3;
+  line-height: 1.15;
   font-weight: 500;
+  text-align: center;
+  white-space: normal !important;
+  word-break: break-word;
 }
 .ms-growth-note {
-  font-size: 0.65rem;
+  font-size: 0.48rem;
   color: var(--text-muted);
   font-style: italic;
+  white-space: normal !important;
 }
 
 /* ---------- Light-mode marketshare table ---------- */
