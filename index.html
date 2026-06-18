@@ -34,7 +34,7 @@
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.6/dist/chart.umd.min.js"></script>
 
-  <link rel="stylesheet" href="css/style.css?v=37" />
+  <link rel="stylesheet" href="css/style.css?v=38" />
 </head>
 <body class="bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 font-sans antialiased min-h-screen">
 
@@ -205,6 +205,17 @@
         </div>
       </div>
 
+      <!-- Dimensi Monitor table (below marketshare, only visible when dept === Monitor) -->
+      <div id="card-dimensi" class="chart-card hidden">
+        <div class="chart-header">
+          <h3 class="chart-title" id="title-dimensi">Report per Dimensi — Monitor</h3>
+          <p class="chart-sub">Breakdown unit terjual per ukuran layar (terkecil → terbesar)</p>
+        </div>
+        <div class="overflow-x-auto">
+          <table id="table-dimensi" class="ms-table" style="min-width:600px"></table>
+        </div>
+      </div>
+
       <!-- Stacked Bar Chart — Market Brand per Bulan -->
       <div id="dept3d-card" class="chart-card hidden">
         <div class="chart-header flex flex-wrap items-center justify-between gap-3">
@@ -295,17 +306,6 @@
         </div>
       </div>
 
-      <!-- Dimensi Monitor table (only visible when dept === Monitor) -->
-      <div id="card-dimensi" class="chart-card hidden">
-        <div class="chart-header">
-          <h3 class="chart-title" id="title-dimensi">Report per Dimensi — Monitor</h3>
-          <p class="chart-sub">Breakdown unit terjual per ukuran layar</p>
-        </div>
-        <div class="overflow-x-auto">
-          <table id="table-dimensi" class="ms-table" style="min-width:600px"></table>
-        </div>
-      </div>
-
       <!-- Detail Transaksi section removed -->
 
     </section>
@@ -315,11 +315,11 @@
     </footer>
   </main>
 
-  <script src="js/utils.js?v=37"></script>
-  <script src="js/parser.js?v=37"></script>
-  <script src="js/sheets.js?v=37"></script>
-  <script src="js/analytics.js?v=37"></script>
-  <script src="js/charts.js?v=37"></script>
-  <script src="js/app.js?v=37"></script>
+  <script src="js/utils.js?v=38"></script>
+  <script src="js/parser.js?v=38"></script>
+  <script src="js/sheets.js?v=38"></script>
+  <script src="js/analytics.js?v=38"></script>
+  <script src="js/charts.js?v=38"></script>
+  <script src="js/app.js?v=38"></script>
 </body>
 </html>

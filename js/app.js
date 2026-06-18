@@ -1107,7 +1107,8 @@
       totalRevenue += (r.total || 0);
     }
 
-    // Sort descending by qty
+    // Sort ascending by dimension size (smallest → largest)
+    // Extract leading number from dimension string for numeric sort
     const rows = [...grouped.entries()]
       .map(([dim, d]) => ({
         dimensi: dim,
@@ -1116,7 +1117,12 @@
         pctQty: totalQty > 0 ? (d.qty / totalQty * 100) : 0,
         pctRevenue: totalRevenue > 0 ? (d.revenue / totalRevenue * 100) : 0,
       }))
-      .sort((a, b) => b.qty - a.qty);
+      .sort((a, b) => {
+        // Extract first number from dimension strings (e.g., "24 Inch / 25 Inch" → 24)
+        const numA = parseInt(String(a.dimensi).match(/\d+/) || [999]);
+        const numB = parseInt(String(b.dimensi).match(/\d+/) || [999]);
+        return numA - numB;  // ascending: smallest dimension first
+      });
 
     if (!rows.length) {
       table.innerHTML = '<tr><td class="text-center py-4" style="color:var(--text-muted)">Tidak ada data dimensi</td></tr>';
