@@ -59,6 +59,7 @@
       cekInk: '__all__',
       msCategory: '__all__',  // Marketshare table category sub-tab
       msMode: 'qty',          // 'qty' or 'value' for marketshare toggle
+      msKotaMode: 'qty',      // 'qty' or 'value' for marketshare kota toggle
       search: '',
     },
   };
@@ -381,6 +382,21 @@
   });
 
   // ============================================================
+  // Marketshare per Kota QTY / Value toggle
+  // ============================================================
+  document.addEventListener('click', (e) => {
+    const btn = e.target.closest('.ms-kota-mode-btn');
+    if (!btn) return;
+    const mode = btn.dataset.mode;
+    if (mode === state.filters.msKotaMode) return;
+    state.filters.msKotaMode = mode;
+    document.querySelectorAll('.ms-kota-mode-btn').forEach(b => {
+      b.classList.toggle('active', b.dataset.mode === mode);
+    });
+    renderMarketshareKota();
+  });
+
+  // ============================================================
   // Stacked chart type toggle (Bar / Line)
   // ============================================================
   document.addEventListener('click', (e) => {
@@ -569,7 +585,6 @@
     setText('title-juta',   `Distribusi Range Harga — ${deptLabel}`);
 
     // Show/hide cards based on dept
-    showCard('card-ink', dept === 'Printer');     // Ink Tank only for Printer
     showCard('card-dimensi', dept === 'Monitor'); // Dimensi only for Monitor
 
     // Show/hide Cek Ink Tank filter — only when current dept has multiple values in column U
@@ -611,6 +626,9 @@
     // Marketshare per Brand (monthly detail table) — sits below YoY card.
     renderMarketshare();
 
+    // Marketshare per Cabang (monthly detail table) — sits below brand marketshare.
+    renderMarketshareKota();
+
     // 3D bar chart per departemen — total qty per dept × year
     renderDept3D();
 
@@ -639,14 +657,6 @@
       : '—';
 
     Ch.distChart('chart-juta', A.aggBy(filtered, r => r.cekJuta), 'Range');
-
-    if (dept === 'Printer') {
-      const inkAgg = A.aggBy(
-        filtered.filter(r => r.cekInk && r.cekInk !== ''),
-        r => r.cekInk
-      );
-      Ch.pieChart('chart-ink', inkAgg);
-    }
 
     if (dept === 'Monitor') {
       renderDimensiTable(filtered);
@@ -919,6 +929,179 @@
     grandCells.push(`<td class="ms-share-cell ms-yoy-cell"></td>`);
     grandCells.push(`<td class="ms-est-cell"></td>`);
     grandCells.push(`<td class="ms-growth-cell"></td>`); // Growth column placeholder for tfoot row
+
+    table.innerHTML =
+      `<thead>${headRow1}${headRow2}</thead>` +
+      `<tbody>${body}</tbody>` +
+      `<tfoot><tr class="ms-grand-row">${grandCells.join('')}</tr></tfoot>`;
+  }
+
+  // ============================================================
+  // Marketshare per Cabang/Kota — Detail Bulanan (table)
+  // ============================================================
+  // Kota color palette
+  const KOTA_PALETTE = ['#fbbf24','#22c55e','#84cc16','#818cf8','#fb923c','#ec4899','#60a5fa','#06b6d4','#e2e8f0','#a78bfa'];
+
+  function kotaColor(idx) {
+    return KOTA_PALETTE[idx % KOTA_PALETTE.length];
+  }
+
+  function renderMarketshareKota() {
+    const card = document.getElementById('marketshare-kota-card');
+    if (!card) return;
+
+    const yearsInData = [...new Set(state.records.map(r => r.year).filter(Boolean))].sort((a,b) => a - b);
+    if (!yearsInData.length) { card.classList.add('hidden'); return; }
+
+    let focusYear;
+    if (state.filters.tahun && state.filters.tahun !== '__all__') {
+      focusYear = parseInt(state.filters.tahun, 10);
+    } else {
+      focusYear = yearsInData[yearsInData.length - 1];
+    }
+    const prevYear = focusYear - 1;
+
+    const dept = state.filters.dept;
+
+    // Apply filters except tahun, bulan, kota (table is per-month per-kota breakdown)
+    const baseRecords = state.records.filter(r => {
+      if (state.filters.dept   && state.filters.dept   !== '__all__' && r.dept   !== state.filters.dept)   return false;
+      if (state.filters.brand  && state.filters.brand  !== '__all__' && r.brand  !== state.filters.brand)  return false;
+      if (state.filters.juta   && state.filters.juta   !== '__all__' && r.cekJuta !== state.filters.juta)  return false;
+      if (state.filters.cekInk && state.filters.cekInk !== '__all__' && r.cekInk !== state.filters.cekInk) return false;
+      return true;
+    });
+
+    const data = A.marketshareByKota(baseRecords, {
+      year: focusYear,
+      prevYear,
+      dept: '__all__',
+      topN: 10,
+      sumField: state.filters.msKotaMode === 'value' ? 'total' : 'qty',
+    });
+
+    if (!data || !data.topKota.length) {
+      card.classList.add('hidden');
+      return;
+    }
+    card.classList.remove('hidden');
+
+    // Period banner
+    const banner = document.getElementById('ms-kota-period-banner');
+    if (banner) {
+      banner.innerHTML = `<span>📊 Tahun <strong>${focusYear}</strong> · YoY dibandingkan <strong>${prevYear}</strong></span>`;
+    }
+
+    renderMarketshareKotaTableHtml(data);
+  }
+
+  function renderMarketshareKotaTableHtml(data) {
+    const table = document.getElementById('ms-kota-table');
+    if (!table) return;
+    const { topKota, otherCount, rows, grandRow, estimasiClosing, growth, yearLabel, prevYearLabel, sumField } = data;
+    const isValue = sumField === 'total';
+    const valLabel = isValue ? 'VALUE' : 'QTY';
+
+    // Build column list
+    const kotaCols = topKota.map((k, i) => ({
+      key: k,
+      label: String(k).toUpperCase(),
+      color: kotaColor(i),
+    }));
+    if (otherCount > 0) {
+      kotaCols.push({ key: '__other__', label: `OTHER (${otherCount})`, color: COLOR_OTHER });
+    }
+
+    // ----- HEAD -----
+    let headRow1 = `<tr class="brand-row">`;
+    headRow1 += `<th rowspan="2" class="ms-head-bulan">BULAN</th>`;
+    for (const c of kotaCols) {
+      headRow1 += `<th colspan="2" class="ms-head-brand">${escapeHtml(c.label)}</th>`;
+    }
+    headRow1 += `<th rowspan="2" class="ms-head-grand"><span class="ms-head-main">GRAND</span><span class="ms-head-sub">TOTAL</span></th>`;
+    headRow1 += `<th rowspan="2" class="ms-head-mom"><span class="ms-head-main">MOM</span><span class="ms-head-sub">${yearLabel}</span></th>`;
+    headRow1 += `<th rowspan="2" class="ms-head-yoy"><span class="ms-head-main">YOY</span><span class="ms-head-sub">vs ${prevYearLabel}</span></th>`;
+    headRow1 += `<th rowspan="2" class="ms-head-est"><span class="ms-head-main">ESTIMASI</span><span class="ms-head-sub">CLOSING</span></th>`;
+    headRow1 += `<th rowspan="2" class="ms-head-growth"><span class="ms-head-main">GROWTH</span><span class="ms-head-sub">${yearLabel} vs ${prevYearLabel}</span></th>`;
+    headRow1 += `</tr>`;
+
+    let headRow2 = `<tr class="subhead">`;
+    for (let i = 0; i < kotaCols.length; i++) {
+      headRow2 += `<th>${valLabel}</th><th>%</th>`;
+    }
+    headRow2 += `</tr>`;
+
+    // ----- BODY -----
+    let growthMergedHtml = '';
+    if (growth && growth.pct !== null && growth.pct !== undefined && !isNaN(growth.pct)) {
+      const arrow = growth.pct >= 0 ? '▲' : '▼';
+      const cls   = growth.pct >= 0 ? 'ms-up' : 'ms-down';
+      growthMergedHtml = `
+        <div class="ms-growth-merged">
+          <span class="${cls} ms-growth-pct"><strong>${arrow} ${Math.abs(growth.pct).toFixed(2)}%</strong></span>
+          <div class="ms-growth-period">${escapeHtml(growth.periodLabel)}</div>
+          ${growth.note ? `<div class="ms-growth-note">${escapeHtml(growth.note)}</div>` : ''}
+        </div>`;
+    }
+
+    let body = '';
+    rows.forEach((row, idx) => {
+      const cells = [];
+      const hasData = row.grandTotal > 0;
+      const bulanCls = hasData ? 'ms-bulan-cell' : 'ms-bulan-cell ms-empty-month';
+      cells.push(`<td class="${bulanCls}">${escapeHtml(row.month.slice(0,3))}</td>`);
+      for (const c of kotaCols) {
+        const qty = row.qtyPerKota[c.key] || 0;
+        const share = row.sharePerKota[c.key];
+        const delta = row.shareDelta ? row.shareDelta[c.key] : null;
+        if (!hasData) {
+          cells.push(`<td class="ms-qty-cell ms-empty"></td><td class="ms-share-cell ms-empty"></td>`);
+        } else {
+          const fmtVal = isValue ? U.formatIDRCompact(qty) : U.formatNumber(qty);
+          cells.push(`<td class="ms-qty-cell">${fmtVal}</td>`);
+          const isFlat = (delta === null || delta === undefined || isNaN(delta) || Math.abs(delta) < 0.005);
+          const pctCls = isFlat ? 'pct-flat' : (delta >= 0 ? 'pct-up' : 'pct-down');
+          const arrowChar = isFlat ? '' : (delta >= 0 ? '▲ ' : '▼ ');
+          cells.push(`<td class="ms-share-cell ${pctCls}">${arrowChar}${(share || 0).toFixed(2)}%</td>`);
+        }
+      }
+      // Grand Total
+      cells.push(`<td class="ms-qty-cell ms-total-cell">${hasData ? (isValue ? U.formatIDRCompact(row.grandTotal) : U.formatNumber(row.grandTotal)) : ''}</td>`);
+      // MoM
+      cells.push(`<td class="ms-share-cell ms-mom-cell">${hasData ? fmtPct(row.mom) : ''}</td>`);
+      // YoY
+      cells.push(`<td class="ms-share-cell ms-yoy-cell">${hasData ? fmtPct(row.yoy) : ''}</td>`);
+      // Estimasi Closing
+      let estHtml = '';
+      if (estimasiClosing && estimasiClosing.monthName === row.month) {
+        const estFmt = isValue ? U.formatIDRCompact(estimasiClosing.value) : U.formatNumber(estimasiClosing.value);
+        estHtml = `<strong>${estFmt}</strong>\n${estimasiClosing.daysElapsed}/${estimasiClosing.daysInMonth} hari`;
+      }
+      cells.push(`<td class="ms-est-cell">${estHtml}</td>`);
+      // Growth merged
+      if (idx === 0) {
+        cells.push(`<td class="ms-growth-cell" rowspan="${rows.length}">${growthMergedHtml}</td>`);
+      }
+
+      const rowCls = hasData ? '' : ' class="ms-empty-row"';
+      body += `<tr${rowCls}>${cells.join('')}</tr>`;
+    });
+
+    // ----- GRAND TOTAL ROW -----
+    const grandCells = [];
+    grandCells.push(`<td class="ms-bulan-cell">Grand Total</td>`);
+    for (const c of kotaCols) {
+      const qty = grandRow.qtyPerKota[c.key] || 0;
+      const share = grandRow.sharePerKota[c.key] || 0;
+      const fmtVal = isValue ? U.formatIDRCompact(qty) : U.formatNumber(qty);
+      grandCells.push(`<td class="ms-qty-cell">${fmtVal}</td>`);
+      grandCells.push(`<td class="ms-share-cell">${share.toFixed(2)}%</td>`);
+    }
+    grandCells.push(`<td class="ms-qty-cell ms-total-cell">${isValue ? U.formatIDRCompact(grandRow.grandTotal) : U.formatNumber(grandRow.grandTotal)}</td>`);
+    grandCells.push(`<td class="ms-share-cell ms-mom-cell"></td>`);
+    grandCells.push(`<td class="ms-share-cell ms-yoy-cell"></td>`);
+    grandCells.push(`<td class="ms-est-cell"></td>`);
+    grandCells.push(`<td class="ms-growth-cell"></td>`);
 
     table.innerHTML =
       `<thead>${headRow1}${headRow2}</thead>` +

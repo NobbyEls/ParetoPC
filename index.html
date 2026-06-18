@@ -34,7 +34,7 @@
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.6/dist/chart.umd.min.js"></script>
 
-  <link rel="stylesheet" href="css/style.css?v=38" />
+  <link rel="stylesheet" href="css/style.css?v=39" />
 </head>
 <body class="bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 font-sans antialiased min-h-screen">
 
@@ -205,6 +205,24 @@
         </div>
       </div>
 
+      <!-- Marketshare per Cabang — Detail Bulanan (table) -->
+      <div id="marketshare-kota-card" class="chart-card hidden">
+        <div class="chart-header flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h3 class="chart-title">Marketshare per Cabang — Detail Bulanan</h3>
+            <p class="chart-sub">Growth, MoM, YoY, dan estimasi closing per kota/cabang.</p>
+          </div>
+          <div id="ms-kota-mode-toggle" class="inline-flex rounded-lg overflow-hidden border" style="border-color:var(--border-subtle);">
+            <button class="ms-kota-mode-btn active" data-mode="qty">QTY</button>
+            <button class="ms-kota-mode-btn" data-mode="value">Value (Rp)</button>
+          </div>
+        </div>
+        <div id="ms-kota-period-banner" class="ms-period-banner"></div>
+        <div class="ms-table-wrap">
+          <table id="ms-kota-table" class="ms-table"></table>
+        </div>
+      </div>
+
       <!-- Dimensi Monitor table (below marketshare, only visible when dept === Monitor) -->
       <div id="card-dimensi" class="chart-card hidden">
         <div class="chart-header">
@@ -295,16 +313,7 @@
         <p id="pareto-summary" class="text-sm text-slate-600 dark:text-slate-400 mt-3 px-1"></p>
       </div>
 
-      <!-- Row 4: Komposisi Tipe Printer (Ink Tank, only on Printer tab) — Range Harga chart removed -->
-      <div class="grid grid-cols-1 gap-4">
-        <div id="card-ink" class="chart-card">
-          <div class="chart-header">
-            <h3 class="chart-title">Komposisi Tipe Printer</h3>
-            <p class="chart-sub">Ink Tank vs Non Ink Tank</p>
-          </div>
-          <div class="chart-body"><canvas id="chart-ink"></canvas></div>
-        </div>
-      </div>
+
 
       <!-- Detail Transaksi section removed -->
 
@@ -315,11 +324,11 @@
     </footer>
   </main>
 
-  <script src="js/utils.js?v=38"></script>
-  <script src="js/parser.js?v=38"></script>
-  <script src="js/sheets.js?v=38"></script>
-  <script src="js/analytics.js?v=38"></script>
-  <script src="js/charts.js?v=38"></script>
-  <script src="js/app.js?v=38"></script>
+  <script src="js/utils.js?v=39"></script>
+  <script src="js/parser.js?v=39"></script>
+  <script src="js/sheets.js?v=39"></script>
+  <script src="js/analytics.js?v=39"></script>
+  <script src="js/charts.js?v=39"></script>
+  <script src="js/app.js?v=39"></script>
 </body>
 </html>
