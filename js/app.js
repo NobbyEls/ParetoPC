@@ -805,6 +805,16 @@
     return `<span class="${cls}">${arrow} ${Math.abs(v).toFixed(decimals)}%</span>`;
   }
 
+  /** Short value format for table cells: no "Rp " prefix, compact */
+  function fmtValueShort(n) {
+    if (!n) return '0';
+    const abs = Math.abs(n);
+    if (abs >= 1e9)  return (n / 1e9).toFixed(1) + 'M';
+    if (abs >= 1e6)  return (n / 1e6).toFixed(1) + 'Jt';
+    if (abs >= 1e3)  return (n / 1e3).toFixed(0) + 'rb';
+    return Math.round(n).toLocaleString('id-ID');
+  }
+
   function fmtShareDelta(delta) {
     // Tiny epsilon: anything under ~0.005 considered flat
     if (delta === null || delta === undefined || isNaN(delta)) return '';
@@ -880,7 +890,7 @@
           // Empty cells (no '-' placeholder per user request)
           cells.push(`<td class="ms-qty-cell ms-empty"></td><td class="ms-share-cell ms-empty"></td>`);
         } else {
-          const fmtVal = isValue ? U.formatIDRCompact(qty) : U.formatNumber(qty);
+          const fmtVal = isValue ? fmtValueShort(qty) : U.formatNumber(qty);
           cells.push(`<td class="ms-qty-cell">${fmtVal}</td>`);
           // Entire share % cell colored by delta direction
           const isFlat = (delta === null || delta === undefined || isNaN(delta) || Math.abs(delta) < 0.005);
@@ -890,7 +900,7 @@
         }
       }
       // Grand Total
-      cells.push(`<td class="ms-qty-cell ms-total-cell">${hasData ? (isValue ? U.formatIDRCompact(row.grandTotal) : U.formatNumber(row.grandTotal)) : ''}</td>`);
+      cells.push(`<td class="ms-qty-cell ms-total-cell">${hasData ? (isValue ? fmtValueShort(row.grandTotal) : U.formatNumber(row.grandTotal)) : ''}</td>`);
       // MoM
       cells.push(`<td class="ms-share-cell ms-mom-cell">${hasData ? fmtPct(row.mom) : ''}</td>`);
       // YoY
@@ -899,7 +909,7 @@
       // Estimasi Closing — only the row matching estimasiClosing.monthName
       let estHtml = '';
       if (estimasiClosing && estimasiClosing.monthName === row.month) {
-        const estFmt = isValue ? U.formatIDRCompact(estimasiClosing.value) : U.formatNumber(estimasiClosing.value);
+        const estFmt = isValue ? fmtValueShort(estimasiClosing.value) : U.formatNumber(estimasiClosing.value);
         estHtml = `<strong>${estFmt}</strong>\n${estimasiClosing.daysElapsed}/${estimasiClosing.daysInMonth} hari`;
       }
       cells.push(`<td class="ms-est-cell">${estHtml}</td>`);
@@ -920,11 +930,11 @@
     for (const c of brandCols) {
       const qty = grandRow.qtyPerBrand[c.key] || 0;
       const share = grandRow.sharePerBrand[c.key] || 0;
-      const fmtVal = isValue ? U.formatIDRCompact(qty) : U.formatNumber(qty);
+      const fmtVal = isValue ? fmtValueShort(qty) : U.formatNumber(qty);
       grandCells.push(`<td class="ms-qty-cell">${fmtVal}</td>`);
       grandCells.push(`<td class="ms-share-cell">${share.toFixed(2)}%</td>`);
     }
-    grandCells.push(`<td class="ms-qty-cell ms-total-cell">${isValue ? U.formatIDRCompact(grandRow.grandTotal) : U.formatNumber(grandRow.grandTotal)}</td>`);
+    grandCells.push(`<td class="ms-qty-cell ms-total-cell">${isValue ? fmtValueShort(grandRow.grandTotal) : U.formatNumber(grandRow.grandTotal)}</td>`);
     grandCells.push(`<td class="ms-share-cell ms-mom-cell"></td>`);
     grandCells.push(`<td class="ms-share-cell ms-yoy-cell"></td>`);
     grandCells.push(`<td class="ms-est-cell"></td>`);
@@ -1066,7 +1076,7 @@
         }
       }
       // Grand Total
-      cells.push(`<td class="ms-qty-cell ms-total-cell">${hasData ? (isValue ? U.formatIDRCompact(row.grandTotal) : U.formatNumber(row.grandTotal)) : ''}</td>`);
+      cells.push(`<td class="ms-qty-cell ms-total-cell">${hasData ? (isValue ? fmtValueShort(row.grandTotal) : U.formatNumber(row.grandTotal)) : ''}</td>`);
       // MoM
       cells.push(`<td class="ms-share-cell ms-mom-cell">${hasData ? fmtPct(row.mom) : ''}</td>`);
       // YoY
@@ -1074,7 +1084,7 @@
       // Estimasi Closing
       let estHtml = '';
       if (estimasiClosing && estimasiClosing.monthName === row.month) {
-        const estFmt = isValue ? U.formatIDRCompact(estimasiClosing.value) : U.formatNumber(estimasiClosing.value);
+        const estFmt = isValue ? fmtValueShort(estimasiClosing.value) : U.formatNumber(estimasiClosing.value);
         estHtml = `<strong>${estFmt}</strong>\n${estimasiClosing.daysElapsed}/${estimasiClosing.daysInMonth} hari`;
       }
       cells.push(`<td class="ms-est-cell">${estHtml}</td>`);
@@ -1093,11 +1103,11 @@
     for (const c of kotaCols) {
       const qty = grandRow.qtyPerKota[c.key] || 0;
       const share = grandRow.sharePerKota[c.key] || 0;
-      const fmtVal = isValue ? U.formatIDRCompact(qty) : U.formatNumber(qty);
+      const fmtVal = isValue ? fmtValueShort(qty) : U.formatNumber(qty);
       grandCells.push(`<td class="ms-qty-cell">${fmtVal}</td>`);
       grandCells.push(`<td class="ms-share-cell">${share.toFixed(2)}%</td>`);
     }
-    grandCells.push(`<td class="ms-qty-cell ms-total-cell">${isValue ? U.formatIDRCompact(grandRow.grandTotal) : U.formatNumber(grandRow.grandTotal)}</td>`);
+    grandCells.push(`<td class="ms-qty-cell ms-total-cell">${isValue ? fmtValueShort(grandRow.grandTotal) : U.formatNumber(grandRow.grandTotal)}</td>`);
     grandCells.push(`<td class="ms-share-cell ms-mom-cell"></td>`);
     grandCells.push(`<td class="ms-share-cell ms-yoy-cell"></td>`);
     grandCells.push(`<td class="ms-est-cell"></td>`);
