@@ -315,9 +315,20 @@
       state.filters.bulan = '__all__';
       state.filters.brand = '__all__';
       state.filters.juta = '__all__';
-      state.filters.tahun = '__all__';
       state.filters.cekInk = '__all__';
       state.filters.search = '';
+      // Reset tahun to latest year (no "Semua" option)
+      const allYears = [...new Set(state.records.map(r => r.year).filter(Boolean))].sort((a, b) => a - b);
+      if (allYears.length) {
+        state.filters.tahun = String(allYears[allYears.length - 1]);
+      }
+      // Default Ink Tank for Printer
+      if (state.filters.dept === 'Printer') {
+        const inkOpts = [...new Set(state.records.filter(r => r.dept === 'Printer' && r.cekInk).map(r => r.cekInk))];
+        if (inkOpts.includes('Ink Tank')) {
+          state.filters.cekInk = 'Ink Tank';
+        }
+      }
       populateFilters();
       renderYearPills();
       render();
@@ -423,6 +434,13 @@
         state.filters.brand = '__all__';
         state.filters.juta = '__all__';
         state.filters.cekInk = '__all__';
+        // Default Tipe Printer to "Ink Tank" when switching to Printer dept
+        if (state.filters.dept === 'Printer') {
+          const inkOpts = [...new Set(state.records.filter(r => r.dept === 'Printer' && r.cekInk).map(r => r.cekInk))];
+          if (inkOpts.includes('Ink Tank')) {
+            state.filters.cekInk = 'Ink Tank';
+          }
+        }
         renderDeptTabs();
         populateFilters();
         render();
@@ -461,10 +479,23 @@
   function fillSelect(id, options, currentValue) {
     const el = document.getElementById(id);
     if (!el) return;
-    const optsHtml = ['<option value="__all__">Semua</option>']
-      .concat(options.map(o => `<option value="${escapeAttr(String(o))}">${escapeHtml(String(o))}</option>`));
+    // For tahun filter: no "Semua" option, only list actual years
+    const skipAll = (id === 'filter-tahun');
+    const optsHtml = skipAll
+      ? options.map(o => `<option value="${escapeAttr(String(o))}">${escapeHtml(String(o))}</option>`)
+      : ['<option value="__all__">Semua</option>']
+        .concat(options.map(o => `<option value="${escapeAttr(String(o))}">${escapeHtml(String(o))}</option>`));
     el.innerHTML = optsHtml.join('');
-    if (currentValue && currentValue !== '__all__' && options.includes(currentValue)) {
+    if (skipAll) {
+      // For tahun: select the current filter value if it exists in options
+      if (currentValue && currentValue !== '__all__' && options.map(String).includes(String(currentValue))) {
+        el.value = String(currentValue);
+      } else if (options.length) {
+        // Default to latest year
+        el.value = String(options[options.length - 1]);
+        state.filters.tahun = String(options[options.length - 1]);
+      }
+    } else if (currentValue && currentValue !== '__all__' && options.includes(currentValue)) {
       el.value = currentValue;
     } else {
       el.value = '__all__';
@@ -483,6 +514,20 @@
     hideLoadingOverlay();
     document.getElementById('error-screen').classList.add('hidden');
     document.getElementById('dashboard').classList.remove('hidden');
+
+    // Default tahun to the latest year in data
+    const allYears = [...new Set(state.records.map(r => r.year).filter(Boolean))].sort((a, b) => a - b);
+    if (allYears.length) {
+      state.filters.tahun = String(allYears[allYears.length - 1]);
+    }
+
+    // Default Tipe Printer to "Ink Tank" if dept is Printer and Ink Tank is available
+    if (state.filters.dept === 'Printer') {
+      const inkOpts = [...new Set(state.records.filter(r => r.dept === 'Printer' && r.cekInk).map(r => r.cekInk))];
+      if (inkOpts.includes('Ink Tank')) {
+        state.filters.cekInk = 'Ink Tank';
+      }
+    }
 
     // Source label
     const ok = state.sources.filter(s => !s.error);
@@ -525,6 +570,7 @@
 
     // Show/hide cards based on dept
     showCard('card-ink', dept === 'Printer');     // Ink Tank only for Printer
+    showCard('card-dimensi', dept === 'Monitor'); // Dimensi only for Monitor
 
     // Show/hide Cek Ink Tank filter — only when current dept has multiple values in column U
     const distinctCekInk = [...new Set(state.records
@@ -552,8 +598,15 @@
 
     // KPIs removed — totals are conveyed via dept tabs and YoY card.
 
-    // YoY chart — uses filtered (already scoped to active dept)
-    renderYoy(filtered);
+    // YoY chart — uses ALL years/months (not affected by tahun/bulan filters)
+    const yoyRecords = state.records.filter(r => {
+      if (state.filters.dept   && state.filters.dept   !== '__all__' && r.dept   !== state.filters.dept)   return false;
+      if (state.filters.kota   && state.filters.kota   !== '__all__' && r.kota   !== state.filters.kota)   return false;
+      if (state.filters.brand  && state.filters.brand  !== '__all__' && r.brand  !== state.filters.brand)  return false;
+      if (state.filters.cekInk && state.filters.cekInk !== '__all__' && r.cekInk !== state.filters.cekInk) return false;
+      return true;
+    });
+    renderYoy(yoyRecords);
 
     // Marketshare per Brand (monthly detail table) — sits below YoY card.
     renderMarketshare();
@@ -593,6 +646,10 @@
         r => r.cekInk
       );
       Ch.pieChart('chart-ink', inkAgg);
+    }
+
+    if (dept === 'Monitor') {
+      renderDimensiTable(filtered);
     }
   }
 
@@ -967,10 +1024,10 @@
     const datasets = allKeys.map(brand => ({
       label: brand,
       data: matrix[brand].slice(0, lastIdx + 1),
-      backgroundColor: getStackColor(brand) + 'cc',
+      backgroundColor: getStackColor(brand) + '99',
       borderColor: getStackColor(brand),
-      borderWidth: state.chartType === 'line' ? 2.5 : 1,
-      borderRadius: state.chartType === 'line' ? 0 : 3,
+      borderWidth: state.chartType === 'line' ? 2.5 : 0,
+      borderRadius: state.chartType === 'line' ? 0 : 6,
       ...(state.chartType === 'line' ? {
         tension: 0.4,
         pointRadius: 4,
@@ -1027,6 +1084,72 @@
         }
       }
     });
+  }
+
+  // ============================================================
+  // DIMENSI TABLE — Report per ukuran layar (Monitor only)
+  // ============================================================
+  function renderDimensiTable(records) {
+    const table = document.getElementById('table-dimensi');
+    if (!table) return;
+
+    // Group by dimensi
+    const grouped = new Map();
+    let totalQty = 0;
+    let totalRevenue = 0;
+    for (const r of records) {
+      const dim = r.dimensi || 'Lainnya';
+      if (!grouped.has(dim)) grouped.set(dim, { qty: 0, revenue: 0 });
+      const g = grouped.get(dim);
+      g.qty += (r.qty || 0);
+      g.revenue += (r.total || 0);
+      totalQty += (r.qty || 0);
+      totalRevenue += (r.total || 0);
+    }
+
+    // Sort descending by qty
+    const rows = [...grouped.entries()]
+      .map(([dim, d]) => ({
+        dimensi: dim,
+        qty: d.qty,
+        revenue: d.revenue,
+        pctQty: totalQty > 0 ? (d.qty / totalQty * 100) : 0,
+        pctRevenue: totalRevenue > 0 ? (d.revenue / totalRevenue * 100) : 0,
+      }))
+      .sort((a, b) => b.qty - a.qty);
+
+    if (!rows.length) {
+      table.innerHTML = '<tr><td class="text-center py-4" style="color:var(--text-muted)">Tidak ada data dimensi</td></tr>';
+      return;
+    }
+
+    let html = `<thead><tr>
+      <th class="ms-head-bulan">Dimensi</th>
+      <th class="ms-head-grand">QTY</th>
+      <th class="ms-head-grand">% QTY</th>
+      <th class="ms-head-grand">Revenue</th>
+      <th class="ms-head-grand">% Revenue</th>
+    </tr></thead><tbody>`;
+
+    for (const row of rows) {
+      html += `<tr>
+        <td class="ms-bulan-cell">${escapeHtml(row.dimensi)}</td>
+        <td class="ms-qty-cell">${U.formatNumber(row.qty)}</td>
+        <td class="ms-share-cell">${row.pctQty.toFixed(1)}%</td>
+        <td class="ms-qty-cell">${U.formatIDRCompact(row.revenue)}</td>
+        <td class="ms-share-cell">${row.pctRevenue.toFixed(1)}%</td>
+      </tr>`;
+    }
+
+    html += `</tbody><tfoot><tr class="ms-grand-row">
+      <td class="ms-bulan-cell">Total</td>
+      <td class="ms-qty-cell">${U.formatNumber(totalQty)}</td>
+      <td class="ms-share-cell">100%</td>
+      <td class="ms-qty-cell">${U.formatIDRCompact(totalRevenue)}</td>
+      <td class="ms-share-cell">100%</td>
+    </tr></tfoot>`;
+
+    table.innerHTML = html;
   }
 
   // ============================================================
