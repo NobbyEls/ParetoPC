@@ -48,6 +48,7 @@
     records: [],
     sources: [],   // [{ label, url, count, fetchedAt }]
     fetchedAt: null,
+    chartType: 'bar',  // 'bar' or 'line' for stacked chart
     filters: {
       dept: 'Printer',  // Default tab on first load
       kota: '__all__',
@@ -57,6 +58,7 @@
       tahun: '__all__',
       cekInk: '__all__',
       msCategory: '__all__',  // Marketshare table category sub-tab
+      msMode: 'qty',          // 'qty' or 'value' for marketshare toggle
       search: '',
     },
   };
@@ -353,6 +355,36 @@
   });
 
   // ============================================================
+  // Marketshare QTY / Value toggle
+  // ============================================================
+  document.addEventListener('click', (e) => {
+    const btn = e.target.closest('.ms-mode-btn');
+    if (!btn) return;
+    const mode = btn.dataset.mode;
+    if (mode === state.filters.msMode) return;
+    state.filters.msMode = mode;
+    document.querySelectorAll('.ms-mode-btn').forEach(b => {
+      b.classList.toggle('active', b.dataset.mode === mode);
+    });
+    renderMarketshare();
+  });
+
+  // ============================================================
+  // Stacked chart type toggle (Bar / Line)
+  // ============================================================
+  document.addEventListener('click', (e) => {
+    const btn = e.target.closest('.chart-type-btn');
+    if (!btn) return;
+    const type = btn.dataset.type;
+    if (type === state.chartType) return;
+    state.chartType = type;
+    document.querySelectorAll('.chart-type-btn').forEach(b => {
+      b.classList.toggle('active', b.dataset.type === type);
+    });
+    renderDept3D();
+  });
+
+  // ============================================================
   // Department tabs - prominent navigation, fixed order
   // ============================================================
   function renderDeptTabs() {
@@ -484,7 +516,7 @@
     setText('sub-trend',    `Total unit ${deptLabel} per bulan`);
     setText('title-mix',    `Mix Brand di ${deptLabel}`);
     setText('sub-mix',      `Kontribusi % unit per brand`);
-    setText('title-brand',  `Top 10 Brand — ${deptLabel}`);
+    setText('title-brand',  `Top 10 Produk (Value) — ${deptLabel}`);
     setText('title-product',`Top 10 Produk — ${deptLabel}`);
     setText('title-kota',   `Penjualan per Kota — ${deptLabel}`);
     setText('title-sales',  `Top 10 Sales — ${deptLabel}`);
@@ -541,8 +573,8 @@
     const brandsByQty = A.aggBy(filtered, r => r.brand, { sumKey: 'qty' }).slice(0, 8).map(b => ({ ...b, total: b.qty }));
     Ch.brandMixChart(brandsByQty);
 
-    // Top 10 charts (ALL QTY-based)
-    Ch.topBarChart('chart-brand', A.aggBy(filtered, r => r.brand, { sumKey: 'qty' }).slice(0, 10).map(b => ({ ...b, total: b.qty })), 'Brand');
+    // Top 10 charts (ALL QTY-based except chart-brand which is VALUE-based)
+    Ch.topBarChart('chart-brand', A.topN(filtered, r => r.namaBarang, 10), 'Produk', { valueKey: 'total', formatter: U.formatIDR });
     Ch.topBarChart('chart-product', A.aggBy(filtered, r => r.namaBarang, { sumKey: 'qty' }).slice(0, 10).map(b => ({ ...b, total: b.qty })), 'Produk');
     Ch.topBarChart('chart-kota', A.aggBy(filtered, r => r.kota, { sumKey: 'qty' }).map(b => ({ ...b, total: b.qty })), 'Kota');
     Ch.topBarChart('chart-sales', A.aggBy(filtered, r => r.kodeSales, { sumKey: 'qty' }).slice(0, 10).map(b => ({ ...b, total: b.qty })), 'Sales');
@@ -650,6 +682,7 @@
       dept: '__all__',   // already filtered above
       category,
       topN: 8,
+      sumField: state.filters.msMode === 'value' ? 'total' : 'qty',
     });
 
     if (!data || !data.topBrands.length) {
@@ -717,7 +750,9 @@
   function renderMarketshareTableHtml(data) {
     const table = document.getElementById('ms-table');
     if (!table) return;
-    const { topBrands, otherCount, rows, grandRow, estimasiClosing, growth, yearLabel, prevYearLabel } = data;
+    const { topBrands, otherCount, rows, grandRow, estimasiClosing, growth, yearLabel, prevYearLabel, sumField } = data;
+    const isValue = sumField === 'total';
+    const valLabel = isValue ? 'VALUE' : 'QTY';
 
     // Build column list: [...topBrands, _OTHER, GRAND, MOM, YOY, EST, GROWTH]
     const brandCols = topBrands.map((b, i) => ({
@@ -745,7 +780,7 @@
 
     let headRow2 = `<tr class="subhead">`;
     for (let i = 0; i < brandCols.length; i++) {
-      headRow2 += `<th>QTY</th><th>%</th>`;
+      headRow2 += `<th>${valLabel}</th><th>%</th>`;
     }
     headRow2 += `</tr>`;
 
@@ -778,7 +813,8 @@
           // Empty cells (no '-' placeholder per user request)
           cells.push(`<td class="ms-qty-cell ms-empty"></td><td class="ms-share-cell ms-empty"></td>`);
         } else {
-          cells.push(`<td class="ms-qty-cell">${U.formatNumber(qty)}</td>`);
+          const fmtVal = isValue ? U.formatIDRCompact(qty) : U.formatNumber(qty);
+          cells.push(`<td class="ms-qty-cell">${fmtVal}</td>`);
           // Entire share % cell colored by delta direction
           const isFlat = (delta === null || delta === undefined || isNaN(delta) || Math.abs(delta) < 0.005);
           const pctCls = isFlat ? 'pct-flat' : (delta >= 0 ? 'pct-up' : 'pct-down');
@@ -787,7 +823,7 @@
         }
       }
       // Grand Total
-      cells.push(`<td class="ms-qty-cell ms-total-cell">${hasData ? U.formatNumber(row.grandTotal) : ''}</td>`);
+      cells.push(`<td class="ms-qty-cell ms-total-cell">${hasData ? (isValue ? U.formatIDRCompact(row.grandTotal) : U.formatNumber(row.grandTotal)) : ''}</td>`);
       // MoM
       cells.push(`<td class="ms-share-cell ms-mom-cell">${hasData ? fmtPct(row.mom) : ''}</td>`);
       // YoY
@@ -796,7 +832,8 @@
       // Estimasi Closing — only the row matching estimasiClosing.monthName
       let estHtml = '';
       if (estimasiClosing && estimasiClosing.monthName === row.month) {
-        estHtml = `<strong>${U.formatNumber(estimasiClosing.value)}</strong>\n${estimasiClosing.daysElapsed}/${estimasiClosing.daysInMonth} hari`;
+        const estFmt = isValue ? U.formatIDRCompact(estimasiClosing.value) : U.formatNumber(estimasiClosing.value);
+        estHtml = `<strong>${estFmt}</strong>\n${estimasiClosing.daysElapsed}/${estimasiClosing.daysInMonth} hari`;
       }
       cells.push(`<td class="ms-est-cell">${estHtml}</td>`);
 
@@ -816,10 +853,11 @@
     for (const c of brandCols) {
       const qty = grandRow.qtyPerBrand[c.key] || 0;
       const share = grandRow.sharePerBrand[c.key] || 0;
-      grandCells.push(`<td class="ms-qty-cell">${U.formatNumber(qty)}</td>`);
+      const fmtVal = isValue ? U.formatIDRCompact(qty) : U.formatNumber(qty);
+      grandCells.push(`<td class="ms-qty-cell">${fmtVal}</td>`);
       grandCells.push(`<td class="ms-share-cell">${share.toFixed(2)}%</td>`);
     }
-    grandCells.push(`<td class="ms-qty-cell ms-total-cell">${U.formatNumber(grandRow.grandTotal)}</td>`);
+    grandCells.push(`<td class="ms-qty-cell ms-total-cell">${isValue ? U.formatIDRCompact(grandRow.grandTotal) : U.formatNumber(grandRow.grandTotal)}</td>`);
     grandCells.push(`<td class="ms-share-cell ms-mom-cell"></td>`);
     grandCells.push(`<td class="ms-share-cell ms-yoy-cell"></td>`);
     grandCells.push(`<td class="ms-est-cell"></td>`);
@@ -931,14 +969,24 @@
       data: matrix[brand].slice(0, lastIdx + 1),
       backgroundColor: getStackColor(brand) + 'cc',
       borderColor: getStackColor(brand),
-      borderWidth: 1,
-      borderRadius: 3,
+      borderWidth: state.chartType === 'line' ? 2.5 : 1,
+      borderRadius: state.chartType === 'line' ? 0 : 3,
+      ...(state.chartType === 'line' ? {
+        tension: 0.4,
+        pointRadius: 4,
+        pointHoverRadius: 7,
+        pointBackgroundColor: getStackColor(brand),
+        pointBorderColor: '#0a0e1a',
+        pointBorderWidth: 2,
+        fill: false,
+      } : {}),
     }));
 
     // Destroy old + create new
     if (stackedChartInstance) { stackedChartInstance.destroy(); stackedChartInstance = null; }
+    const chartType = state.chartType === 'line' ? 'line' : 'bar';
     stackedChartInstance = new Chart(canvas.getContext('2d'), {
-      type: 'bar',
+      type: chartType,
       data: { labels, datasets },
       options: {
         responsive: true,
@@ -946,7 +994,7 @@
         plugins: {
           legend: {
             position: 'bottom',
-            labels: { boxWidth: 10, boxHeight: 10, padding: 14, usePointStyle: true, pointStyle: 'rect', font: { size: 11, weight: 500 } },
+            labels: { boxWidth: 10, boxHeight: 10, padding: 14, usePointStyle: true, pointStyle: chartType === 'line' ? 'circle' : 'rect', font: { size: 11, weight: 500 } },
           },
           tooltip: {
             mode: 'index',
@@ -967,12 +1015,12 @@
         },
         scales: {
           x: {
-            stacked: true,
+            stacked: chartType === 'bar',
             grid: { display: false },
             ticks: { font: { weight: 600 } },
           },
           y: {
-            stacked: true,
+            stacked: chartType === 'bar',
             ticks: { callback: (v) => U.formatNumber(v) },
             grid: { color: 'rgba(45,52,84,0.25)', drawBorder: false },
           }

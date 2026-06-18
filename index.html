@@ -34,7 +34,7 @@
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.6/dist/chart.umd.min.js"></script>
 
-  <link rel="stylesheet" href="css/style.css?v=35" />
+  <link rel="stylesheet" href="css/style.css?v=36" />
 </head>
 <body class="bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 font-sans antialiased min-h-screen">
 
@@ -194,7 +194,10 @@
             <h3 class="chart-title">Marketshare per Brand — Detail Bulanan</h3>
             <p class="chart-sub">Growth, MoM, YoY, dan estimasi closing per brand. Pilih kategori di tab.</p>
           </div>
-          <!-- Gaming/Non Gaming tabs removed — not relevant for these product categories -->
+          <div id="ms-mode-toggle" class="inline-flex rounded-lg overflow-hidden border" style="border-color:var(--border-subtle);">
+            <button class="ms-mode-btn active" data-mode="qty">QTY</button>
+            <button class="ms-mode-btn" data-mode="value">Value (Rp)</button>
+          </div>
         </div>
         <div id="ms-period-banner" class="ms-period-banner"></div>
         <div class="ms-table-wrap">
@@ -204,9 +207,15 @@
 
       <!-- Stacked Bar Chart — Market Brand per Bulan -->
       <div id="dept3d-card" class="chart-card hidden">
-        <div class="chart-header">
-          <h3 class="chart-title" id="stacked-title">📦 Market Brand per Bulan</h3>
-          <p class="chart-sub" id="stacked-sub">Top brand, jumlah unit terjual per bulan (stacked)</p>
+        <div class="chart-header flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h3 class="chart-title" id="stacked-title">📦 Market Brand per Bulan</h3>
+            <p class="chart-sub" id="stacked-sub">Top brand, jumlah unit terjual per bulan (stacked)</p>
+          </div>
+          <div id="chart-type-toggle" class="inline-flex rounded-lg overflow-hidden border" style="border-color:var(--border-subtle);">
+            <button class="chart-type-btn active" data-type="bar">Bar</button>
+            <button class="chart-type-btn" data-type="line">Line</button>
+          </div>
         </div>
         <div class="chart-body chart-body-tall"><canvas id="chart-stacked"></canvas></div>
       </div>
@@ -233,8 +242,8 @@
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <div id="card-brand" class="chart-card">
           <div class="chart-header">
-            <h3 class="chart-title" id="title-brand">Top 10 Brand</h3>
-            <p class="chart-sub">Berdasarkan total omzet</p>
+            <h3 class="chart-title" id="title-brand">Top 10 Produk (Value)</h3>
+            <p class="chart-sub">Berdasarkan total value (Rp)</p>
           </div>
           <div class="chart-body"><canvas id="chart-brand"></canvas></div>
         </div>
@@ -295,11 +304,11 @@
     </footer>
   </main>
 
-  <script src="js/utils.js?v=35"></script>
-  <script src="js/parser.js?v=35"></script>
-  <script src="js/sheets.js?v=35"></script>
-  <script src="js/analytics.js?v=35"></script>
-  <script src="js/charts.js?v=35"></script>
-  <script src="js/app.js?v=35"></script>
+  <script src="js/utils.js?v=36"></script>
+  <script src="js/parser.js?v=36"></script>
+  <script src="js/sheets.js?v=36"></script>
+  <script src="js/analytics.js?v=36"></script>
+  <script src="js/charts.js?v=36"></script>
+  <script src="js/app.js?v=36"></script>
 </body>
 </html>

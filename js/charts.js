@@ -121,7 +121,7 @@ PC.charts = (() => {
     const colors = labels.map((l, i) => colorFn(l, i));
     return _replace(canvasId, {
       type: 'doughnut',
-      data: { labels, datasets: [{ data, backgroundColor: colors, borderWidth: 3, borderColor: '#0a0e1a', hoverBorderWidth: 0, hoverOffset: 8 }] },
+      data: { labels, datasets: [{ data, backgroundColor: colors, borderWidth: 0, hoverBorderWidth: 0, hoverOffset: 8 }] },
       options: {
         responsive: true, maintainAspectRatio: false, cutout: '65%',
         plugins: {
@@ -140,9 +140,10 @@ PC.charts = (() => {
     });
   }
 
-  function topBarChart(canvasId, agg, label) {
+  function topBarChart(canvasId, agg, label, opts = {}) {
+    const { valueKey = 'total', formatter = null } = opts;
     const labels = agg.map(d => d.key);
-    const data = agg.map(d => d.total);
+    const data = agg.map(d => d[valueKey] || d.total);
     // Use ELS-inspired magenta-purple gradient palette
     const palette = ['#ec4899','#a855f7','#06b6d4','#f59e0b','#10b981','#3b82f6','#f472b6','#8b5cf6','#facc15','#22d3ee'];
     return _replace(canvasId, {
@@ -166,13 +167,13 @@ PC.charts = (() => {
           legend: { display: false },
           tooltip: {
             callbacks: {
-              label: (c) => `${U.formatNumber(c.parsed.x)} unit`
+              label: (c) => formatter ? formatter(c.parsed.x) : `${U.formatNumber(c.parsed.x)} unit`
             }
           }
         },
         scales: {
           x: {
-            ticks: { callback: (v) => U.formatNumber(v) },
+            ticks: { callback: (v) => formatter ? U.formatIDRCompact(v) : U.formatNumber(v) },
             grid: { color: 'rgba(45,52,84,0.25)', drawBorder: false }
           },
           y: {
@@ -182,7 +183,7 @@ PC.charts = (() => {
               font: { weight: 500 },
               callback: function(value) {
                 const lbl = this.getLabelForValue(value);
-                if (typeof lbl === 'string' && lbl.length > 30) return lbl.slice(0, 28) + '…';
+                if (typeof lbl === 'string' && lbl.length > 30) return lbl.slice(0, 28) + '...';
                 return lbl;
               }
             }

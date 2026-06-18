@@ -241,18 +241,18 @@ PC.analytics = (() => {
   }
 
   /**
-   * Build a marketshare matrix for a single year, with QTY & share% per brand
+   * Build a marketshare matrix for a single year, with QTY or Value & share% per brand
    * per month, plus MoM/YoY/EstimasiClosing/Growth on the GRAND TOTAL.
    *
    * Filters used: dept, category (cekPc). bulan/brand filters are intentionally
    * ignored because the table itself is a per-month, per-brand breakdown.
    *
    * @param {Array} records  Full records dataset.
-   * @param {Object} opts    { year, prevYear, dept, category, topN }
+   * @param {Object} opts    { year, prevYear, dept, category, topN, sumField }
    * @returns marketshare data object (see briefing for shape).
    */
   function marketshareTable(records, opts = {}) {
-    const { year, prevYear, dept, category = '__all__', topN: nBrands = 8 } = opts;
+    const { year, prevYear, dept, category = '__all__', topN: nBrands = 8, sumField = 'qty' } = opts;
     if (!year) return null;
 
     // Filter by dept + category
@@ -270,16 +270,17 @@ PC.analytics = (() => {
         topBrands: [], otherCount: 0, rows: [], grandRow: { qtyPerBrand: {}, sharePerBrand: {}, grandTotal: 0 },
         estimasiClosing: null, growth: null,
         yearLabel: String(year), prevYearLabel: String(prevYear),
+        sumField,
       };
     }
 
-    // Compute total qty per brand in current year — pick top N.
+    // Compute total per brand in current year using the selected sumField — pick top N.
     // Brands literally named "Other" / "Unknown" / "OTHER" are EXCLUDED from
     // top-ranking and always grouped into the OTHER bucket at the end.
     const brandTotals = new Map();
     for (const r of curYear) {
       const k = r.brand || 'Unknown';
-      brandTotals.set(k, (brandTotals.get(k) || 0) + (r.qty || 0));
+      brandTotals.set(k, (brandTotals.get(k) || 0) + (r[sumField] || 0));
     }
     const isOtherLike = (b) => /^(other|unknown)$/i.test(String(b).trim());
     const allEntries = [...brandTotals.entries()].sort((a, b) => b[1] - a[1]);
@@ -295,7 +296,7 @@ PC.analytics = (() => {
     const allKeys = [...topBrands, '__other__'];
 
     // Per-month matrix for current year
-    const matrix = {};   // matrix[monthIdx][brandKey] = qty
+    const matrix = {};   // matrix[monthIdx][brandKey] = sum
     const monthMaxDay = new Array(12).fill(0);
     for (let i = 0; i < 12; i++) {
       matrix[i] = {};
@@ -305,7 +306,7 @@ PC.analytics = (() => {
       const mIdx = MS_MONTHS.indexOf(r.bulan);
       if (mIdx < 0) continue;
       const key = topBrands.includes(r.brand) ? r.brand : (otherSet.has(r.brand) ? '__other__' : '__other__');
-      matrix[mIdx][key] = (matrix[mIdx][key] || 0) + (r.qty || 0);
+      matrix[mIdx][key] = (matrix[mIdx][key] || 0) + (r[sumField] || 0);
       // Track latest day in each month for estimasi closing
       if (r.tgl instanceof Date && !isNaN(r.tgl)) {
         const day = r.tgl.getDate();
@@ -318,7 +319,7 @@ PC.analytics = (() => {
     for (const r of prvYear) {
       const mIdx = MS_MONTHS.indexOf(r.bulan);
       if (mIdx < 0) continue;
-      prvMonthGrand[mIdx] += (r.qty || 0);
+      prvMonthGrand[mIdx] += (r[sumField] || 0);
     }
 
     // Find latest month with data + decide which (if any) is the running month.
@@ -345,8 +346,8 @@ PC.analytics = (() => {
     for (const r of prvYear) {
       if (r.bulan !== 'Desember') continue;
       const key = topBrands.includes(r.brand) ? r.brand : '__other__';
-      prvDecPerBrand[key] += (r.qty || 0);
-      prvDecGrand += (r.qty || 0);
+      prvDecPerBrand[key] += (r[sumField] || 0);
+      prvDecGrand += (r[sumField] || 0);
     }
     if (prvDecGrand > 0) {
       for (const k of allKeys) prevSharePerBrand[k] = (prvDecPerBrand[k] / prvDecGrand) * 100;
@@ -437,7 +438,7 @@ PC.analytics = (() => {
       }
     }
 
-    // Cumulative growth: Jan→latest_month, current vs prev year (uses estimasi for running)
+    // Cumulative growth: Jan->latest_month, current vs prev year (uses estimasi for running)
     let growth = null;
     if (latestMonth >= 0) {
       let cumCur = 0, cumPrev = 0;
@@ -471,6 +472,7 @@ PC.analytics = (() => {
       growth,
       yearLabel: String(year),
       prevYearLabel: String(prevYear),
+      sumField,
     };
   }
 

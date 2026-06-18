@@ -938,6 +938,24 @@ footer { color: var(--text-muted); }
   box-shadow: 0 2px 8px rgba(236,72,153,0.3);
 }
 
+/* Toggle buttons for Marketshare mode (QTY / Value) and Chart type (Bar / Line) */
+.ms-mode-btn, .chart-type-btn {
+  padding: 6px 14px;
+  background: transparent;
+  color: var(--text-muted);
+  border: none;
+  cursor: pointer;
+  font-size: 0.78rem;
+  font-weight: 600;
+  transition: all 0.15s;
+}
+.ms-mode-btn:hover, .chart-type-btn:hover { color: var(--text-primary); }
+.ms-mode-btn.active, .chart-type-btn.active {
+  background: linear-gradient(135deg, #ec4899, #a855f7);
+  color: white;
+  box-shadow: 0 2px 8px rgba(236,72,153,0.3);
+}
+
 .ms-period-banner {
   padding: 8px 14px;
   background: rgba(99,102,241,0.08);
