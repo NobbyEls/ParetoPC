@@ -332,15 +332,15 @@ PC.charts = (() => {
         borderColor: color,
         tension: 0.4,
         cubicInterpolationMode: 'monotone',
-        borderWidth: 2.5,
-        pointRadius: 5,
-        pointHoverRadius: 8,
+        borderWidth: 2,
+        pointRadius: 3,
+        pointHoverRadius: 5,
         pointBackgroundColor: color,
         pointBorderColor: '#0a0e1a',
-        pointBorderWidth: 2,
+        pointBorderWidth: 1.5,
         fill: false,
-        spanGaps: false,             // do NOT draw line through null months (future)
-        estimated: ds.estimated || [],  // metadata for tooltip
+        spanGaps: false,
+        estimated: ds.estimated || [],
       };
     });
     return _replace('chart-yoy', {
@@ -349,6 +349,13 @@ PC.charts = (() => {
       options: {
         responsive: true, maintainAspectRatio: false,
         spanGaps: false,
+        animation: {
+          duration: 800,
+          easing: 'easeInOutQuart',
+        },
+        transitions: {
+          active: { animation: { duration: 300 } },
+        },
         interaction: { mode: 'nearest', axis: 'x', intersect: false },
         plugins: {
           legend: { position: 'top', align: 'end', labels: { boxWidth: 8, boxHeight: 8, padding: 16, usePointStyle: true, pointStyle: 'circle' } },
