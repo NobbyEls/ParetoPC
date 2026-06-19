@@ -44,6 +44,31 @@ PC.charts = (() => {
     return _instances[id];
   }
 
+  /**
+   * Update existing chart data in-place (for smooth animation transitions).
+   * If chart doesn't exist yet, creates it. If labels/datasets count changed,
+   * falls back to full replace.
+   */
+  function _updateOrReplace(id, config) {
+    applyTheme();
+    const existing = _instances[id];
+    if (existing) {
+      const newData = config.data;
+      const oldData = existing.data;
+      // Can do in-place update if same number of datasets
+      if (oldData.datasets.length === newData.datasets.length) {
+        existing.data.labels = newData.labels;
+        newData.datasets.forEach((ds, i) => {
+          Object.assign(existing.data.datasets[i], ds);
+        });
+        existing.update('default'); // triggers smooth animation
+        return existing;
+      }
+    }
+    // Fallback: destroy + recreate
+    return _replace(id, config);
+  }
+
   function destroyAll() {
     for (const k of Object.keys(_instances)) {
       try { _instances[k].destroy(); } catch (e) {}
@@ -343,18 +368,18 @@ PC.charts = (() => {
         estimated: ds.estimated || [],
       };
     });
-    return _replace('chart-yoy', {
+    return _updateOrReplace('chart-yoy', {
       type: 'line',
       data: { labels: yoy.labels, datasets },
       options: {
         responsive: true, maintainAspectRatio: false,
         spanGaps: false,
         animation: {
-          duration: 800,
-          easing: 'easeInOutQuart',
+          duration: 1200,
+          easing: 'easeOutQuart',
         },
         transitions: {
-          active: { animation: { duration: 300 } },
+          active: { animation: { duration: 400, easing: 'easeOutQuart' } },
         },
         interaction: { mode: 'nearest', axis: 'x', intersect: false },
         plugins: {
