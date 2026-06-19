@@ -61,6 +61,7 @@
       msMode: 'qty',          // 'qty' or 'value' for marketshare toggle
       msKotaMode: 'qty',      // 'qty' or 'value' for marketshare kota toggle
       msTipePcMode: 'qty',    // 'qty' or 'value' for marketshare tipe PC toggle
+      yoyMode: 'qty',         // 'qty' or 'value' for YoY chart toggle
       search: '',
     },
   };
@@ -413,6 +414,21 @@
   });
 
   // ============================================================
+  // YoY QTY / Value toggle
+  // ============================================================
+  document.addEventListener('click', (e) => {
+    const btn = e.target.closest('.yoy-mode-btn');
+    if (!btn) return;
+    const mode = btn.dataset.mode;
+    if (mode === state.filters.yoyMode) return;
+    state.filters.yoyMode = mode;
+    document.querySelectorAll('.yoy-mode-btn').forEach(b => {
+      b.classList.toggle('active', b.dataset.mode === mode);
+    });
+    render();
+  });
+
+  // ============================================================
   // Stacked chart type toggle (Bar / Line)
   // ============================================================
   document.addEventListener('click', (e) => {
@@ -699,8 +715,9 @@
   function renderYoy(filtered) {
     const card = document.getElementById('yoy-card');
 
-    // Compute YoY based on QTY (jumlah unit terjual) — per user request
-    const yoy = A.yoyByMonth(filtered, { sumField: 'qty' });
+    // Compute YoY based on selected mode (qty or value)
+    const sumField = state.filters.yoyMode === 'value' ? 'total' : 'qty';
+    const yoy = A.yoyByMonth(filtered, { sumField });
 
     // Hide the card only if there is literally nothing to chart.
     if (!yoy.years.length) { card.classList.add('hidden'); return; }
@@ -709,18 +726,33 @@
     // the chart simply renders 1 line for that year (still useful as a monthly
     // trend view).
     card.classList.remove('hidden');
-    Ch.yoyChart(yoy, {
-      seriesLabel: 'Unit',
-      valueFormatter: (v) => U.formatNumber(v) + ' unit',
-      axisFormatter: (v) => U.formatNumber(v),
-    });
 
-    // Update card subtitle to reflect qty mode
+    if (sumField === 'total') {
+      Ch.yoyChart(yoy, {
+        seriesLabel: 'Value',
+        valueFormatter: (v) => U.formatIDR(v),
+        axisFormatter: (v) => U.formatIDRCompact(v),
+      });
+    } else {
+      Ch.yoyChart(yoy, {
+        seriesLabel: 'Unit',
+        valueFormatter: (v) => U.formatNumber(v) + ' unit',
+        axisFormatter: (v) => U.formatNumber(v),
+      });
+    }
+
+    // Update card subtitle to reflect mode
     const subEl = card.querySelector('.chart-sub');
     if (subEl) {
-      subEl.textContent = yoy.years.length === 1
-        ? `Unit terjual per bulan — Tahun ${yoy.years[0]}`
-        : 'Perbandingan unit terjual per bulan antar tahun';
+      if (sumField === 'total') {
+        subEl.textContent = yoy.years.length === 1
+          ? `Value (Rp) per bulan — Tahun ${yoy.years[0]}`
+          : 'Perbandingan value (Rp) per bulan antar tahun';
+      } else {
+        subEl.textContent = yoy.years.length === 1
+          ? `Unit terjual per bulan — Tahun ${yoy.years[0]}`
+          : 'Perbandingan unit terjual per bulan antar tahun';
+      }
     }
 
     // Summary text removed per user request — chart speaks for itself.

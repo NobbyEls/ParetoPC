@@ -35,6 +35,10 @@ PC.analytics = (() => {
    * Months WITHOUT any records get null (so Chart.js won't extend the line into
    * the future / unsold months — the line stops at the latest month with data).
    * Months that have records but sum to zero stay as 0 (genuine zero sales).
+   *
+   * For the max year, if the last month with data is incomplete (maxDay < daysInMonth),
+   * the value is replaced with an estimate = sum * (totalDays / maxDay).
+   * An `estimated` metadata array is included per dataset to flag estimated points.
    */
   function yoyByMonth(records, opts = {}) {
     const { sumField = 'total' } = opts;
@@ -43,26 +47,57 @@ PC.analytics = (() => {
     for (const r of records) if (r.year) yearsSet.add(r.year);
     const years = [...yearsSet].sort((a, b) => a - b);
 
+    const maxYear = years.length ? years[years.length - 1] : null;
+
     const datasets = years.map(y => {
       // Which months have at least 1 record for this year?
       const monthsWithData = new Set();
+      const monthMaxDay = new Array(12).fill(0);
       for (const r of records) {
-        if (r.year === y && r.bulan) monthsWithData.add(r.bulan);
+        if (r.year === y && r.bulan) {
+          monthsWithData.add(r.bulan);
+          const mIdx = MONTHS.indexOf(r.bulan);
+          if (mIdx >= 0 && r.tgl instanceof Date && !isNaN(r.tgl)) {
+            const day = r.tgl.getDate();
+            if (day > monthMaxDay[mIdx]) monthMaxDay[mIdx] = day;
+          }
+        }
       }
       // Find the LAST month (calendar order) that has data.
       let latestIdx = -1;
       MONTHS.forEach((m, i) => { if (monthsWithData.has(m)) latestIdx = i; });
 
+      // For max year, check if the last month is incomplete (estimasi)
+      let estimateMonthIdx = -1;
+      if (y === maxYear && latestIdx >= 0) {
+        const totalDays = _daysInMonth(latestIdx, y);
+        if (monthMaxDay[latestIdx] > 0 && monthMaxDay[latestIdx] < totalDays) {
+          estimateMonthIdx = latestIdx;
+        }
+      }
+
+      const estimated = new Array(12).fill(false);
+      const data = MONTHS.map((mo, i) => {
+        // Beyond the latest month with data -> null (no line drawn there)
+        if (i > latestIdx) return null;
+        const sum = U.sumBy(
+          records.filter(r => r.year === y && r.bulan === mo),
+          r => r[sumField] || 0
+        );
+        // Apply estimasi for the incomplete month in max year
+        if (i === estimateMonthIdx && sum > 0) {
+          const totalDays = _daysInMonth(i, y);
+          const elapsed = monthMaxDay[i];
+          estimated[i] = true;
+          return Math.round(sum * (totalDays / elapsed));
+        }
+        return sum;
+      });
+
       return {
         label: String(y),
-        data: MONTHS.map((mo, i) => {
-          // Beyond the latest month with data → null (no line drawn there)
-          if (i > latestIdx) return null;
-          return U.sumBy(
-            records.filter(r => r.year === y && r.bulan === mo),
-            r => r[sumField] || 0
-          );
-        }),
+        data,
+        estimated,
       };
     });
     return { years, labels: MONTHS, datasets, sumField };

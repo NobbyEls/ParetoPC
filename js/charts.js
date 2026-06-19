@@ -340,6 +340,7 @@ PC.charts = (() => {
         pointBorderWidth: 2,
         fill: false,
         spanGaps: false,             // do NOT draw line through null months (future)
+        estimated: ds.estimated || [],  // metadata for tooltip
       };
     });
     return _replace('chart-yoy', {
@@ -352,7 +353,14 @@ PC.charts = (() => {
         plugins: {
           legend: { position: 'top', align: 'end', labels: { boxWidth: 8, boxHeight: 8, padding: 16, usePointStyle: true, pointStyle: 'circle' } },
           tooltip: {
-            callbacks: { label: (c) => `${c.dataset.label}: ${valueFormatter(c.parsed.y)}` }
+            callbacks: {
+              label: (c) => {
+                const est = c.dataset.estimated;
+                const isEstimated = est && est[c.dataIndex];
+                const suffix = isEstimated ? ' (estimasi)' : '';
+                return `${c.dataset.label}: ${valueFormatter(c.parsed.y)}${suffix}`;
+              }
+            }
           }
         },
         scales: {

@@ -959,7 +959,7 @@ footer { color: var(--text-muted); }
 }
 
 /* Toggle buttons for Marketshare mode (QTY / Value) and Chart type (Bar / Line) */
-.ms-mode-btn, .ms-kota-mode-btn, .ms-tipepc-mode-btn, .chart-type-btn {
+.ms-mode-btn, .ms-kota-mode-btn, .ms-tipepc-mode-btn, .yoy-mode-btn, .chart-type-btn {
   padding: 6px 14px;
   background: transparent;
   color: var(--text-muted);
@@ -969,8 +969,8 @@ footer { color: var(--text-muted); }
   font-weight: 600;
   transition: all 0.15s;
 }
-.ms-mode-btn:hover, .ms-kota-mode-btn:hover, .ms-tipepc-mode-btn:hover, .chart-type-btn:hover { color: var(--text-primary); }
-.ms-mode-btn.active, .ms-kota-mode-btn.active, .ms-tipepc-mode-btn.active, .chart-type-btn.active {
+.ms-mode-btn:hover, .ms-kota-mode-btn:hover, .ms-tipepc-mode-btn:hover, .yoy-mode-btn:hover, .chart-type-btn:hover { color: var(--text-primary); }
+.ms-mode-btn.active, .ms-kota-mode-btn.active, .ms-tipepc-mode-btn.active, .yoy-mode-btn.active, .chart-type-btn.active {
   background: linear-gradient(135deg, #ec4899, #a855f7);
   color: white;
   box-shadow: 0 2px 8px rgba(236,72,153,0.3);
@@ -1377,7 +1377,7 @@ html:not(.dark) .ms-table tbody td.ms-bulan-cell.ms-empty-month {
   background: rgba(15, 23, 42, 0.04);
 }
 html:not(.dark) .ms-qty-cell,
-html:not(.dark) .ms-share-cell {
+html:not(.dark) .ms-share-cell:not(.pct-up):not(.pct-down) {
   color: #0f172a !important;
 }
 
