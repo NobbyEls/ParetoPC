@@ -83,6 +83,11 @@
     chartType: 'bar',  // 'bar' or 'line' for stacked chart
     paretoPcData: null,      // Parsed Pareto PC snapshot tables (latest month)
     paretoPcTrend: null,     // Parsed Pareto PC multi-month trend ({months, leftRows, rightRows, leftGrand, rightGrand})
+    paretoPcFilters: {
+      view: 'pc',            // 'pc' or 'nonpc' — which dataset to show in chart+table
+      year: '__all__',       // year filter for the chart
+      topN: 8,              // how many category lines to show (0=All)
+    },
     filters: {
       dept: 'Printer',  // Default tab on first load
       kota: '__all__',
@@ -1676,6 +1681,21 @@
   const PARETO_PC_CACHE_KEY = 'paretopc:pareto-pc:v3';
   const PARETO_PC_CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
 
+  // Auto-clear invalid cache: if the stored payload lacks expected shape,
+  // delete it so we re-fetch cleanly.
+  try {
+    const _raw = localStorage.getItem(PARETO_PC_CACHE_KEY);
+    if (_raw) {
+      const _parsed = JSON.parse(_raw);
+      if (!_parsed || !_parsed.data || !_parsed.data.snapshot || !_parsed.data.trend) {
+        console.warn('[ParetoPC] Cache has invalid shape, clearing.');
+        localStorage.removeItem(PARETO_PC_CACHE_KEY);
+      }
+    }
+  } catch (_e) {
+    try { localStorage.removeItem(PARETO_PC_CACHE_KEY); } catch (_) {}
+  }
+
   // Indonesian month-name → (month index 1-12, short label) mapping.
   const PARETO_PC_BULAN_MAP = {
     'januari':1, 'februari':2, 'maret':3, 'april':4, 'mei':5, 'juni':6,
@@ -1827,15 +1847,24 @@
       const cached = localStorage.getItem(PARETO_PC_CACHE_KEY);
       if (cached) {
         const parsed = JSON.parse(cached);
-        if (parsed.savedAt && (Date.now() - new Date(parsed.savedAt).getTime()) < PARETO_PC_CACHE_TTL_MS) {
+        // Validate shape before using
+        if (parsed && parsed.data && parsed.data.snapshot && parsed.data.trend &&
+            parsed.savedAt && (Date.now() - new Date(parsed.savedAt).getTime()) < PARETO_PC_CACHE_TTL_MS) {
           state.paretoPcData  = parsed.data.snapshot;
           state.paretoPcTrend = parsed.data.trend;
           renderParetoPCTables(state.paretoPcData);
           renderParetoPCTrend(state.paretoPcTrend);
           return;
+        } else if (parsed && (!parsed.data || !parsed.data.snapshot || !parsed.data.trend)) {
+          // Invalid shape - clear it
+          console.warn('[ParetoPC] Cache shape invalid, removing.');
+          localStorage.removeItem(PARETO_PC_CACHE_KEY);
         }
       }
-    } catch (e) {}
+    } catch (e) {
+      console.warn('[ParetoPC] Cache read error, clearing:', e);
+      try { localStorage.removeItem(PARETO_PC_CACHE_KEY); } catch (_) {}
+    }
 
     // 3) Fetch every year sheet in parallel. A failed/empty sheet does not
     // block the others — we just log and skip it.
@@ -2112,9 +2141,19 @@
 
   function renderParetoPCTrend(trend) {
     if (!trend) return;
-    renderParetoPCTrendTable('table-pareto-pc-trend',    trend.months, trend.rightRows, trend.rightGrandByIdx);
-    renderParetoPCTrendTable('table-pareto-nonpc-trend', trend.months, trend.leftRows,  trend.leftGrandByIdx);
-    renderParetoPCTrendBanner(trend);
+    try {
+      renderParetoPCTrendTable('table-pareto-pc-trend',    trend.months, trend.rightRows, trend.rightGrandByIdx);
+      renderParetoPCTrendTable('table-pareto-nonpc-trend', trend.months, trend.leftRows,  trend.leftGrandByIdx);
+      renderParetoPCTrendBanner(trend);
+      renderParetoPCLineChart(trend);
+      populateParetoPCYearFilter(trend);
+    } catch (err) {
+      console.error('[ParetoPC] renderParetoPCTrend error:', err);
+      const errEl = document.getElementById('pareto-pc-trend-banner');
+      if (errEl) {
+        errEl.innerHTML = `<div class="pareto-pc-error">Error rendering trend: ${escapeHtml(err.message || String(err))}</div>`;
+      }
+    }
   }
 
   /** Top-of-card banner: latest month total + MoM + YoY headline. */
@@ -2155,6 +2194,148 @@
       ` &nbsp;·&nbsp; <span>MoM ${momHtml}</span>` +
       ` &nbsp;·&nbsp; <span>YoY ${yoyHtml}</span>` +
       ` &nbsp;·&nbsp; <span style="color:var(--text-muted)">${months.length} bulan dimuat</span>`;
+  }
+
+  // ============================================================
+  // PARETO PC — Line Chart (monthly revenue by top categories)
+  // ============================================================
+  let paretoPcChartInstance = null;
+
+  /** Populate the year filter dropdown based on available months in trend data */
+  function populateParetoPCYearFilter(trend) {
+    const sel = document.getElementById('pareto-pc-year-filter');
+    if (!sel || !trend || !trend.months) return;
+    const years = [...new Set(trend.months.map(m => m.year))].sort();
+    const currentVal = state.paretoPcFilters.year;
+    let html = '<option value="__all__">Semua</option>';
+    for (const y of years) {
+      html += `<option value="${y}">${y}</option>`;
+    }
+    sel.innerHTML = html;
+    // Restore selection
+    if (currentVal && currentVal !== '__all__' && years.map(String).includes(String(currentVal))) {
+      sel.value = String(currentVal);
+    } else {
+      sel.value = '__all__';
+    }
+  }
+
+  /** Render line chart showing monthly revenue for top categories */
+  function renderParetoPCLineChart(trend) {
+    const canvas = document.getElementById('chart-pareto-pc-trend');
+    if (!canvas || !trend || !trend.months || !trend.months.length) return;
+
+    const view = state.paretoPcFilters.view; // 'pc' or 'nonpc'
+    const yearFilter = state.paretoPcFilters.year;
+    const topN = state.paretoPcFilters.topN;
+
+    // Select the correct dataset side
+    const rows = view === 'pc' ? trend.rightRows : trend.leftRows;
+    const grandByIdx = view === 'pc' ? trend.rightGrandByIdx : trend.leftGrandByIdx;
+    const months = trend.months;
+
+    // Filter months by year if specified
+    let monthIndices = months.map((m, i) => i);
+    if (yearFilter && yearFilter !== '__all__') {
+      const yr = parseInt(yearFilter, 10);
+      monthIndices = monthIndices.filter(i => months[i].year === yr);
+    }
+
+    if (!monthIndices.length || !rows || !rows.length) {
+      if (paretoPcChartInstance) { paretoPcChartInstance.destroy(); paretoPcChartInstance = null; }
+      return;
+    }
+
+    // Top N categories by total (within filtered months)
+    const rowsWithFiltered = rows.map(r => {
+      let sum = 0;
+      for (const idx of monthIndices) sum += (r.byIdx[idx] || 0);
+      return { ...r, filteredTotal: sum };
+    }).filter(r => r.filteredTotal > 0);
+    rowsWithFiltered.sort((a, b) => b.filteredTotal - a.filteredTotal);
+
+    const displayRows = topN > 0 ? rowsWithFiltered.slice(0, topN) : rowsWithFiltered;
+    if (!displayRows.length) {
+      if (paretoPcChartInstance) { paretoPcChartInstance.destroy(); paretoPcChartInstance = null; }
+      return;
+    }
+
+    // Build labels (month short labels)
+    const labels = monthIndices.map(i => `${months[i].short} ${months[i].year}`);
+
+    // Chart.js line chart color palette
+    const CHART_COLORS = [
+      '#ec4899', '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6',
+      '#06b6d4', '#ef4444', '#84cc16', '#f97316', '#a855f7',
+      '#14b8a6', '#e11d48',
+    ];
+
+    const datasets = displayRows.map((row, i) => {
+      const color = CHART_COLORS[i % CHART_COLORS.length];
+      const data = monthIndices.map(idx => row.byIdx[idx] || 0);
+      return {
+        label: row.name,
+        data,
+        borderColor: color,
+        backgroundColor: color + '20',
+        tension: 0.4,
+        cubicInterpolationMode: 'monotone',
+        borderWidth: 2.5,
+        pointRadius: 4,
+        pointHoverRadius: 7,
+        pointBackgroundColor: color,
+        pointBorderColor: '#0a0e1a',
+        pointBorderWidth: 2,
+        fill: false,
+      };
+    });
+
+    // Update chart title
+    const titleEl = document.getElementById('pareto-pc-chart-title');
+    const subEl = document.getElementById('pareto-pc-chart-sub');
+    const viewLabel = view === 'pc' ? 'Pareto PC' : 'Non PC Rakitan';
+    const yearLabel = yearFilter && yearFilter !== '__all__' ? ` (${yearFilter})` : '';
+    if (titleEl) titleEl.textContent = `📈 Trend Revenue Bulanan — ${viewLabel}${yearLabel}`;
+    if (subEl) subEl.textContent = `Top ${displayRows.length} kategori berdasarkan revenue per bulan`;
+
+    // Destroy previous instance
+    if (paretoPcChartInstance) { paretoPcChartInstance.destroy(); paretoPcChartInstance = null; }
+
+    paretoPcChartInstance = new Chart(canvas.getContext('2d'), {
+      type: 'line',
+      data: { labels, datasets },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { mode: 'nearest', axis: 'x', intersect: false },
+        plugins: {
+          legend: {
+            position: 'bottom',
+            labels: { boxWidth: 8, boxHeight: 8, padding: 14, usePointStyle: true, pointStyle: 'circle', font: { size: 11 } },
+          },
+          tooltip: {
+            callbacks: {
+              label: (c) => `${c.dataset.label}: ${formatRpParetoCompact(c.parsed.y)}`,
+              footer: (items) => {
+                const total = items.reduce((s, it) => s + it.parsed.y, 0);
+                return `Subtotal tampil: ${formatRpParetoCompact(total)}`;
+              }
+            }
+          }
+        },
+        scales: {
+          y: {
+            ticks: { callback: (v) => {
+              if (v >= 1e9) return (v / 1e9).toFixed(1) + 'M';
+              if (v >= 1e6) return (v / 1e6).toFixed(0) + 'Jt';
+              return v.toLocaleString('id-ID');
+            }},
+            grid: { color: 'rgba(45,52,84,0.35)', drawBorder: false }
+          },
+          x: { grid: { display: false }, ticks: { font: { weight: 500 } } }
+        }
+      }
+    });
   }
 
   /**
@@ -2264,6 +2445,40 @@
     const abs = Math.abs(n);
     const formatted = Math.round(abs).toLocaleString('id-ID');
     return (isNeg ? '-' : '') + 'Rp ' + formatted;
+  }
+
+  // ============================================================
+  // PARETO PC — Filter controls (view toggle, year, topN)
+  // ============================================================
+  document.addEventListener('click', (e) => {
+    const btn = e.target.closest('.pareto-pc-view-btn');
+    if (!btn) return;
+    const view = btn.dataset.view;
+    if (view === state.paretoPcFilters.view) return;
+    state.paretoPcFilters.view = view;
+    document.querySelectorAll('.pareto-pc-view-btn').forEach(b => {
+      b.classList.toggle('active', b.dataset.view === view);
+    });
+    // Re-render chart only (tables show both sides always)
+    if (state.paretoPcTrend) {
+      renderParetoPCLineChart(state.paretoPcTrend);
+    }
+  });
+
+  const paretoPcYearSel = document.getElementById('pareto-pc-year-filter');
+  if (paretoPcYearSel) {
+    paretoPcYearSel.addEventListener('change', () => {
+      state.paretoPcFilters.year = paretoPcYearSel.value;
+      if (state.paretoPcTrend) renderParetoPCLineChart(state.paretoPcTrend);
+    });
+  }
+
+  const paretoPcTopNSel = document.getElementById('pareto-pc-topn-filter');
+  if (paretoPcTopNSel) {
+    paretoPcTopNSel.addEventListener('change', () => {
+      state.paretoPcFilters.topN = parseInt(paretoPcTopNSel.value, 10) || 0;
+      if (state.paretoPcTrend) renderParetoPCLineChart(state.paretoPcTrend);
+    });
   }
 
   // ============================================================

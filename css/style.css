@@ -1763,3 +1763,53 @@ tr.pareto-pc-negative td {
   .pareto-pc-trend-table { font-size: 0.72rem; }
   .pareto-pc-mom { font-size: 0.6rem; }
 }
+
+/* ============================================================
+   PARETO PC TAB — filter bar & line chart
+   ============================================================ */
+.pareto-pc-filter-bar {
+  padding: 0.75rem 1.25rem;
+}
+.pareto-pc-view-btn {
+  padding: 0.35rem 0.85rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  border: none;
+}
+.pareto-pc-view-btn.active {
+  background: var(--accent-primary, #ec4899);
+  color: #fff;
+}
+.pareto-pc-view-btn:hover:not(.active) {
+  background: rgba(236, 72, 153, 0.1);
+  color: var(--text-main);
+}
+.pareto-pc-select {
+  background: var(--card-bg, #0f1225);
+  border: 1px solid var(--border-subtle, #2d3454);
+  border-radius: 0.375rem;
+  padding: 0.3rem 0.5rem;
+  font-size: 0.78rem;
+  color: var(--text-main);
+  cursor: pointer;
+}
+.pareto-pc-select:focus {
+  outline: none;
+  border-color: var(--accent-primary, #ec4899);
+}
+#card-pareto-pc-chart canvas {
+  width: 100% !important;
+}
+.pareto-pc-error {
+  padding: 1rem;
+  border-radius: 0.5rem;
+  background: rgba(244, 63, 94, 0.08);
+  border: 1px solid rgba(244, 63, 94, 0.3);
+  color: #f43f5e;
+  font-size: 0.82rem;
+  margin: 0.5rem 0;
+}
