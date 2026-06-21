@@ -1724,3 +1724,42 @@ tr.pareto-pc-negative td {
   color: #ef4444 !important;
   font-weight: 600;
 }
+
+
+/* ============================================================
+   PARETO PC TAB — multi-month trend tables (MoM / YoY)
+   ============================================================ */
+.pareto-pc-trend-wrap {
+  /* Trend tables can get wide with many month columns; allow horizontal
+     scroll inside the card without breaking the layout on mobile. */
+  overflow-x: auto;
+}
+.pareto-pc-trend-table {
+  min-width: 720px;
+}
+.pareto-pc-trend-table th,
+.pareto-pc-trend-table td {
+  white-space: nowrap;
+}
+.pareto-pc-trend-table th .ms-head-main,
+.pareto-pc-trend-table th .ms-head-sub {
+  display: block;
+  line-height: 1.1;
+}
+.pareto-pc-trend-table th .ms-head-sub {
+  font-size: 0.62rem;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+.pareto-pc-mom {
+  font-size: 0.68rem;
+  line-height: 1.1;
+  margin-top: 2px;
+  font-weight: 600;
+}
+/* On very narrow screens the trend table becomes scrollable; shrink
+   font slightly so more data is visible per glance. */
+@media (max-width: 640px) {
+  .pareto-pc-trend-table { font-size: 0.72rem; }
+  .pareto-pc-mom { font-size: 0.6rem; }
+}
