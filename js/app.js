@@ -1820,6 +1820,8 @@
       if (yoyMonth) txt += ` · YoY vs ${yoyMonth.label}`;
       info.textContent = txt;
     }
+    // Recalculate sticky offset
+    updateParetoPCFilterStickyTop();
   }
 
   function populateParetoPCFilters(allMonths) {
@@ -1916,6 +1918,18 @@
     renderParetoPC();
   });
 
+  // Keep filter bar sticky below the main header group.
+  // Compute top offset dynamically so it works at all screen sizes.
+  function updateParetoPCFilterStickyTop() {
+    const stickyGroup = document.querySelector('.sticky-top-group');
+    const filterBar = document.getElementById('pareto-pc-filter-bar');
+    if (!stickyGroup || !filterBar) return;
+    const h = stickyGroup.getBoundingClientRect().height;
+    filterBar.style.top = h + 'px';
+  }
+  window.addEventListener('resize', updateParetoPCFilterStickyTop);
+  updateParetoPCFilterStickyTop();
+
   // ============================================================
   // PNG DOWNLOAD — capture card as image using html2canvas
   // ============================================================
@@ -1958,9 +1972,16 @@
   // ============================================================
   // Boot — fetch fresh on every page open
   // ============================================================
+  // Prefetch Pareto PC data in background during page load so it's ready
+  // instantly when the user clicks the tab (no loading delay).
+  function prefetchParetoPC() {
+    loadAndRenderParetoPC().catch(() => {});
+  }
+
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => loadAllSources(false));
+    document.addEventListener('DOMContentLoaded', () => { loadAllSources(false); prefetchParetoPC(); });
   } else {
     loadAllSources(false);
+    prefetchParetoPC();
   }
 })();
