@@ -1636,8 +1636,10 @@
   const PARETO_PC_CACHE_KEY = 'paretopc:pareto-pc-data:v1';
 
   async function loadAndRenderParetoPC() {
+    console.log('[ParetoPC] loadAndRenderParetoPC called');
     // If already loaded, just render
     if (state.paretoPcData) {
+      console.log('[ParetoPC] Using cached in-memory data');
       renderParetoPCTables(state.paretoPcData);
       return;
     }
@@ -1658,8 +1660,11 @@
 
     // Fetch fresh from Google Sheets
     try {
+      console.log('[ParetoPC] Fetching Pareto PC CSV from:', PARETO_PC_URL);
       const csvText = await PC.sheets.fetchCsv(PARETO_PC_URL);
+      console.log('[ParetoPC] CSV fetched, length:', csvText.length);
       const data = parseParetoPC(csvText);
+      console.log('[ParetoPC] Parsed:', data.leftTable.length, 'left rows,', data.rightTable.length, 'right rows');
       state.paretoPcData = data;
 
       // Cache it
@@ -1683,10 +1688,22 @@
    * Columns F-H: "Pareto PC" (category name, value, percentage)
    */
   function parseParetoPC(csvText) {
-    // Use XLSX to parse CSV
-    const wb = XLSX.read(csvText, { type: 'string', raw: true });
-    const ws = wb.Sheets[wb.SheetNames[0]];
-    const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+    // Simple CSV line parser (handles quoted fields with commas inside)
+    function parseCSVLine(line) {
+      const result = [];
+      let current = '';
+      let inQuotes = false;
+      for (let i = 0; i < line.length; i++) {
+        const ch = line[i];
+        if (ch === '"') { inQuotes = !inQuotes; }
+        else if (ch === ',' && !inQuotes) { result.push(current); current = ''; }
+        else { current += ch; }
+      }
+      result.push(current);
+      return result;
+    }
+    const lines = csvText.split(/\r?\n/).filter(l => l.trim());
+    const rows = lines.map(parseCSVLine);
 
     const leftTable = [];  // Pareto PC Non PC Rakitan (cols A-C)
     const rightTable = []; // Pareto PC (cols F-H)
