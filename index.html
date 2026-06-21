@@ -239,6 +239,49 @@
 
       <!-- Pareto PC Section (from separate spreadsheet) -->
       <div id="pareto-pc-section" class="hidden space-y-4">
+
+        <!-- Filter / Toggle bar for Pareto PC -->
+        <div id="pareto-pc-filters" class="chart-card pareto-pc-filter-bar">
+          <div class="flex flex-wrap items-center gap-3">
+            <!-- Toggle: Pareto PC vs Non PC Rakitan -->
+            <div class="inline-flex rounded-lg overflow-hidden border" style="border-color:var(--border-subtle);">
+              <button class="pareto-pc-view-btn active" data-view="pc">Pareto PC</button>
+              <button class="pareto-pc-view-btn" data-view="nonpc">Non PC Rakitan</button>
+            </div>
+            <!-- Year filter -->
+            <label class="flex items-center gap-1" style="font-size:0.8rem;color:var(--text-muted);">
+              Tahun:
+              <select id="pareto-pc-year-filter" class="pareto-pc-select">
+                <option value="__all__">Semua</option>
+              </select>
+            </label>
+            <!-- Top N selector -->
+            <label class="flex items-center gap-1" style="font-size:0.8rem;color:var(--text-muted);">
+              Top:
+              <select id="pareto-pc-topn-filter" class="pareto-pc-select">
+                <option value="5">5</option>
+                <option value="8" selected>8</option>
+                <option value="10">10</option>
+                <option value="0">All</option>
+              </select>
+            </label>
+          </div>
+        </div>
+
+        <!-- Line Chart: Monthly Revenue Trend for top categories -->
+        <div id="card-pareto-pc-chart" class="chart-card">
+          <div class="chart-header flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h3 class="chart-title" id="pareto-pc-chart-title">📈 Trend Revenue Bulanan — Pareto PC</h3>
+              <p class="chart-sub" id="pareto-pc-chart-sub">Top kategori berdasarkan revenue per bulan</p>
+            </div>
+            <button class="btn-png" title="Download sebagai PNG" data-target="card-pareto-pc-chart">⬇ PNG</button>
+          </div>
+          <div style="position:relative;height:340px;">
+            <canvas id="chart-pareto-pc-trend"></canvas>
+          </div>
+        </div>
+
         <div id="card-pareto-pc" class="chart-card">
           <div class="chart-header flex flex-wrap items-center justify-between gap-3">
             <div>
