@@ -34,33 +34,36 @@
   const CURRENT_YEAR = String(new Date().getFullYear());
 
   // ============================================================
-  // Pareto PC monthly summary spreadsheets (different format from SOURCES)
+  // Pareto PC consolidated workbook (one URL, one sheet per year).
   //
-  // Each entry is a separate published Google Sheet for one month.
-  // We use these to render the side-by-side Pareto snapshot (latest month)
-  // AND the multi-month MoM/YoY trend tables on the "Pareto PC" tab.
+  // The published workbook has a separate sheet (gid) per calendar year,
+  // each sheet carrying ALL months for that year as rows in this format:
   //
-  // To add a new month: append a new entry. Newest month should be LAST so
-  // the snapshot tables and the rightmost trend column always show "current".
-  // To add a new year (e.g. 2025/2024 for full YoY), append more entries.
+  //   Col A  Bulan ("Januari 2026", "Februari 2026", …)
+  //   Col B  Departemen (Pareto Non PC Rakitan side)
+  //   Col C  Omset
+  //   Col D  %
+  //   Col E  (blank separator)
+  //   Col F  Bulan
+  //   Col G  Departemen (Pareto PC side, includes PC Rakitan)
+  //   Col H  Omset
+  //   Col I  %
+  //
+  // Adding a new year = add an entry to PARETO_PC_YEAR_SOURCES.
+  // The snapshot tables on top of the tab will auto-pick the latest
+  // (year, month) combination; the trend table appends every month
+  // chronologically across all years and computes MoM/YoY automatically.
   // ============================================================
-  const PARETO_PC_MONTHLY_SOURCES = [
-    { year: 2026, month: 1,  label: 'Jan 2026', short: 'Jan',
-      url: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSjHBIPct8eZ3kiC9Sr-qQOuKauhXff3D5JdhfU38vyd5pIa8rLdHsVjFxPpq_C7V7HWZkuy-9jkxL7/pub?gid=346181905&single=true&output=csv' },
-    { year: 2026, month: 2,  label: 'Feb 2026', short: 'Feb',
-      url: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTVS0f0_SQfPbIWU2Ky9qzyZrTzfDeV8b8jAIx7eLvOPZcreAvPff4nQ1JAYpMzrHfDGOgT2TMuGpn0/pub?gid=1263990689&single=true&output=csv' },
-    { year: 2026, month: 3,  label: 'Mar 2026', short: 'Mar',
-      url: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTL506Uofz-FRKrWkVsaKqxE0EvNcoW_lcS1PHSUt_8Zr80HZ5dKAarMeHzfwXQ1gPACBok7w4asJU0/pub?gid=1941103665&single=true&output=csv' },
-    { year: 2026, month: 4,  label: 'Apr 2026', short: 'Apr',
-      url: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRA-UR94s-tHfMlg7s-OCu9Jzgz5O12D9awx31gyNucSOeT-nctYuYSTG_rjlfSuxXpirZZdEQqBXFY/pub?gid=2098120655&single=true&output=csv' },
-    { year: 2026, month: 5,  label: 'Mei 2026', short: 'Mei',
-      url: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ_L1TFDXuT6-AJ5-3OjC0wuPHhqvCcPAFLXVRqm33key6ACyo4cr1mti9k7NaItmDWtsOFVXCMfbK5/pub?gid=868450220&single=true&output=csv' },
-    { year: 2026, month: 6,  label: 'Jun 2026', short: 'Jun',
-      url: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQllik-eGD3bUs5sqm7rEDE8Yz5fa3nnESST1p71B57qHCJk9gAvON1XieQByLxSSKoaAo1VWbi0dDv/pub?gid=1203502755&single=true&output=csv' },
+  const PARETO_PC_BASE_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ8jW98gXTDyUaNGUu5YGd0FeYTDYuXGl0s-YP3vIzisoZUEdS8xwM0mmYzOuAdTv76T1VQcSQJIkYf/pub';
+  const PARETO_PC_YEAR_SOURCES = [
+    { year: 2024, gid: '0' },
+    { year: 2025, gid: '778752786' },
+    { year: 2026, gid: '1053765421' },
   ];
 
-  // Snapshot URL = the latest month (used by the existing 80/20 tables on top).
-  const PARETO_PC_URL = PARETO_PC_MONTHLY_SOURCES[PARETO_PC_MONTHLY_SOURCES.length - 1].url;
+  function paretoPcSheetUrl(gid) {
+    return `${PARETO_PC_BASE_URL}?gid=${encodeURIComponent(gid)}&single=true&output=tsv`;
+  }
 
   // The 4 main department tabs + Pareto PC special tab
   const DEPT_TABS = ['Printer', 'Projector', 'Monitor', 'PC Branded', 'Pareto PC'];
@@ -288,9 +291,14 @@
       );
       if (!ok) return;
       const cleared = PC.sheets.clearAllCache();
-      // Also clear Pareto PC caches (snapshot + monthly trend)
+      // Also clear Pareto PC combined cache (snapshot + monthly trend in one key)
       try { localStorage.removeItem(PARETO_PC_CACHE_KEY); } catch (e) {}
-      try { localStorage.removeItem(PARETO_PC_TREND_CACHE_KEY); } catch (e) {}
+      // Belt-and-suspenders: also clear older versioned keys in case the user
+      // upgraded across versions and old payloads are still sitting around.
+      try {
+        ['paretopc:pareto-pc-data:v1', 'paretopc:pareto-pc-data:v2',
+         'paretopc:pareto-pc-trend:v1'].forEach(k => localStorage.removeItem(k));
+      } catch (e) {}
       state.paretoPcData = null;
       state.paretoPcTrend = null;
       U.toast(`${cleared} entri cache dihapus. Memuat ulang…`, 'info');
@@ -1660,132 +1668,256 @@
   }
 
   // ============================================================
-  // PARETO PC — Fetch & render data from separate summary spreadsheet
+  // PARETO PC — Fetch & render from the consolidated year-per-sheet workbook
   // ============================================================
-  // Cache keys are versioned so we can invalidate stale localStorage when the
-  // parser logic changes. Bump the suffix when the parsed shape changes.
-  const PARETO_PC_CACHE_KEY = 'paretopc:pareto-pc-data:v2';
-  const PARETO_PC_TREND_CACHE_KEY = 'paretopc:pareto-pc-trend:v1';
+  // Single combined cache: snapshot (latest month) + multi-month trend are
+  // built from the same fetched data, so they live under one key. Bump v3
+  // when the persisted shape changes again.
+  const PARETO_PC_CACHE_KEY = 'paretopc:pareto-pc:v3';
+  const PARETO_PC_CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
+
+  // Indonesian month-name → (month index 1-12, short label) mapping.
+  const PARETO_PC_BULAN_MAP = {
+    'januari':1, 'februari':2, 'maret':3, 'april':4, 'mei':5, 'juni':6,
+    'juli':7, 'agustus':8, 'september':9, 'oktober':10, 'november':11, 'desember':12,
+  };
+  const PARETO_PC_SHORT_BULAN = ['','Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
+
+  /** Parse "Januari 2026" / "JUNI 2025" → { year, month, label, short } */
+  function parseBulanLabel(raw, fallbackYear) {
+    const s = String(raw || '').trim();
+    if (!s) return null;
+    const parts = s.split(/\s+/);
+    const monthKey = (parts[0] || '').toLowerCase();
+    const monthIdx = PARETO_PC_BULAN_MAP[monthKey];
+    if (!monthIdx) return null;
+    let year = fallbackYear;
+    if (parts[1] && /^\d{4}$/.test(parts[1])) year = parseInt(parts[1], 10);
+    const niceMonth = monthKey.charAt(0).toUpperCase() + monthKey.slice(1);
+    return {
+      year,
+      month: monthIdx,
+      label: `${niceMonth} ${year}`,
+      short: PARETO_PC_SHORT_BULAN[monthIdx],
+    };
+  }
+
+  /**
+   * Returns true when the cell text looks like a numeric amount (possibly
+   * Indonesian-formatted, possibly negative, possibly with a "Rp" prefix
+   * or "%" suffix). Used to skip pivot-table subheader rows like
+   *   "April 2026  Dept Tambahan  SUM of Total Harga  SUM of Total Harga"
+   * that share the Bulan column with real data rows.
+   */
+  function isNumericValueCell(s) {
+    if (s == null) return false;
+    const t = String(s).trim().replace(/[Rr][Pp]\.?\s*/g, '').replace(/%\s*$/, '');
+    if (!t) return false;
+    return /^-?[\d.,]+$/.test(t);
+  }
+
+  /**
+   * Parse one published year-sheet TSV. Returns:
+   *   { year, months: [{ key, year, month, label, short, leftRows, rightRows, leftGrand, rightGrand }] }
+   * Months are sorted by month index ascending. Rows for unrecognized
+   * Bulan labels (e.g. the 2025 legacy snapshot with no month column) are
+   * dropped silently — the caller logs how many rows that affected.
+   */
+  function parseParetoPCYearSheet(tsv, year) {
+    const months = new Map(); // key 'Januari 2026' -> month bucket
+    const lines = String(tsv || '').split(/\r?\n/);
+    let droppedRows = 0;
+
+    function ensureMonth(bulanRaw) {
+      const key = String(bulanRaw || '').trim();
+      if (!key) return null;
+      let bucket = months.get(key);
+      if (bucket) return bucket;
+      const parsed = parseBulanLabel(key, year);
+      if (!parsed) return null;
+      bucket = {
+        key,
+        year: parsed.year, month: parsed.month,
+        label: parsed.label, short: parsed.short,
+        leftRows: [], rightRows: [],
+        leftGrand: 0, rightGrand: 0,
+      };
+      months.set(key, bucket);
+      return bucket;
+    }
+
+    // Skip header row (line 0). Skip first 1 row even if blank.
+    for (let i = 1; i < lines.length; i++) {
+      const line = lines[i];
+      if (line == null) continue;
+      // TSV: Google Sheets pub-tsv doesn't quote tab-containing fields
+      // because cells can't contain tabs in the source. Plain split is safe.
+      const cols = line.split('\t');
+      if (cols.length < 4) continue;
+
+      // Left side: A=Bulan, B=Departemen, C=Omset, D=%
+      const lBulan = (cols[0] || '').trim();
+      const lName  = (cols[1] || '').trim();
+      const lVal   = (cols[2] || '').trim();
+      const lPct   = (cols[3] || '').trim();
+      if (lBulan && lName && isNumericValueCell(lVal)) {
+        const bucket = ensureMonth(lBulan);
+        if (bucket) {
+          const isGrand = /grand\s*total/i.test(lName);
+          const value   = parseIndonesianNumber(lVal);
+          if (isGrand) {
+            bucket.leftGrand += value;
+          } else {
+            bucket.leftRows.push({
+              name: lName, value, valueRaw: lVal,
+              pct: parseIndonesianPct(lPct), pctRaw: lPct,
+              isGrandTotal: false,
+            });
+          }
+        } else {
+          droppedRows++;
+        }
+      }
+
+      // Right side: F=Bulan(5), G=Departemen(6), H=Omset(7), I=%(8)
+      const rBulan = (cols[5] || '').trim();
+      const rName  = (cols[6] || '').trim();
+      const rVal   = (cols[7] || '').trim();
+      const rPct   = (cols[8] || '').trim();
+      if (rBulan && rName && isNumericValueCell(rVal)) {
+        const bucket = ensureMonth(rBulan);
+        if (bucket) {
+          const isGrand = /grand\s*total/i.test(rName);
+          const value   = parseIndonesianNumber(rVal);
+          if (isGrand) {
+            bucket.rightGrand += value;
+          } else {
+            bucket.rightRows.push({
+              name: rName, value, valueRaw: rVal,
+              pct: parseIndonesianPct(rPct), pctRaw: rPct,
+              isGrandTotal: false,
+            });
+          }
+        } else {
+          droppedRows++;
+        }
+      }
+    }
+
+    if (droppedRows > 0) {
+      console.warn(`[ParetoPC] Year ${year}: ${droppedRows} row(s) dropped — Bulan label not in expected "Januari 2026" form.`);
+    }
+
+    const monthsArr = [...months.values()].sort((a, b) => a.month - b.month);
+    return { year, months: monthsArr };
+  }
 
   async function loadAndRenderParetoPC() {
     console.log('[ParetoPC] loadAndRenderParetoPC called');
-    // Snapshot (latest month) and multi-month trend load in parallel; failures
-    // in one don't block the other.
-    loadAndRenderParetoPCSnapshot();
-    loadAndRenderParetoPCTrend();
-  }
 
-  async function loadAndRenderParetoPCSnapshot() {
-    // If already loaded, just render
-    if (state.paretoPcData) {
-      console.log('[ParetoPC] Using cached in-memory data');
+    // 1) In-memory cache
+    if (state.paretoPcData && state.paretoPcTrend) {
       renderParetoPCTables(state.paretoPcData);
+      renderParetoPCTrend(state.paretoPcTrend);
       return;
     }
 
-    // Try localStorage cache first
+    // 2) localStorage cache (combined snapshot+trend)
     try {
       const cached = localStorage.getItem(PARETO_PC_CACHE_KEY);
       if (cached) {
         const parsed = JSON.parse(cached);
-        // Cache for 1 hour
-        if (parsed.savedAt && (Date.now() - new Date(parsed.savedAt).getTime()) < 3600000) {
-          state.paretoPcData = parsed.data;
+        if (parsed.savedAt && (Date.now() - new Date(parsed.savedAt).getTime()) < PARETO_PC_CACHE_TTL_MS) {
+          state.paretoPcData  = parsed.data.snapshot;
+          state.paretoPcTrend = parsed.data.trend;
           renderParetoPCTables(state.paretoPcData);
+          renderParetoPCTrend(state.paretoPcTrend);
           return;
         }
       }
     } catch (e) {}
 
-    // Fetch fresh from Google Sheets
+    // 3) Fetch every year sheet in parallel. A failed/empty sheet does not
+    // block the others — we just log and skip it.
+    showParetoPCTrendLoading();
     try {
-      console.log('[ParetoPC] Fetching Pareto PC CSV from:', PARETO_PC_URL);
-      const csvText = await PC.sheets.fetchCsv(PARETO_PC_URL);
-      console.log('[ParetoPC] CSV fetched, length:', csvText.length);
-      const data = parseParetoPC(csvText);
-      console.log('[ParetoPC] Parsed:', data.leftTable.length, 'left rows,', data.rightTable.length, 'right rows');
-      state.paretoPcData = data;
+      const yearResults = await Promise.all(
+        PARETO_PC_YEAR_SOURCES.map(async (s) => {
+          try {
+            const tsv = await PC.sheets.fetchCsv(paretoPcSheetUrl(s.gid));
+            const parsed = parseParetoPCYearSheet(tsv, s.year);
+            console.log(`[ParetoPC] Year ${s.year}: ${parsed.months.length} month(s) parsed`);
+            return { source: s, parsed, ok: true };
+          } catch (err) {
+            console.warn('[ParetoPC] year fetch failed:', s.year, err);
+            return { source: s, parsed: { year: s.year, months: [] }, ok: false };
+          }
+        })
+      );
 
-      // Cache it
+      // Flatten chronologically across all years.
+      const allMonths = [];
+      for (const yr of yearResults) {
+        for (const m of yr.parsed.months) allMonths.push(m);
+      }
+      allMonths.sort((a, b) => (a.year - b.year) || (a.month - b.month));
+
+      // Snapshot tables = the latest available month.
+      const latest = allMonths.length ? allMonths[allMonths.length - 1] : null;
+      const snapshot = latest ? buildParetoPCSnapshot(latest) : { leftTable: [], rightTable: [] };
+
+      // Trend = every month chronologically.
+      const trend = buildParetoPCTrend(allMonths);
+
+      state.paretoPcData  = snapshot;
+      state.paretoPcTrend = trend;
+
       try {
         localStorage.setItem(PARETO_PC_CACHE_KEY, JSON.stringify({
-          data,
+          data: { snapshot, trend },
           savedAt: new Date().toISOString(),
         }));
       } catch (e) {}
 
-      renderParetoPCTables(data);
+      renderParetoPCTables(snapshot);
+      renderParetoPCTrend(trend);
     } catch (err) {
       console.error('[ParetoPC] Failed to load Pareto PC data:', err);
-      U.toast('Gagal memuat data Pareto PC: ' + err.message, 'error');
+      showParetoPCTrendError(err.message || String(err));
+      U.toast('Gagal memuat data Pareto PC: ' + (err.message || err), 'error');
     }
   }
 
   /**
-   * Parse the Pareto PC CSV which has two side-by-side tables:
-   * Columns A-C: "Pareto PC Non PC Rakitan" (dept name, value, percentage)
-   * Columns F-H: "Pareto PC" (category name, value, percentage)
+   * Build the snapshot tables (top of the Pareto PC tab) from a single
+   * month bucket. Appends a synthetic Grand Total row matching the shape
+   * the existing renderParetoTable() expects.
    */
-  function parseParetoPC(csvText) {
-    // Simple CSV line parser (handles quoted fields with commas inside)
-    function parseCSVLine(line) {
-      const result = [];
-      let current = '';
-      let inQuotes = false;
-      for (let i = 0; i < line.length; i++) {
-        const ch = line[i];
-        if (ch === '"') { inQuotes = !inQuotes; }
-        else if (ch === ',' && !inQuotes) { result.push(current); current = ''; }
-        else { current += ch; }
+  function buildParetoPCSnapshot(month) {
+    const grandRight = month.rightGrand || month.rightRows.reduce((s, r) => s + (r.value || 0), 0);
+    const grandLeft  = month.leftGrand  || month.leftRows.reduce((s, r) => s + (r.value || 0), 0);
+    function withGrand(rows, grand) {
+      const out = rows.map(r => Object.assign({}, r));
+      // Recompute pct against grand so snapshot pct is internally consistent
+      // even if the source row's pct was rounded.
+      if (grand) {
+        for (const r of out) r.pct = (r.value / grand) * 100;
       }
-      result.push(current);
-      return result;
+      out.push({
+        name: 'Grand Total',
+        value: grand,
+        valueRaw: String(grand),
+        pct: 100,
+        pctRaw: '100,00%',
+        isGrandTotal: true,
+      });
+      return out;
     }
-    const lines = csvText.split(/\r?\n/).filter(l => l.trim());
-    const rows = lines.map(parseCSVLine);
-
-    const leftTable = [];  // Pareto PC Non PC Rakitan (cols A-C)
-    const rightTable = []; // Pareto PC (cols F-H)
-
-    // Skip header row (row 0), process data rows
-    for (let i = 1; i < rows.length; i++) {
-      const row = rows[i];
-      if (!row || !row.length) continue;
-
-      // Left table: columns A(0), B(1), C(2)
-      const leftName = String(row[0] || '').trim();
-      const leftValue = String(row[1] || '').trim();
-      const leftPct = String(row[2] || '').trim();
-
-      if (leftName) {
-        leftTable.push({
-          name: leftName,
-          value: parseIndonesianNumber(leftValue),
-          valueRaw: leftValue,
-          pct: parseIndonesianPct(leftPct),
-          pctRaw: leftPct,
-          isGrandTotal: /grand\s*total/i.test(leftName),
-        });
-      }
-
-      // Right table: columns F(5), G(6), H(7)
-      const rightName = String(row[5] || '').trim();
-      const rightValue = String(row[6] || '').trim();
-      const rightPct = String(row[7] || '').trim();
-
-      if (rightName) {
-        rightTable.push({
-          name: rightName,
-          value: parseIndonesianNumber(rightValue),
-          valueRaw: rightValue,
-          pct: parseIndonesianPct(rightPct),
-          pctRaw: rightPct,
-          isGrandTotal: /grand\s*total/i.test(rightName),
-        });
-      }
-    }
-
-    return { leftTable, rightTable };
+    return {
+      latestMonthLabel: month.label,
+      leftTable:  withGrand(month.leftRows,  grandLeft),
+      rightTable: withGrand(month.rightRows, grandRight),
+    };
   }
 
   /** Parse Indonesian-style number like "2.492.093.440" -> 2492093440 */
@@ -1821,6 +1953,13 @@
   function renderParetoPCTables(data) {
     renderParetoTable('table-pareto-pc', data.rightTable);
     renderParetoTable('table-pareto-nonpc', data.leftTable);
+    // Surface which calendar month the snapshot is built from so users
+    // never wonder whether they're looking at stale data.
+    const subRight = document.getElementById('pareto-pc-snapshot-sub');
+    const subLeft  = document.getElementById('pareto-pc-snapshot-nonpc-sub');
+    const tag = data.latestMonthLabel ? ` · <strong>${escapeHtml(data.latestMonthLabel)}</strong>` : '';
+    if (subRight) subRight.innerHTML = `Data revenue per kategori (termasuk PC Branded &amp; PC Rakitan)${tag}`;
+    if (subLeft)  subLeft.innerHTML  = `Data revenue per departemen (tanpa PC Rakitan)${tag}`;
   }
 
   function renderParetoTable(tableId, rows) {
@@ -1870,129 +2009,77 @@
   }
 
   // ============================================================
-  // PARETO PC — Multi-month Trend (MoM / YoY scaffolding)
+  // PARETO PC — Multi-month Trend (MoM / YoY)
   //
-  // Fetches every month listed in PARETO_PC_MONTHLY_SOURCES in parallel,
-  // parses each one with parseParetoPC, then assembles two trend tables:
-  //   - "Pareto PC"           (right table — col F-H of each monthly CSV)
-  //   - "Pareto PC Non PC..." (left table  — col A-C of each monthly CSV)
+  // Trend tables are built from the chronological list of months produced
+  // by loadAndRenderParetoPC() (which fans out across PARETO_PC_YEAR_SOURCES
+  // and flattens every year sheet into one ordered timeline).
   //
-  // Each row shows revenue per month + MoM % vs the previous month.
-  // The structure is year-aware so once the user adds 2024/2025 monthly
-  // sources the same render path will produce a YoY-comparable trend.
+  //   - "Pareto PC"           = right-table cells of each monthly row
+  //   - "Pareto PC Non PC..." = left-table cells of each monthly row
+  //
+  // Each cell shows revenue + MoM % vs the previous month. YoY is computed
+  // for the headline banner whenever the same calendar month appears in a
+  // previous year.
   // ============================================================
 
-  async function loadAndRenderParetoPCTrend() {
-    if (!PARETO_PC_MONTHLY_SOURCES || PARETO_PC_MONTHLY_SOURCES.length === 0) return;
-
-    // 1) In-memory cache
-    if (state.paretoPcTrend) {
-      renderParetoPCTrend(state.paretoPcTrend);
-      return;
-    }
-
-    // 2) localStorage cache (1 hour TTL)
-    try {
-      const cached = localStorage.getItem(PARETO_PC_TREND_CACHE_KEY);
-      if (cached) {
-        const parsed = JSON.parse(cached);
-        if (parsed.savedAt && (Date.now() - new Date(parsed.savedAt).getTime()) < 3600000) {
-          state.paretoPcTrend = parsed.data;
-          renderParetoPCTrend(state.paretoPcTrend);
-          return;
-        }
-      }
-    } catch (e) {}
-
-    // 3) Fetch all monthly CSVs in parallel
-    showParetoPCTrendLoading();
-    try {
-      const results = await Promise.all(
-        PARETO_PC_MONTHLY_SOURCES.map(async (m) => {
-          try {
-            const csv = await PC.sheets.fetchCsv(m.url);
-            const parsed = parseParetoPC(csv);
-            return { source: m, parsed, ok: true };
-          } catch (err) {
-            console.warn('[ParetoPC] monthly fetch failed:', m.label, err);
-            return { source: m, parsed: { leftTable: [], rightTable: [] }, ok: false, error: String(err) };
-          }
-        })
-      );
-
-      const trend = buildParetoPCTrend(results);
-      state.paretoPcTrend = trend;
-
-      try {
-        localStorage.setItem(PARETO_PC_TREND_CACHE_KEY, JSON.stringify({
-          data: trend,
-          savedAt: new Date().toISOString(),
-        }));
-      } catch (e) {}
-
-      renderParetoPCTrend(trend);
-    } catch (err) {
-      console.error('[ParetoPC] Failed to load trend data:', err);
-      showParetoPCTrendError(err.message || String(err));
-    }
-  }
-
   /**
-   * Combine N parsed monthly results into a trend structure.
+   * Combine an ordered list of month buckets into a trend structure.
    *
-   * Returns:
+   * Input:
+   *   months: [{ year, month, label, short, leftRows, rightRows, leftGrand, rightGrand }, ...]
+   *
+   * Output:
    *   {
-   *     months: [{ year, month, label, short, ok }],
+   *     months: [{ year, month, label, short }],
    *     rightRows: [{ name, byIdx: {0: value, 1: value, ...}, total }],
    *     leftRows:  [{ name, byIdx: {...}, total }],
-   *     rightGrandByIdx: {0: total, 1: total, ...},
-   *     leftGrandByIdx:  {0: total, 1: total, ...},
+   *     rightGrandByIdx: {0: total, ...},
+   *     leftGrandByIdx:  {0: total, ...},
    *   }
    *
-   * Categories are unioned across all months (missing month = 0).
-   * Rows are sorted by total revenue descending so the highest-impact
-   * categories are at the top of each trend table.
+   * Categories are unioned across all months (missing month = 0). Rows are
+   * sorted by total revenue desc so the highest-impact categories sit at
+   * the top of each trend table; voucher/negative rows sink to the bottom.
    */
-  function buildParetoPCTrend(results) {
-    const months = results.map(r => ({
-      year: r.source.year,
-      month: r.source.month,
-      label: r.source.label,
-      short: r.source.short,
-      ok: r.ok,
+  function buildParetoPCTrend(monthsList) {
+    const months = (monthsList || []).map(m => ({
+      year: m.year, month: m.month, label: m.label, short: m.short,
     }));
 
-    function buildSide(getRows) {
-      const map = new Map(); // name -> { name, byIdx, total }
-      const grand = {};      // monthIdx -> grand total
-      results.forEach((r, idx) => {
-        const rows = getRows(r.parsed) || [];
+    function buildSide(getRows, getGrand) {
+      const map = new Map();      // category name -> { name, byIdx, total }
+      const grand = {};            // monthIdx -> grand total for this side
+      (monthsList || []).forEach((m, idx) => {
+        const rows = getRows(m) || [];
         for (const row of rows) {
-          if (row.isGrandTotal) {
-            grand[idx] = (grand[idx] || 0) + (row.value || 0);
-            continue;
-          }
-          if (!row.name) continue;
-          const key = row.name.trim();
+          if (row.isGrandTotal) continue; // grand handled separately
+          const key = String(row.name || '').trim();
           if (!key) continue;
           let bucket = map.get(key);
-          if (!bucket) {
-            bucket = { name: key, byIdx: {}, total: 0 };
-            map.set(key, bucket);
-          }
+          if (!bucket) { bucket = { name: key, byIdx: {}, total: 0 }; map.set(key, bucket); }
           const v = Number(row.value) || 0;
           bucket.byIdx[idx] = (bucket.byIdx[idx] || 0) + v;
           bucket.total += v;
         }
+        const g = Number(getGrand(m)) || 0;
+        if (g) {
+          grand[idx] = g;
+        } else {
+          // Fallback: if the source didn't carry a Grand Total row, sum the
+          // visible category rows so MoM % at the footer is still correct.
+          let sum = 0;
+          for (const row of rows) if (!row.isGrandTotal) sum += Number(row.value) || 0;
+          grand[idx] = sum;
+        }
       });
       const arr = [...map.values()];
-      // Sort by total desc; voucher / negative rows naturally sink to bottom.
       arr.sort((a, b) => b.total - a.total);
       return { rows: arr, grand };
     }
 
-    const right = buildSide(p => p.rightTable);
-    const left  = buildSide(p => p.leftTable);
+    const right = buildSide(m => m.rightRows, m => m.rightGrand);
+    const left  = buildSide(m => m.leftRows,  m => m.leftGrand);
 
     return {
       months,
@@ -2030,7 +2117,7 @@
     renderParetoPCTrendBanner(trend);
   }
 
-  /** Top-of-card banner: Latest month total + MoM headline. */
+  /** Top-of-card banner: latest month total + MoM + YoY headline. */
   function renderParetoPCTrendBanner(trend) {
     const banner = document.getElementById('pareto-pc-trend-banner');
     if (!banner) return;
@@ -2039,21 +2126,35 @@
     if (lastIdx < 0) { banner.innerHTML = ''; return; }
 
     const last = months[lastIdx];
-    const prev = lastIdx > 0 ? months[lastIdx - 1] : null;
+    const prevIdx = lastIdx > 0 ? lastIdx - 1 : -1;
+    const prev = prevIdx >= 0 ? months[prevIdx] : null;
     const lastTotal = trend.rightGrandByIdx[lastIdx] || 0;
-    const prevTotal = prev ? (trend.rightGrandByIdx[lastIdx - 1] || 0) : 0;
+    const prevTotal = prev ? (trend.rightGrandByIdx[prevIdx] || 0) : 0;
 
-    let momHtml = '<span class="ms-empty">—</span>';
-    if (prev && prevTotal) {
-      const pct = ((lastTotal - prevTotal) / prevTotal) * 100;
+    // YoY: find the same calendar month in any earlier year.
+    let yoyIdx = -1;
+    for (let i = lastIdx - 1; i >= 0; i--) {
+      if (months[i].month === last.month && months[i].year < last.year) { yoyIdx = i; break; }
+    }
+    const yoy = yoyIdx >= 0 ? months[yoyIdx] : null;
+    const yoyTotal = yoy ? (trend.rightGrandByIdx[yoyIdx] || 0) : 0;
+
+    function pctSpan(curr, base, baseLabel) {
+      if (!base) return `<span class="ms-empty">— vs ${escapeHtml(baseLabel)}</span>`;
+      const pct = ((curr - base) / base) * 100;
       const arrow = pct >= 0 ? '▲' : '▼';
       const cls   = pct >= 0 ? 'ms-up' : 'ms-down';
-      momHtml = `<span class="${cls}">${arrow} ${Math.abs(pct).toFixed(2)}%</span> <span style="color:var(--text-muted)">vs ${escapeHtml(prev.label)}</span>`;
+      return `<span class="${cls}">${arrow} ${Math.abs(pct).toFixed(2)}%</span> <span style="color:var(--text-muted)">vs ${escapeHtml(baseLabel)}</span>`;
     }
 
+    const momHtml = prev ? pctSpan(lastTotal, prevTotal, prev.label) : '<span class="ms-empty">— (bulan pertama)</span>';
+    const yoyHtml = yoy  ? pctSpan(lastTotal, yoyTotal,  yoy.label)  : '<span class="ms-empty">— belum ada data tahun sebelumnya</span>';
+
     banner.innerHTML =
-      `<span>📈 Total <strong>${escapeHtml(last.label)}</strong>: <strong>${formatRpPareto(lastTotal)}</strong> · MoM ${momHtml}` +
-      ` · ${months.length} bulan dimuat</span>`;
+      `<span>📈 Total <strong>${escapeHtml(last.label)}</strong>: <strong>${formatRpPareto(lastTotal)}</strong></span>` +
+      ` &nbsp;·&nbsp; <span>MoM ${momHtml}</span>` +
+      ` &nbsp;·&nbsp; <span>YoY ${yoyHtml}</span>` +
+      ` &nbsp;·&nbsp; <span style="color:var(--text-muted)">${months.length} bulan dimuat</span>`;
   }
 
   /**
