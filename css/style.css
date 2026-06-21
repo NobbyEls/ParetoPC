@@ -1727,39 +1727,31 @@ tr.pareto-pc-negative td {
 
 
 /* ============================================================
-   PARETO PC TAB — multi-month trend tables (MoM / YoY)
+   PARETO PC TAB — sticky filter bar + inline table styling
    ============================================================ */
-.pareto-pc-trend-wrap {
-  /* Trend tables can get wide with many month columns; allow horizontal
-     scroll inside the card without breaking the layout on mobile. */
-  overflow-x: auto;
+.pareto-pc-filter-sticky {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  backdrop-filter: blur(12px);
+  background: rgba(10, 14, 26, 0.85);
+  border-bottom: 1px solid var(--border-subtle);
 }
-.pareto-pc-trend-table {
-  min-width: 720px;
+html:not(.dark) .pareto-pc-filter-sticky {
+  background: rgba(255,255,255,0.9);
 }
-.pareto-pc-trend-table th,
-.pareto-pc-trend-table td {
-  white-space: nowrap;
-}
-.pareto-pc-trend-table th .ms-head-main,
-.pareto-pc-trend-table th .ms-head-sub {
-  display: block;
-  line-height: 1.1;
-}
-.pareto-pc-trend-table th .ms-head-sub {
-  font-size: 0.62rem;
+.pareto-pc-select {
+  padding: 4px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--border-subtle);
+  background: var(--card-bg);
+  color: var(--text-primary);
+  font-size: 0.82rem;
   font-weight: 500;
-  color: var(--text-muted);
+  cursor: pointer;
 }
-.pareto-pc-mom {
-  font-size: 0.68rem;
-  line-height: 1.1;
-  margin-top: 2px;
-  font-weight: 600;
-}
-/* On very narrow screens the trend table becomes scrollable; shrink
-   font slightly so more data is visible per glance. */
-@media (max-width: 640px) {
-  .pareto-pc-trend-table { font-size: 0.72rem; }
-  .pareto-pc-mom { font-size: 0.6rem; }
+.pareto-pc-select:focus {
+  outline: none;
+  border-color: #6366f1;
+  box-shadow: 0 0 0 2px rgba(99,102,241,0.25);
 }

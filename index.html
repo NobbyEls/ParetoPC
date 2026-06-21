@@ -239,6 +239,26 @@
 
       <!-- Pareto PC Section (from separate spreadsheet) -->
       <div id="pareto-pc-section" class="hidden space-y-4">
+
+        <!-- Sticky filter: Tahun & Bulan -->
+        <div id="pareto-pc-filter-bar" class="chart-card pareto-pc-filter-sticky">
+          <div class="flex flex-wrap items-center gap-3">
+            <label class="flex items-center gap-1" style="font-size:0.82rem;color:var(--text-muted);">
+              Tahun:
+              <select id="pareto-pc-filter-year" class="pareto-pc-select">
+                <option value="2026">2026</option>
+              </select>
+            </label>
+            <label class="flex items-center gap-1" style="font-size:0.82rem;color:var(--text-muted);">
+              Bulan:
+              <select id="pareto-pc-filter-month" class="pareto-pc-select">
+                <option value="6">Juni</option>
+              </select>
+            </label>
+            <span id="pareto-pc-filter-info" class="text-xs" style="color:var(--text-muted);margin-left:auto;"></span>
+          </div>
+        </div>
+
         <div id="card-pareto-pc" class="chart-card">
           <div class="chart-header flex flex-wrap items-center justify-between gap-3">
             <div>
@@ -261,34 +281,6 @@
           </div>
           <div class="overflow-x-auto">
             <table id="table-pareto-nonpc" class="ms-table"></table>
-          </div>
-        </div>
-
-        <!-- Multi-month TREND tables (MoM / YoY) -->
-        <div id="card-pareto-pc-trend" class="chart-card">
-          <div class="chart-header flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <h3 class="chart-title">📈 Trend Pareto PC — Per Bulan</h3>
-              <p class="chart-sub">Revenue per kategori per bulan dengan MoM % (bulan vs bulan sebelumnya).</p>
-            </div>
-            <button class="btn-png" title="Download sebagai PNG" data-target="card-pareto-pc-trend">⬇ PNG</button>
-          </div>
-          <div id="pareto-pc-trend-banner" class="ms-period-banner"></div>
-          <div class="ms-table-wrap pareto-pc-trend-wrap">
-            <table id="table-pareto-pc-trend" class="ms-table pareto-pc-trend-table"></table>
-          </div>
-        </div>
-
-        <div id="card-pareto-nonpc-trend" class="chart-card">
-          <div class="chart-header flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <h3 class="chart-title">📈 Trend Pareto Non PC Rakitan — Per Bulan</h3>
-              <p class="chart-sub">Revenue per departemen per bulan dengan MoM %. Tambah sumber tahun lain di <code>PARETO_PC_MONTHLY_SOURCES</code> untuk YoY penuh.</p>
-            </div>
-            <button class="btn-png" title="Download sebagai PNG" data-target="card-pareto-nonpc-trend">⬇ PNG</button>
-          </div>
-          <div class="ms-table-wrap pareto-pc-trend-wrap">
-            <table id="table-pareto-nonpc-trend" class="ms-table pareto-pc-trend-table"></table>
           </div>
         </div>
       </div>
