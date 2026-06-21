@@ -35,7 +35,7 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.6/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 
-  <link rel="stylesheet" href="css/style.css?v=48" />
+  <link rel="stylesheet" href="css/style.css?v=49" />
 </head>
 <body class="bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 font-sans antialiased min-h-screen">
 
@@ -237,6 +237,34 @@
         </div>
       </div>
 
+      <!-- Pareto PC Section (from separate spreadsheet) -->
+      <div id="pareto-pc-section" class="hidden space-y-4">
+        <div id="card-pareto-pc" class="chart-card">
+          <div class="chart-header flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h3 class="chart-title">📊 Pareto PC</h3>
+              <p class="chart-sub">Data revenue per kategori (termasuk PC Branded & PC Rakitan)</p>
+            </div>
+            <button class="btn-png" title="Download sebagai PNG" data-target="card-pareto-pc">⬇ PNG</button>
+          </div>
+          <div class="overflow-x-auto">
+            <table id="table-pareto-pc" class="ms-table"></table>
+          </div>
+        </div>
+        <div id="card-pareto-nonpc" class="chart-card">
+          <div class="chart-header flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h3 class="chart-title">📊 Pareto PC Non PC Rakitan</h3>
+              <p class="chart-sub">Data revenue per departemen (tanpa PC Rakitan)</p>
+            </div>
+            <button class="btn-png" title="Download sebagai PNG" data-target="card-pareto-nonpc">⬇ PNG</button>
+          </div>
+          <div class="overflow-x-auto">
+            <table id="table-pareto-nonpc" class="ms-table"></table>
+          </div>
+        </div>
+      </div>
+
       <!-- Marketshare per Cabang — Detail Bulanan (table) -->
       <div id="marketshare-kota-card" class="chart-card hidden">
         <div class="chart-header flex flex-wrap items-center justify-between gap-3">
@@ -386,11 +414,11 @@
     </footer>
   </main>
 
-  <script src="js/utils.js?v=48"></script>
-  <script src="js/parser.js?v=48"></script>
-  <script src="js/sheets.js?v=48"></script>
-  <script src="js/analytics.js?v=48"></script>
-  <script src="js/charts.js?v=48"></script>
-  <script src="js/app.js?v=48"></script>
+  <script src="js/utils.js?v=49"></script>
+  <script src="js/parser.js?v=49"></script>
+  <script src="js/sheets.js?v=49"></script>
+  <script src="js/analytics.js?v=49"></script>
+  <script src="js/charts.js?v=49"></script>
+  <script src="js/app.js?v=49"></script>
 </body>
 </html>

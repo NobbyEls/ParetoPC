@@ -33,8 +33,11 @@
   // when the user clicks "Clear Cache".
   const CURRENT_YEAR = String(new Date().getFullYear());
 
-  // The 4 main department tabs - shown in this exact order
-  const DEPT_TABS = ['Printer', 'Projector', 'Monitor', 'PC Branded'];
+  // Pareto PC separate data source (summary/pivot table, different format from SOURCES)
+  const PARETO_PC_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQllik-eGD3bUs5sqm7rEDE8Yz5fa3nnESST1p71B57qHCJk9gAvON1XieQByLxSSKoaAo1VWbi0dDv/pub?gid=1203502755&single=true&output=csv';
+
+  // The 4 main department tabs + Pareto PC special tab
+  const DEPT_TABS = ['Printer', 'Projector', 'Monitor', 'PC Branded', 'Pareto PC'];
 
   // Slugify dept name → CSS class (e.g. "PC Branded" → "pcbranded")
   function deptSlug(d) {
@@ -49,6 +52,7 @@
     sources: [],   // [{ label, url, count, fetchedAt }]
     fetchedAt: null,
     chartType: 'bar',  // 'bar' or 'line' for stacked chart
+    paretoPcData: null, // Parsed Pareto PC tables (from separate spreadsheet)
     filters: {
       dept: 'Printer',  // Default tab on first load
       kota: '__all__',
@@ -257,6 +261,9 @@
       );
       if (!ok) return;
       const cleared = PC.sheets.clearAllCache();
+      // Also clear Pareto PC cache
+      try { localStorage.removeItem(PARETO_PC_CACHE_KEY); } catch (e) {}
+      state.paretoPcData = null;
       U.toast(`${cleared} entri cache dihapus. Memuat ulang…`, 'info');
       await loadAllSources(false, { ignoreCache: true });
     });
@@ -449,19 +456,31 @@
   function renderDeptTabs() {
     const wrap = document.getElementById('dept-tabs');
     if (!wrap) return;
-    // Show ONLY the 4 declared depts that have data
+    // Show the 4 data-driven depts that have records + the special Pareto PC tab
     const presentDepts = new Set(state.records.map(r => r.dept).filter(Boolean));
-    const tabs = DEPT_TABS.filter(d => presentDepts.has(d));
+    const tabs = DEPT_TABS.filter(d => d === 'Pareto PC' || presentDepts.has(d));
 
-    // If active dept has no data, fallback to first available
-    if (!presentDepts.has(state.filters.dept) && tabs.length) {
+    // If active dept has no data and is not Pareto PC, fallback to first available
+    if (state.filters.dept !== 'Pareto PC' && !presentDepts.has(state.filters.dept) && tabs.length) {
       state.filters.dept = tabs[0];
     }
 
     wrap.innerHTML = tabs.map(d => {
+      const isActive = state.filters.dept === d;
+      if (d === 'Pareto PC') {
+        // Special tab - no record-based stats
+        return `
+          <button class="dept-tab dept-paretopc ${isActive ? 'active' : ''}" data-key="${escapeAttr(d)}">
+            <span class="dept-tab-icon">📊</span>
+            <span class="dept-tab-text">
+              <span class="dept-tab-name">${escapeHtml(d)}</span>
+              <span class="dept-tab-stat">Summary Report</span>
+            </span>
+          </button>
+        `;
+      }
       const recs = state.records.filter(r => r.dept === d);
       const total = U.sumBy(recs, r => r.total);
-      const isActive = state.filters.dept === d;
       return `
         <button class="dept-tab dept-${deptSlug(d)} ${isActive ? 'active' : ''}" data-key="${escapeAttr(d)}">
           <span class="dept-tab-icon">${U.deptIcon(d)}</span>
@@ -600,8 +619,40 @@
   }
 
   function render() {
-    const filtered = A.filterRecords(state.records, state.filters);
     const dept = state.filters.dept;
+
+    // Special handling for Pareto PC tab
+    const paretoPcSection = document.getElementById('pareto-pc-section');
+    const normalCharts = ['yoy-card', 'marketshare-tipepc-card', 'marketshare-card', 'marketshare-kota-card',
+      'card-dimensi', 'dept3d-card', 'card-trend', 'card-mix', 'card-brand', 'card-product',
+      'card-kota', 'card-sales', 'card-pareto'];
+
+    if (dept === 'Pareto PC') {
+      // Hide all normal chart cards
+      normalCharts.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.classList.add('hidden');
+      });
+      // Also hide the grid containers (they contain card-trend, card-mix, etc.)
+      document.querySelectorAll('#dashboard > .grid').forEach(el => el.classList.add('hidden'));
+      // Hide filter card (filters don't apply to Pareto PC)
+      const filterCard = document.querySelector('.filter-card');
+      if (filterCard) filterCard.classList.add('hidden');
+      // Show Pareto PC section
+      if (paretoPcSection) paretoPcSection.classList.remove('hidden');
+      // Load and render Pareto PC data
+      loadAndRenderParetoPC();
+      return;
+    }
+
+    // Normal dept selected - hide Pareto PC section, show grid containers
+    if (paretoPcSection) paretoPcSection.classList.add('hidden');
+    document.querySelectorAll('#dashboard > .grid').forEach(el => el.classList.remove('hidden'));
+    // Show filter card
+    const filterCard = document.querySelector('.filter-card');
+    if (filterCard) filterCard.classList.remove('hidden');
+
+    const filtered = A.filterRecords(state.records, state.filters);
     const deptLabel = dept || 'Semua';
 
     // Update chart titles to reflect active dept — all now QTY-based
@@ -1577,6 +1628,198 @@
     </tr></tfoot>`;
 
     table.innerHTML = html;
+  }
+
+  // ============================================================
+  // PARETO PC — Fetch & render data from separate summary spreadsheet
+  // ============================================================
+  const PARETO_PC_CACHE_KEY = 'paretopc:pareto-pc-data:v1';
+
+  async function loadAndRenderParetoPC() {
+    // If already loaded, just render
+    if (state.paretoPcData) {
+      renderParetoPCTables(state.paretoPcData);
+      return;
+    }
+
+    // Try localStorage cache first
+    try {
+      const cached = localStorage.getItem(PARETO_PC_CACHE_KEY);
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        // Cache for 1 hour
+        if (parsed.savedAt && (Date.now() - new Date(parsed.savedAt).getTime()) < 3600000) {
+          state.paretoPcData = parsed.data;
+          renderParetoPCTables(state.paretoPcData);
+          return;
+        }
+      }
+    } catch (e) {}
+
+    // Fetch fresh from Google Sheets
+    try {
+      const csvText = await PC.sheets.fetchCsv(PARETO_PC_URL);
+      const data = parseParetoPC(csvText);
+      state.paretoPcData = data;
+
+      // Cache it
+      try {
+        localStorage.setItem(PARETO_PC_CACHE_KEY, JSON.stringify({
+          data,
+          savedAt: new Date().toISOString(),
+        }));
+      } catch (e) {}
+
+      renderParetoPCTables(data);
+    } catch (err) {
+      console.error('[ParetoPC] Failed to load Pareto PC data:', err);
+      U.toast('Gagal memuat data Pareto PC: ' + err.message, 'error');
+    }
+  }
+
+  /**
+   * Parse the Pareto PC CSV which has two side-by-side tables:
+   * Columns A-C: "Pareto PC Non PC Rakitan" (dept name, value, percentage)
+   * Columns F-H: "Pareto PC" (category name, value, percentage)
+   */
+  function parseParetoPC(csvText) {
+    // Use XLSX to parse CSV
+    const wb = XLSX.read(csvText, { type: 'string', raw: true });
+    const ws = wb.Sheets[wb.SheetNames[0]];
+    const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+
+    const leftTable = [];  // Pareto PC Non PC Rakitan (cols A-C)
+    const rightTable = []; // Pareto PC (cols F-H)
+
+    // Skip header row (row 0), process data rows
+    for (let i = 1; i < rows.length; i++) {
+      const row = rows[i];
+      if (!row || !row.length) continue;
+
+      // Left table: columns A(0), B(1), C(2)
+      const leftName = String(row[0] || '').trim();
+      const leftValue = String(row[1] || '').trim();
+      const leftPct = String(row[2] || '').trim();
+
+      if (leftName) {
+        leftTable.push({
+          name: leftName,
+          value: parseIndonesianNumber(leftValue),
+          valueRaw: leftValue,
+          pct: parseIndonesianPct(leftPct),
+          pctRaw: leftPct,
+          isGrandTotal: /grand\s*total/i.test(leftName),
+        });
+      }
+
+      // Right table: columns F(5), G(6), H(7)
+      const rightName = String(row[5] || '').trim();
+      const rightValue = String(row[6] || '').trim();
+      const rightPct = String(row[7] || '').trim();
+
+      if (rightName) {
+        rightTable.push({
+          name: rightName,
+          value: parseIndonesianNumber(rightValue),
+          valueRaw: rightValue,
+          pct: parseIndonesianPct(rightPct),
+          pctRaw: rightPct,
+          isGrandTotal: /grand\s*total/i.test(rightName),
+        });
+      }
+    }
+
+    return { leftTable, rightTable };
+  }
+
+  /** Parse Indonesian-style number like "2.492.093.440" -> 2492093440 */
+  function parseIndonesianNumber(s) {
+    if (!s) return 0;
+    let str = String(s).trim();
+    // Remove any currency prefix
+    str = str.replace(/[Rr][Pp]\.?\s*/g, '');
+    // Check if it uses Indonesian format (dots as thousand sep, comma as decimal)
+    if (str.includes(',') || (str.match(/\./g) || []).length > 1) {
+      // Indonesian: remove dots (thousand sep), replace comma with dot (decimal)
+      str = str.replace(/\./g, '').replace(',', '.');
+    } else if ((str.match(/\./g) || []).length === 1) {
+      const afterDot = str.split('.')[1] || '';
+      if (afterDot.length === 3) {
+        // Single dot with 3 digits after = thousand separator
+        str = str.replace('.', '');
+      }
+    }
+    const n = parseFloat(str);
+    return isNaN(n) ? 0 : n;
+  }
+
+  /** Parse Indonesian percentage like "18,50%" -> 18.50 */
+  function parseIndonesianPct(s) {
+    if (!s) return 0;
+    let str = String(s).trim().replace('%', '');
+    str = str.replace(',', '.');
+    const n = parseFloat(str);
+    return isNaN(n) ? 0 : n;
+  }
+
+  function renderParetoPCTables(data) {
+    renderParetoTable('table-pareto-pc', data.rightTable);
+    renderParetoTable('table-pareto-nonpc', data.leftTable);
+  }
+
+  function renderParetoTable(tableId, rows) {
+    const table = document.getElementById(tableId);
+    if (!table) return;
+
+    if (!rows || !rows.length) {
+      table.innerHTML = '<tr><td class="text-center py-4" style="color:var(--text-muted)">Tidak ada data</td></tr>';
+      return;
+    }
+
+    let html = `<thead><tr>
+      <th class="ms-head-bulan" style="text-align:left">No</th>
+      <th class="ms-head-bulan" style="text-align:left">Kategori / Dept</th>
+      <th class="ms-head-grand" style="text-align:right">Total Harga (Rp)</th>
+      <th class="ms-head-grand" style="text-align:right">Persentase</th>
+    </tr></thead><tbody>`;
+
+    let no = 1;
+    for (const row of rows) {
+      if (row.isGrandTotal) continue; // render in tfoot
+      const isNegative = row.value < 0;
+      const isVoucher = /voucher/i.test(row.name);
+      const rowClass = (isNegative || isVoucher) ? ' class="pareto-pc-negative"' : '';
+      html += `<tr${rowClass}>
+        <td class="ms-bulan-cell">${no}</td>
+        <td class="ms-bulan-cell">${escapeHtml(row.name)}</td>
+        <td class="ms-qty-cell" style="text-align:right">${formatRpPareto(row.value)}</td>
+        <td class="ms-share-cell" style="text-align:right">${row.pct.toFixed(2)}%</td>
+      </tr>`;
+      no++;
+    }
+    html += `</tbody>`;
+
+    // Grand Total row
+    const grandRow = rows.find(r => r.isGrandTotal);
+    if (grandRow) {
+      html += `<tfoot><tr class="ms-grand-row">
+        <td class="ms-bulan-cell"></td>
+        <td class="ms-bulan-cell"><strong>${escapeHtml(grandRow.name)}</strong></td>
+        <td class="ms-qty-cell" style="text-align:right"><strong>${formatRpPareto(grandRow.value)}</strong></td>
+        <td class="ms-share-cell" style="text-align:right"><strong>${grandRow.pct.toFixed(2)}%</strong></td>
+      </tr></tfoot>`;
+    }
+
+    table.innerHTML = html;
+  }
+
+  /** Format currency for Pareto PC tables */
+  function formatRpPareto(n) {
+    if (!n) return 'Rp 0';
+    const isNeg = n < 0;
+    const abs = Math.abs(n);
+    const formatted = Math.round(abs).toLocaleString('id-ID');
+    return (isNeg ? '-' : '') + 'Rp ' + formatted;
   }
 
   // ============================================================

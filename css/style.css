@@ -654,6 +654,10 @@ select {
   background: linear-gradient(90deg, #10b981 0%, #06b6d4 50%, #3b82f6 100%);
   box-shadow: 0 8px 28px rgba(16,185,129,0.45), 0 0 0 1px rgba(16,185,129,0.4);
 }
+.dept-tab.active.dept-paretopc   {
+  background: linear-gradient(90deg, #8b5cf6 0%, #6366f1 50%, #ec4899 100%);
+  box-shadow: 0 8px 28px rgba(139,92,246,0.45), 0 0 0 1px rgba(139,92,246,0.4);
+}
 .dept-tab.active::after {
   content: '';
   position: absolute; inset: 0;
@@ -1705,4 +1709,18 @@ html:not(.dark) .dept3d-label { border-top-color: rgba(15,23,42,0.13); }
   .year-pill span:not(.pill-icon):not(.pill-dot) { font-size: 0.62rem !important; }
   /* Filters: keep 2-col but smaller */
   .filter-section-icon { display: none !important; }
+}
+
+/* ============================================================
+   PARETO PC TAB — special styling
+   ============================================================ */
+#pareto-pc-section .ms-table {
+  min-width: 400px;
+}
+#pareto-pc-section .ms-table th {
+  white-space: nowrap;
+}
+tr.pareto-pc-negative td {
+  color: #ef4444 !important;
+  font-weight: 600;
 }
