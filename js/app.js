@@ -1822,6 +1822,8 @@
     }
     // Recalculate sticky offset
     updateParetoPCFilterStickyTop();
+    // Render omset chart (all months, all years)
+    renderParetoPCOmsetChart(allMonths);
   }
 
   function populateParetoPCFilters(allMonths) {
@@ -1905,6 +1907,127 @@
     const isNeg = n < 0;
     const abs = Math.abs(n);
     return (isNeg ? '-' : '') + 'Rp ' + Math.round(abs).toLocaleString('id-ID');
+  }
+
+  // ---- CHART: Total Omset PC per Bulan + YoY ----
+  let paretoPcOmsetChart = null;
+
+  function renderParetoPCOmsetChart(allMonths) {
+    const canvas = document.getElementById('canvas-pareto-pc-omset');
+    if (!canvas || !allMonths || !allMonths.length) return;
+
+    // Group months by year
+    const yearMap = new Map();
+    for (const m of allMonths) {
+      if (!yearMap.has(m.year)) yearMap.set(m.year, []);
+      yearMap.get(m.year).push(m);
+    }
+    const years = [...yearMap.keys()].sort();
+
+    // X-axis labels = all 12 month shorts (Jan–Des).
+    // Even if not all months have data, we show all 12 for proper alignment.
+    const labels = PARETO_PC_SHORT_BULAN.slice(1); // ['Jan','Feb',...,'Des']
+
+    // Color palette per year
+    const YEAR_COLORS = {
+      2024: { line: '#f59e0b', bg: 'rgba(245,158,11,0.1)' },
+      2025: { line: '#8b5cf6', bg: 'rgba(139,92,246,0.1)' },
+      2026: { line: '#ec4899', bg: 'rgba(236,72,153,0.15)' },
+    };
+    const DEFAULT_COLORS = [
+      { line: '#3b82f6', bg: 'rgba(59,130,246,0.1)' },
+      { line: '#10b981', bg: 'rgba(16,185,129,0.1)' },
+      { line: '#06b6d4', bg: 'rgba(6,182,212,0.1)' },
+    ];
+
+    const datasets = years.map((yr, idx) => {
+      const months = yearMap.get(yr);
+      // rightGrand = total omset PC (Pareto PC side = right table grand total)
+      const data = new Array(12).fill(null);
+      for (const m of months) {
+        data[m.month - 1] = m.rightGrand || 0;
+      }
+      const colors = YEAR_COLORS[yr] || DEFAULT_COLORS[idx % DEFAULT_COLORS.length];
+      return {
+        label: String(yr),
+        data,
+        borderColor: colors.line,
+        backgroundColor: colors.bg,
+        tension: 0.4,
+        borderWidth: years.length > 1 && yr === years[years.length - 1] ? 3 : 2,
+        pointRadius: 5,
+        pointHoverRadius: 8,
+        pointBackgroundColor: colors.line,
+        pointBorderColor: '#0a0e1a',
+        pointBorderWidth: 2,
+        fill: yr === years[years.length - 1], // fill area only for latest year
+        spanGaps: false,
+      };
+    });
+
+    // Subtitle: show YoY comparison if multiple years
+    const subEl = document.getElementById('pareto-pc-omset-chart-sub');
+    if (subEl) {
+      if (years.length > 1) {
+        subEl.textContent = `Komparasi YoY: ${years.join(' vs ')}`;
+      } else {
+        subEl.textContent = `Grand total revenue bulanan ${years[0]}`;
+      }
+    }
+
+    if (paretoPcOmsetChart) { paretoPcOmsetChart.destroy(); paretoPcOmsetChart = null; }
+
+    paretoPcOmsetChart = new Chart(canvas.getContext('2d'), {
+      type: 'line',
+      data: { labels, datasets },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+          legend: {
+            position: 'top',
+            labels: { boxWidth: 12, boxHeight: 3, padding: 16, usePointStyle: false, font: { size: 12, weight: 600 } },
+          },
+          tooltip: {
+            callbacks: {
+              label: (c) => {
+                if (c.parsed.y == null) return '';
+                return `${c.dataset.label}: ${formatRpPareto(c.parsed.y)}`;
+              },
+              afterBody: (items) => {
+                // Show YoY % when hovering over a month with data from multiple years
+                if (items.length < 2) return '';
+                const latest = items[items.length - 1];
+                const prev = items[items.length - 2];
+                if (latest.parsed.y == null || prev.parsed.y == null || !prev.parsed.y) return '';
+                const pct = ((latest.parsed.y - prev.parsed.y) / prev.parsed.y) * 100;
+                const arrow = pct >= 0 ? '▲' : '▼';
+                return `YoY: ${arrow} ${Math.abs(pct).toFixed(1)}%`;
+              }
+            }
+          }
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: {
+              callback: (v) => {
+                if (v >= 1e9) return (v / 1e9).toFixed(1) + ' M';
+                if (v >= 1e6) return (v / 1e6).toFixed(0) + ' Jt';
+                return v.toLocaleString('id-ID');
+              },
+              font: { size: 11 },
+            },
+            grid: { color: 'rgba(45,52,84,0.3)', drawBorder: false },
+          },
+          x: {
+            grid: { display: false },
+            ticks: { font: { size: 11, weight: 500 } },
+          }
+        }
+      }
+    });
   }
 
   // ---- FILTER EVENT LISTENERS ----
