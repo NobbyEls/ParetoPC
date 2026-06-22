@@ -1758,6 +1758,14 @@
   }
 
   // ---- LOADER ----
+  /** Get effective grand total for a month side (fallback to sum of rows if no Grand Total row) */
+  function effectiveGrand(monthObj, side) {
+    const g = side === 'right' ? monthObj.rightGrand : monthObj.leftGrand;
+    if (g) return g;
+    const rows = side === 'right' ? monthObj.rightRows : monthObj.leftRows;
+    return (rows || []).reduce((s, r) => s + (r.value || 0), 0);
+  }
+
   async function loadAndRenderParetoPC() {
     console.log('[ParetoPC] loadAndRenderParetoPC called');
     if (state.paretoPcData && state.paretoPcData.length) { renderParetoPC(); return; }
@@ -1814,8 +1822,8 @@
     const mergedPrevLeft  = prevMonth ? mergeVoucherIntoLain(prevMonth.leftRows) : null;
     const mergedYoyRight  = yoyMonth ? mergeVoucherIntoLain(yoyMonth.rightRows) : null;
     const mergedYoyLeft   = yoyMonth ? mergeVoucherIntoLain(yoyMonth.leftRows) : null;
-    renderParetoTableInline('table-pareto-pc', mergedRight, sel.rightGrand, mergedPrevRight, prevMonth ? prevMonth.rightGrand : 0, mergedYoyRight, yoyMonth ? yoyMonth.rightGrand : 0, prevMonth, yoyMonth);
-    renderParetoTableInline('table-pareto-nonpc', mergedLeft, sel.leftGrand, mergedPrevLeft, prevMonth ? prevMonth.leftGrand : 0, mergedYoyLeft, yoyMonth ? yoyMonth.leftGrand : 0, prevMonth, yoyMonth);
+    renderParetoTableInline('table-pareto-pc', mergedRight, effectiveGrand(sel, 'right'), mergedPrevRight, prevMonth ? effectiveGrand(prevMonth, 'right') : 0, mergedYoyRight, yoyMonth ? effectiveGrand(yoyMonth, 'right') : 0, prevMonth, yoyMonth);
+    renderParetoTableInline('table-pareto-nonpc', mergedLeft, effectiveGrand(sel, 'left'), mergedPrevLeft, prevMonth ? effectiveGrand(prevMonth, 'left') : 0, mergedYoyLeft, yoyMonth ? effectiveGrand(yoyMonth, 'left') : 0, prevMonth, yoyMonth);
     const subR = document.getElementById('pareto-pc-snapshot-sub');
     const subL = document.getElementById('pareto-pc-snapshot-nonpc-sub');
     if (subR) subR.innerHTML = `Data revenue per kategori · <strong>${escapeHtml(sel.label)}</strong>`;
@@ -1974,9 +1982,10 @@
     const datasets = years.map((yr, idx) => {
       const months = yearMap.get(yr);
       // rightGrand = total omset PC (Pareto PC side = right table grand total)
+      // Fallback: sum rows if Grand Total row missing from source
       const data = new Array(12).fill(null);
       for (const m of months) {
-        data[m.month - 1] = m.rightGrand || 0;
+        data[m.month - 1] = effectiveGrand(m, 'right');
       }
       const colors = YEAR_COLORS[yr] || DEFAULT_COLORS[idx % DEFAULT_COLORS.length];
       return {
@@ -2087,13 +2096,19 @@
   });
 
   // Keep filter bar sticky below the main header group.
-  // Compute top offset dynamically so it works at all screen sizes.
+  // Also keep Pareto PC table theads sticky below the filter bar.
   function updateParetoPCFilterStickyTop() {
     const stickyGroup = document.querySelector('.sticky-top-group');
     const filterBar = document.getElementById('pareto-pc-filter-bar');
     if (!stickyGroup || !filterBar) return;
-    const h = stickyGroup.getBoundingClientRect().height;
-    filterBar.style.top = h + 'px';
+    const headerH = stickyGroup.getBoundingClientRect().height;
+    filterBar.style.top = headerH + 'px';
+    // Sticky thead: positioned below header + filter bar
+    const filterH = filterBar.getBoundingClientRect().height;
+    const theadTop = (headerH + filterH) + 'px';
+    document.querySelectorAll('#card-pareto-pc .ms-table thead, #card-pareto-nonpc .ms-table thead').forEach(el => {
+      el.style.top = theadTop;
+    });
   }
   window.addEventListener('resize', updateParetoPCFilterStickyTop);
   updateParetoPCFilterStickyTop();
