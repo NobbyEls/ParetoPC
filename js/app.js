@@ -519,7 +519,6 @@
           <span class="dept-tab-icon">${U.deptIcon(d)}</span>
           <span class="dept-tab-text">
             <span class="dept-tab-name">${escapeHtml(d)}</span>
-            <span class="dept-tab-stat">${U.formatIDRCompact(total)} · ${recs.length.toLocaleString('id-ID')} baris</span>
           </span>
         </button>
       `;
@@ -754,13 +753,19 @@
     // 3D bar chart per departemen — total qty per dept × year
     renderDept3D();
 
-    // Single-line trend (QTY-based)
+    // Single-line trend (follows YoY mode: qty or value)
     const sortedMonths = U.sortBulan([...new Set(filtered.map(r => r.bulan).filter(Boolean))]);
+    const trendSumField = state.filters.yoyMode === 'value' ? 'total' : 'qty';
+    const trendLabel = trendSumField === 'total' ? 'Total Omzet' : 'Unit Terjual';
     const trendQty = {
       labels: sortedMonths,
-      datasets: [{ label: 'Unit Terjual', data: sortedMonths.map(mo => U.sumBy(filtered.filter(r => r.bulan === mo), r => r.qty)) }]
+      datasets: [{ label: trendLabel, data: sortedMonths.map(mo => U.sumBy(filtered.filter(r => r.bulan === mo), r => r[trendSumField])) }]
     };
-    Ch.trendChart(trendQty);
+    if (trendSumField === 'total') {
+      Ch.trendChart(trendQty, { valueFormatter: (v) => U.formatIDR(v), axisFormatter: (v) => U.formatIDRCompact(v) });
+    } else {
+      Ch.trendChart(trendQty);
+    }
 
     // Mix Brand donut (QTY-based)
     const brandsByQty = A.aggBy(filtered, r => r.brand, { sumKey: 'qty' }).slice(0, 8).map(b => ({ ...b, total: b.qty }));
