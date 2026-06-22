@@ -2106,7 +2106,7 @@
     // Sticky thead: positioned below header + filter bar
     const filterH = filterBar.getBoundingClientRect().height;
     const theadTop = (headerH + filterH) + 'px';
-    document.querySelectorAll('.pareto-pc-tbl thead').forEach(el => {
+    document.querySelectorAll('.pareto-pc-tbl thead th').forEach(el => {
       el.style.top = theadTop;
     });
   }

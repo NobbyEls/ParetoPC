@@ -1757,20 +1757,38 @@ html:not(.dark) .pareto-pc-filter-sticky {
 }
 
 /* Pareto PC tables: sticky thead freezes below filter bar when scrolling page */
-.pareto-pc-tbl thead {
+/* Sticky must be on <th> directly, not <thead>, for cross-browser compatibility */
+.pareto-pc-tbl thead th {
   position: sticky;
   z-index: 5;
-}
-.pareto-pc-tbl thead th {
-  background: rgba(15, 20, 36, 0.98);
-  font-size: 0.85rem;
-  font-weight: 700;
+  background: linear-gradient(135deg, #6366f1, #ec4899) !important;
+  color: #fff !important;
+  font-size: 0.85rem !important;
+  font-weight: 800 !important;
   text-transform: uppercase;
-  letter-spacing: 0.03em;
-  padding-top: 10px;
-  padding-bottom: 10px;
+  letter-spacing: 0.06em;
+  padding: 12px 8px !important;
+  border-bottom: 2px solid rgba(99, 102, 241, 0.5);
 }
+.pareto-pc-tbl thead th .ms-head-main {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 800;
+  color: #fff;
+}
+.pareto-pc-tbl thead th .ms-head-sub {
+  display: block;
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.8);
+  margin-top: 2px;
+}
+/* Light mode: keep gradient + white text */
 html:not(.dark) .pareto-pc-tbl thead th {
-  background: rgba(248, 250, 252, 0.98);
-  color: #1e293b;
+  background: linear-gradient(135deg, #6366f1, #ec4899) !important;
+  color: #fff !important;
+}
+html:not(.dark) .pareto-pc-tbl thead th .ms-head-main,
+html:not(.dark) .pareto-pc-tbl thead th .ms-head-sub {
+  color: #fff !important;
 }
