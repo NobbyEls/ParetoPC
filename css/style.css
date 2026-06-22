@@ -1755,3 +1755,24 @@ html:not(.dark) .pareto-pc-filter-sticky {
   border-color: #6366f1;
   box-shadow: 0 0 0 2px rgba(99,102,241,0.25);
 }
+
+/* Pareto PC tables: sticky thead while scrolling within card */
+#card-pareto-pc .overflow-x-auto,
+#card-pareto-nonpc .overflow-x-auto {
+  max-height: 70vh;
+  overflow-y: auto;
+}
+#card-pareto-pc .ms-table thead,
+#card-pareto-nonpc .ms-table thead {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+}
+#card-pareto-pc .ms-table thead th,
+#card-pareto-nonpc .ms-table thead th {
+  background: rgba(15, 20, 36, 0.97);
+}
+html:not(.dark) #card-pareto-pc .ms-table thead th,
+html:not(.dark) #card-pareto-nonpc .ms-table thead th {
+  background: rgba(248, 250, 252, 0.97);
+}
