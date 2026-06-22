@@ -1901,7 +1901,7 @@
 
     let head = `<thead><tr>
       <th class="ms-head-bulan" style="text-align:center">Kategori / Dept</th>
-      <th class="ms-head-grand" style="text-align:center">Total Harga (Rp)</th>
+      <th class="ms-head-grand" style="text-align:center">Total Omset (Rp)</th>
       <th class="ms-head-grand" style="text-align:center">%</th>`;
     if (hasMoM) head += `<th class="ms-head-yoy" style="text-align:center"><span class="ms-head-main">MoM</span><span class="ms-head-sub">vs ${escapeHtml(prevMonthObj ? prevMonthObj.short : '')}</span></th>`;
     if (hasYoY) head += `<th class="ms-head-yoy" style="text-align:center"><span class="ms-head-main">YoY</span><span class="ms-head-sub">vs ${escapeHtml(yoyMonthObj ? yoyMonthObj.short + ' ' + yoyMonthObj.year : '')}</span></th>`;
@@ -2106,7 +2106,7 @@
     // Sticky thead: positioned below header + filter bar
     const filterH = filterBar.getBoundingClientRect().height;
     const theadTop = (headerH + filterH) + 'px';
-    document.querySelectorAll('#card-pareto-pc .ms-table thead, #card-pareto-nonpc .ms-table thead').forEach(el => {
+    document.querySelectorAll('.pareto-pc-tbl thead').forEach(el => {
       el.style.top = theadTop;
     });
   }

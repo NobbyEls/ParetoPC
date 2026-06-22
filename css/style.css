@@ -1756,19 +1756,21 @@ html:not(.dark) .pareto-pc-filter-sticky {
   box-shadow: 0 0 0 2px rgba(99,102,241,0.25);
 }
 
-/* Pareto PC tables: sticky thead while scrolling page */
-#card-pareto-pc .ms-table thead,
-#card-pareto-nonpc .ms-table thead {
+/* Pareto PC tables: sticky thead freezes below filter bar when scrolling page */
+.pareto-pc-tbl thead {
   position: sticky;
-  top: 0;
   z-index: 5;
 }
-#card-pareto-pc .ms-table thead th,
-#card-pareto-nonpc .ms-table thead th {
-  background: rgba(15, 20, 36, 0.97);
-  backdrop-filter: blur(4px);
+.pareto-pc-tbl thead th {
+  background: rgba(15, 20, 36, 0.98);
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  padding-top: 10px;
+  padding-bottom: 10px;
 }
-html:not(.dark) #card-pareto-pc .ms-table thead th,
-html:not(.dark) #card-pareto-nonpc .ms-table thead th {
-  background: rgba(248, 250, 252, 0.97);
+html:not(.dark) .pareto-pc-tbl thead th {
+  background: rgba(248, 250, 252, 0.98);
+  color: #1e293b;
 }
