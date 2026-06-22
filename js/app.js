@@ -66,7 +66,7 @@
   }
 
   // The 4 main department tabs + Pareto PC special tab
-  const DEPT_TABS = ['Printer', 'Projector', 'Monitor', 'PC Branded', 'Pareto PC'];
+  const DEPT_TABS = ['Pareto PC', 'Printer', 'Projector', 'Monitor', 'PC Branded'];
 
   // Slugify dept name → CSS class (e.g. "PC Branded" → "pcbranded")
   function deptSlug(d) {
@@ -84,7 +84,7 @@
     paretoPcData: null,      // All parsed months: [{ year, month, label, short, leftRows, rightRows, leftGrand, rightGrand }]
     paretoPcFilters: { year: null, month: null }, // Selected tahun/bulan for Pareto PC tab
     filters: {
-      dept: 'Printer',  // Default tab on first load
+      dept: 'Pareto PC',  // Default tab on first load
       kota: '__all__',
       bulan: '__all__',
       brand: '__all__',
@@ -1991,8 +1991,22 @@
       // rightGrand = total omset PC (Pareto PC side = right table grand total)
       // Fallback: sum rows if Grand Total row missing from source
       const data = new Array(12).fill(null);
+      const estimated = new Array(12).fill(false);
       for (const m of months) {
-        data[m.month - 1] = effectiveGrand(m, 'right');
+        let val = effectiveGrand(m, 'right');
+        // Estimasi bulan berjalan: jika ini tahun+bulan sekarang, proyeksi ke full month
+        const now = new Date();
+        const curYear = now.getFullYear();
+        const curMonth = now.getMonth() + 1; // 1-indexed
+        if (yr === curYear && m.month === curMonth) {
+          const dayNow = now.getDate();
+          const daysTotal = new Date(curYear, curMonth, 0).getDate(); // days in current month
+          if (dayNow < daysTotal && val > 0) {
+            val = Math.round(val * (daysTotal / dayNow));
+            estimated[m.month - 1] = true;
+          }
+        }
+        data[m.month - 1] = val;
       }
       const colors = YEAR_COLORS[yr] || DEFAULT_COLORS[idx % DEFAULT_COLORS.length];
       return {
@@ -2010,16 +2024,19 @@
         pointHoverBorderWidth: 2,
         fill: true,
         spanGaps: false,
+        estimated,
       };
     });
 
-    // Subtitle: show YoY comparison if multiple years
     const subEl = document.getElementById('pareto-pc-omset-chart-sub');
     if (subEl) {
+      const now = new Date();
+      const curMonth = PARETO_PC_SHORT_BULAN[now.getMonth() + 1];
+      const estNote = ` · ${curMonth} = estimasi`;
       if (years.length > 1) {
-        subEl.textContent = `Komparasi YoY: ${years.join(' vs ')}`;
+        subEl.textContent = `Komparasi YoY: ${years.join(' vs ')}${estNote}`;
       } else {
-        subEl.textContent = `Grand total revenue bulanan ${years[0]}`;
+        subEl.textContent = `Grand total revenue bulanan ${years[0]}${estNote}`;
       }
     }
 
@@ -2055,7 +2072,10 @@
             callbacks: {
               label: (c) => {
                 if (c.parsed.y == null) return '';
-                return `${c.dataset.label}: ${formatRpPareto(c.parsed.y)}`;
+                const est = c.dataset.estimated;
+                const isEst = est && est[c.dataIndex];
+                const suffix = isEst ? ' (estimasi)' : '';
+                return `${c.dataset.label}: ${formatRpPareto(c.parsed.y)}${suffix}`;
               },
               afterBody: (items) => {
                 // Show YoY % when hovering over a month with data from multiple years
