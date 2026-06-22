@@ -1815,7 +1815,7 @@
     for (let i = selIdx - 1; i >= 0; i--) {
       if (allMonths[i].month === sel.month && allMonths[i].year < sel.year) { yoyMonth = allMonths[i]; break; }
     }
-    // Merge VOUCHER into LAIN - LAIN before rendering
+    // Merge VOUCHER into LAIN-LAIN (immutable — never mutates original data)
     const mergedRight = mergeVoucherIntoLain(sel.rightRows);
     const mergedLeft  = mergeVoucherIntoLain(sel.leftRows);
     const mergedPrevRight = prevMonth ? mergeVoucherIntoLain(prevMonth.rightRows) : null;
@@ -1864,8 +1864,10 @@
   }
 
   /**
-   * Merge "VOUCHER" row into "LAIN - LAIN". If both exist, sum values;
-   * if only VOUCHER exists, rename it. Result row name = "LAIN - LAIN".
+   * Merge VOUCHER into LAIN - LAIN (IMMUTABLE — returns new array, never mutates input).
+   * If both exist: creates new LAIN-LAIN row with summed values.
+   * If only VOUCHER exists (no LAIN-LAIN): creates new row named LAIN-LAIN with VOUCHER's value.
+   * If only LAIN-LAIN exists (no VOUCHER): passes through as copy.
    */
   function mergeVoucherIntoLain(rows) {
     if (!rows || !rows.length) return rows;
@@ -1875,14 +1877,16 @@
     for (const r of rows) {
       const upper = (r.name || '').toUpperCase().trim();
       if (upper === 'VOUCHER') { voucherRow = r; }
-      else if (upper === 'LAIN - LAIN') { lainRow = r; out.push(r); }
+      else if (upper === 'LAIN - LAIN') { lainRow = r; }
       else { out.push(r); }
     }
-    if (voucherRow && lainRow) {
-      lainRow.value += voucherRow.value;
-      lainRow.pct += voucherRow.pct;
+    // Create a NEW merged row (never mutate original)
+    if (lainRow && voucherRow) {
+      out.push({ name: LAIN, value: lainRow.value + voucherRow.value, pct: lainRow.pct + voucherRow.pct, isGrandTotal: false });
     } else if (voucherRow && !lainRow) {
-      out.push({ ...voucherRow, name: LAIN });
+      out.push({ name: LAIN, value: voucherRow.value, pct: voucherRow.pct, isGrandTotal: false });
+    } else if (lainRow && !voucherRow) {
+      out.push({ name: LAIN, value: lainRow.value, pct: lainRow.pct, isGrandTotal: false });
     }
     return out;
   }
