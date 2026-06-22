@@ -1994,15 +1994,16 @@
         label: String(yr),
         data,
         borderColor: colors.line,
-        backgroundColor: colors.bg,
+        backgroundColor: colors.line + '30',
         tension: 0.4,
-        borderWidth: years.length > 1 && yr === years[years.length - 1] ? 3 : 2,
-        pointRadius: 3,
-        pointHoverRadius: 6,
-        pointBackgroundColor: colors.line,
-        pointBorderColor: '#0a0e1a',
-        pointBorderWidth: 1.5,
-        fill: yr === years[years.length - 1],
+        cubicInterpolationMode: 'monotone',
+        borderWidth: 2.5,
+        pointRadius: 0,
+        pointHoverRadius: 5,
+        pointHoverBackgroundColor: colors.line,
+        pointHoverBorderColor: '#fff',
+        pointHoverBorderWidth: 2,
+        fill: true,
         spanGaps: false,
       };
     });
@@ -2035,7 +2036,7 @@
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        animation: { duration: 800, easing: 'easeOutQuart' },
+        animation: { duration: 1200, easing: 'easeOutQuart' },
         transitions: {
           active: { animation: { duration: 400, easing: 'easeOutQuart' } },
         },
