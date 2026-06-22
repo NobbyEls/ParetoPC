@@ -1815,15 +1815,9 @@
     for (let i = selIdx - 1; i >= 0; i--) {
       if (allMonths[i].month === sel.month && allMonths[i].year < sel.year) { yoyMonth = allMonths[i]; break; }
     }
-    // Merge VOUCHER into LAIN - LAIN before rendering
-    const mergedRight = mergeVoucherIntoLain(sel.rightRows);
-    const mergedLeft  = mergeVoucherIntoLain(sel.leftRows);
-    const mergedPrevRight = prevMonth ? mergeVoucherIntoLain(prevMonth.rightRows) : null;
-    const mergedPrevLeft  = prevMonth ? mergeVoucherIntoLain(prevMonth.leftRows) : null;
-    const mergedYoyRight  = yoyMonth ? mergeVoucherIntoLain(yoyMonth.rightRows) : null;
-    const mergedYoyLeft   = yoyMonth ? mergeVoucherIntoLain(yoyMonth.leftRows) : null;
-    renderParetoTableInline('table-pareto-pc', mergedRight, effectiveGrand(sel, 'right'), mergedPrevRight, prevMonth ? effectiveGrand(prevMonth, 'right') : 0, mergedYoyRight, yoyMonth ? effectiveGrand(yoyMonth, 'right') : 0, prevMonth, yoyMonth);
-    renderParetoTableInline('table-pareto-nonpc', mergedLeft, effectiveGrand(sel, 'left'), mergedPrevLeft, prevMonth ? effectiveGrand(prevMonth, 'left') : 0, mergedYoyLeft, yoyMonth ? effectiveGrand(yoyMonth, 'left') : 0, prevMonth, yoyMonth);
+    // Pass rows directly (VOUCHER and LAIN-LAIN shown as separate rows)
+    renderParetoTableInline('table-pareto-pc', sel.rightRows, effectiveGrand(sel, 'right'), prevMonth ? prevMonth.rightRows : null, prevMonth ? effectiveGrand(prevMonth, 'right') : 0, yoyMonth ? yoyMonth.rightRows : null, yoyMonth ? effectiveGrand(yoyMonth, 'right') : 0, prevMonth, yoyMonth);
+    renderParetoTableInline('table-pareto-nonpc', sel.leftRows, effectiveGrand(sel, 'left'), prevMonth ? prevMonth.leftRows : null, prevMonth ? effectiveGrand(prevMonth, 'left') : 0, yoyMonth ? yoyMonth.leftRows : null, yoyMonth ? effectiveGrand(yoyMonth, 'left') : 0, prevMonth, yoyMonth);
     const subR = document.getElementById('pareto-pc-snapshot-sub');
     const subL = document.getElementById('pareto-pc-snapshot-nonpc-sub');
     if (subR) subR.innerHTML = `Data revenue per kategori · <strong>${escapeHtml(sel.label)}</strong>`;
@@ -1861,30 +1855,6 @@
     let sel = allMonths.find(x => x.year === y && x.month === m);
     if (!sel && allMonths.length) sel = allMonths[allMonths.length - 1];
     return sel || null;
-  }
-
-  /**
-   * Merge "VOUCHER" row into "LAIN - LAIN". If both exist, sum values;
-   * if only VOUCHER exists, rename it. Result row name = "LAIN - LAIN".
-   */
-  function mergeVoucherIntoLain(rows) {
-    if (!rows || !rows.length) return rows;
-    const LAIN = 'LAIN - LAIN';
-    let lainRow = null, voucherRow = null;
-    const out = [];
-    for (const r of rows) {
-      const upper = (r.name || '').toUpperCase().trim();
-      if (upper === 'VOUCHER') { voucherRow = r; }
-      else if (upper === 'LAIN - LAIN') { lainRow = r; out.push(r); }
-      else { out.push(r); }
-    }
-    if (voucherRow && lainRow) {
-      lainRow.value += voucherRow.value;
-      lainRow.pct += voucherRow.pct;
-    } else if (voucherRow && !lainRow) {
-      out.push({ ...voucherRow, name: LAIN });
-    }
-    return out;
   }
 
   // ---- TABLE WITH INLINE MoM + YoY ----
