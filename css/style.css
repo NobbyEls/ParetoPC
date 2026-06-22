@@ -1771,14 +1771,25 @@ html:not(.dark) .pareto-pc-filter-sticky {
   display: block;
   font-size: 0.85rem;
   font-weight: 800;
-  color: #fff;
+  color: #fff !important;
 }
 .pareto-pc-tbl thead th .ms-head-sub {
   display: block;
   font-size: 0.65rem;
   font-weight: 600;
-  color: rgba(255, 255, 255, 0.8);
+  color: rgba(255, 255, 255, 0.8) !important;
   margin-top: 2px;
+}
+/* Light mode: force white text on all Pareto PC thead columns including MoM/YoY */
+html:not(.dark) .pareto-pc-tbl thead th,
+html:not(.dark) .pareto-pc-tbl thead th.ms-head-yoy,
+html:not(.dark) .pareto-pc-tbl thead th.ms-head-mom {
+  background: linear-gradient(135deg, #6366f1, #ec4899) !important;
+  color: #fff !important;
+}
+html:not(.dark) .pareto-pc-tbl thead th .ms-head-main,
+html:not(.dark) .pareto-pc-tbl thead th .ms-head-sub {
+  color: #fff !important;
 }
 }
 /* Light mode: keep gradient + white text */

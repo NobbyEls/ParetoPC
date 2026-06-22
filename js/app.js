@@ -1908,7 +1908,9 @@
     head += `</tr></thead>`;
 
     let body = '<tbody>';
-    for (const row of rows) {
+    // Sort rows by omset descending
+    const sortedRows = [...rows].sort((a, b) => b.value - a.value);
+    for (const row of sortedRows) {
       const isNeg = row.value < 0 || /voucher/i.test(row.name);
       const cls = isNeg ? ' class="pareto-pc-negative"' : '';
       body += `<tr${cls}>
