@@ -97,7 +97,8 @@ PC.charts = (() => {
     return gradient;
   }
 
-  function trendChart(monthly) {
+  function trendChart(monthly, opts = {}) {
+    const { valueFormatter, axisFormatter } = opts;
     const datasets = monthly.datasets.map((ds, i) => {
       const color = ds.color || U.paletteColor(i);
       return {
@@ -127,12 +128,12 @@ PC.charts = (() => {
         plugins: {
           legend: { position: 'bottom', labels: { boxWidth: 8, boxHeight: 8, padding: 14, usePointStyle: true, pointStyle: 'circle' } },
           tooltip: {
-            callbacks: { label: (c) => `${c.dataset.label}: ${U.formatNumber(c.parsed.y)} unit` }
+            callbacks: { label: (c) => `${c.dataset.label}: ${valueFormatter ? valueFormatter(c.parsed.y) : U.formatNumber(c.parsed.y) + ' unit'}` }
           }
         },
         scales: {
           y: {
-            ticks: { callback: (v) => U.formatNumber(v) },
+            ticks: { callback: (v) => axisFormatter ? axisFormatter(v) : U.formatNumber(v) },
             grid: { color: 'rgba(45,52,84,0.25)', drawBorder: false }
           },
           x: { grid: { display: false }, ticks: { font: { weight: 500 } } }
