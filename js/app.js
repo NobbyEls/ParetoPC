@@ -2103,10 +2103,11 @@
     if (!stickyGroup || !filterBar) return;
     const headerH = stickyGroup.getBoundingClientRect().height;
     filterBar.style.top = headerH + 'px';
-    // Sticky thead: positioned below header + filter bar
+    // Sticky thead: positioned below header + filter bar.
+    // Apply top to <th> elements (not <thead>) for cross-browser sticky behavior in tables.
     const filterH = filterBar.getBoundingClientRect().height;
     const theadTop = (headerH + filterH) + 'px';
-    document.querySelectorAll('.pareto-pc-tbl thead').forEach(el => {
+    document.querySelectorAll('.pareto-pc-tbl thead th').forEach(el => {
       el.style.top = theadTop;
     });
   }
