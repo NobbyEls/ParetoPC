@@ -1757,7 +1757,20 @@ html:not(.dark) .pareto-pc-filter-sticky {
 }
 
 /* Pareto PC tables: sticky thead freezes below filter bar when scrolling page */
-/* Sticky must be on <th> directly, not <thead>, for cross-browser compatibility */
+/* CRITICAL: .chart-card has overflow:hidden which kills position:sticky on descendants.
+   We override overflow on Pareto PC table cards specifically so <th> can stick. */
+#card-pareto-pc,
+#card-pareto-nonpc {
+  overflow: visible !important;
+}
+/* Hide the ::before / ::after hairlines that rely on overflow:hidden clipping */
+#card-pareto-pc::before,
+#card-pareto-pc::after,
+#card-pareto-nonpc::before,
+#card-pareto-nonpc::after {
+  display: none;
+}
+/* Sticky must be on <th> directly for cross-browser compatibility */
 .pareto-pc-tbl thead th {
   position: sticky;
   z-index: 5;
