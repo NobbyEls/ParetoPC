@@ -1807,8 +1807,15 @@
     for (let i = selIdx - 1; i >= 0; i--) {
       if (allMonths[i].month === sel.month && allMonths[i].year < sel.year) { yoyMonth = allMonths[i]; break; }
     }
-    renderParetoTableInline('table-pareto-pc', sel.rightRows, sel.rightGrand, prevMonth ? prevMonth.rightRows : null, prevMonth ? prevMonth.rightGrand : 0, yoyMonth ? yoyMonth.rightRows : null, yoyMonth ? yoyMonth.rightGrand : 0, prevMonth, yoyMonth);
-    renderParetoTableInline('table-pareto-nonpc', sel.leftRows, sel.leftGrand, prevMonth ? prevMonth.leftRows : null, prevMonth ? prevMonth.leftGrand : 0, yoyMonth ? yoyMonth.leftRows : null, yoyMonth ? yoyMonth.leftGrand : 0, prevMonth, yoyMonth);
+    // Merge VOUCHER into LAIN - LAIN before rendering
+    const mergedRight = mergeVoucherIntoLain(sel.rightRows);
+    const mergedLeft  = mergeVoucherIntoLain(sel.leftRows);
+    const mergedPrevRight = prevMonth ? mergeVoucherIntoLain(prevMonth.rightRows) : null;
+    const mergedPrevLeft  = prevMonth ? mergeVoucherIntoLain(prevMonth.leftRows) : null;
+    const mergedYoyRight  = yoyMonth ? mergeVoucherIntoLain(yoyMonth.rightRows) : null;
+    const mergedYoyLeft   = yoyMonth ? mergeVoucherIntoLain(yoyMonth.leftRows) : null;
+    renderParetoTableInline('table-pareto-pc', mergedRight, sel.rightGrand, mergedPrevRight, prevMonth ? prevMonth.rightGrand : 0, mergedYoyRight, yoyMonth ? yoyMonth.rightGrand : 0, prevMonth, yoyMonth);
+    renderParetoTableInline('table-pareto-nonpc', mergedLeft, sel.leftGrand, mergedPrevLeft, prevMonth ? prevMonth.leftGrand : 0, mergedYoyLeft, yoyMonth ? yoyMonth.leftGrand : 0, prevMonth, yoyMonth);
     const subR = document.getElementById('pareto-pc-snapshot-sub');
     const subL = document.getElementById('pareto-pc-snapshot-nonpc-sub');
     if (subR) subR.innerHTML = `Data revenue per kategori · <strong>${escapeHtml(sel.label)}</strong>`;
@@ -1848,6 +1855,30 @@
     return sel || null;
   }
 
+  /**
+   * Merge "VOUCHER" row into "LAIN - LAIN". If both exist, sum values;
+   * if only VOUCHER exists, rename it. Result row name = "LAIN - LAIN".
+   */
+  function mergeVoucherIntoLain(rows) {
+    if (!rows || !rows.length) return rows;
+    const LAIN = 'LAIN - LAIN';
+    let lainRow = null, voucherRow = null;
+    const out = [];
+    for (const r of rows) {
+      const upper = (r.name || '').toUpperCase().trim();
+      if (upper === 'VOUCHER') { voucherRow = r; }
+      else if (upper === 'LAIN - LAIN') { lainRow = r; out.push(r); }
+      else { out.push(r); }
+    }
+    if (voucherRow && lainRow) {
+      lainRow.value += voucherRow.value;
+      lainRow.pct += voucherRow.pct;
+    } else if (voucherRow && !lainRow) {
+      out.push({ ...voucherRow, name: LAIN });
+    }
+    return out;
+  }
+
   // ---- TABLE WITH INLINE MoM + YoY ----
   function renderParetoTableInline(tableId, rows, grand, prevRows, prevGrand, yoyRows, yoyGrand, prevMonthObj, yoyMonthObj) {
     const table = document.getElementById(tableId);
@@ -1861,9 +1892,9 @@
     if (yoyRows) yoyRows.forEach(r => yoyMap.set(r.name, r.value));
 
     let head = `<thead><tr>
-      <th class="ms-head-bulan" style="text-align:left">Kategori / Dept</th>
-      <th class="ms-head-grand" style="text-align:right">Total Harga (Rp)</th>
-      <th class="ms-head-grand" style="text-align:right">%</th>`;
+      <th class="ms-head-bulan" style="text-align:center">Kategori / Dept</th>
+      <th class="ms-head-grand" style="text-align:center">Total Harga (Rp)</th>
+      <th class="ms-head-grand" style="text-align:center">%</th>`;
     if (hasMoM) head += `<th class="ms-head-yoy" style="text-align:center"><span class="ms-head-main">MoM</span><span class="ms-head-sub">vs ${escapeHtml(prevMonthObj ? prevMonthObj.short : '')}</span></th>`;
     if (hasYoY) head += `<th class="ms-head-yoy" style="text-align:center"><span class="ms-head-main">YoY</span><span class="ms-head-sub">vs ${escapeHtml(yoyMonthObj ? yoyMonthObj.short + ' ' + yoyMonthObj.year : '')}</span></th>`;
     head += `</tr></thead>`;
@@ -1873,9 +1904,9 @@
       const isNeg = row.value < 0 || /voucher/i.test(row.name);
       const cls = isNeg ? ' class="pareto-pc-negative"' : '';
       body += `<tr${cls}>
-        <td class="ms-bulan-cell">${escapeHtml(row.name)}</td>
-        <td class="ms-qty-cell" style="text-align:right">${formatRpPareto(row.value)}</td>
-        <td class="ms-share-cell" style="text-align:right">${row.pct.toFixed(2)}%</td>`;
+        <td class="ms-bulan-cell" style="text-align:center">${escapeHtml(row.name)}</td>
+        <td class="ms-qty-cell" style="text-align:center">${formatRpPareto(row.value)}</td>
+        <td class="ms-share-cell" style="text-align:center">${row.pct.toFixed(2)}%</td>`;
       if (hasMoM) body += `<td class="ms-share-cell" style="text-align:center">${renderPctChange(row.value, prevMap.get(row.name))}</td>`;
       if (hasYoY) body += `<td class="ms-share-cell" style="text-align:center">${renderPctChange(row.value, yoyMap.get(row.name))}</td>`;
       body += `</tr>`;
@@ -1883,9 +1914,9 @@
     body += '</tbody>';
 
     let foot = `<tfoot><tr class="ms-grand-row">
-      <td class="ms-bulan-cell"><strong>Grand Total</strong></td>
-      <td class="ms-qty-cell" style="text-align:right"><strong>${formatRpPareto(grand)}</strong></td>
-      <td class="ms-share-cell" style="text-align:right"><strong>100%</strong></td>`;
+      <td class="ms-bulan-cell" style="text-align:center"><strong>Grand Total</strong></td>
+      <td class="ms-qty-cell" style="text-align:center"><strong>${formatRpPareto(grand)}</strong></td>
+      <td class="ms-share-cell" style="text-align:center"><strong>100%</strong></td>`;
     if (hasMoM) foot += `<td class="ms-share-cell" style="text-align:center"><strong>${renderPctChange(grand, prevGrand)}</strong></td>`;
     if (hasYoY) foot += `<td class="ms-share-cell" style="text-align:center"><strong>${renderPctChange(grand, yoyGrand)}</strong></td>`;
     foot += `</tr></tfoot>`;
@@ -1955,12 +1986,12 @@
         backgroundColor: colors.bg,
         tension: 0.4,
         borderWidth: years.length > 1 && yr === years[years.length - 1] ? 3 : 2,
-        pointRadius: 5,
-        pointHoverRadius: 8,
+        pointRadius: 3,
+        pointHoverRadius: 6,
         pointBackgroundColor: colors.line,
         pointBorderColor: '#0a0e1a',
-        pointBorderWidth: 2,
-        fill: yr === years[years.length - 1], // fill area only for latest year
+        pointBorderWidth: 1.5,
+        fill: yr === years[years.length - 1],
         spanGaps: false,
       };
     });
@@ -1975,7 +2006,17 @@
       }
     }
 
-    if (paretoPcOmsetChart) { paretoPcOmsetChart.destroy(); paretoPcOmsetChart = null; }
+    if (paretoPcOmsetChart) {
+      // Update in-place for smooth animation transition
+      if (paretoPcOmsetChart.data.datasets.length === datasets.length) {
+        paretoPcOmsetChart.data.labels = labels;
+        datasets.forEach((ds, i) => { Object.assign(paretoPcOmsetChart.data.datasets[i], ds); });
+        paretoPcOmsetChart.update('default');
+        return;
+      }
+      paretoPcOmsetChart.destroy();
+      paretoPcOmsetChart = null;
+    }
 
     paretoPcOmsetChart = new Chart(canvas.getContext('2d'), {
       type: 'line',
@@ -1983,6 +2024,10 @@
       options: {
         responsive: true,
         maintainAspectRatio: false,
+        animation: { duration: 800, easing: 'easeOutQuart' },
+        transitions: {
+          active: { animation: { duration: 400, easing: 'easeOutQuart' } },
+        },
         interaction: { mode: 'index', intersect: false },
         plugins: {
           legend: {
