@@ -1756,24 +1756,8 @@ html:not(.dark) .pareto-pc-filter-sticky {
   box-shadow: 0 0 0 2px rgba(99,102,241,0.25);
 }
 
-/* Pareto PC tables: sticky thead freezes below filter bar when scrolling page */
-/* CRITICAL: .chart-card has overflow:hidden which kills position:sticky on descendants.
-   We override overflow on Pareto PC table cards specifically so <th> can stick. */
-#card-pareto-pc,
-#card-pareto-nonpc {
-  overflow: visible !important;
-}
-/* Hide the ::before / ::after hairlines that rely on overflow:hidden clipping */
-#card-pareto-pc::before,
-#card-pareto-pc::after,
-#card-pareto-nonpc::before,
-#card-pareto-nonpc::after {
-  display: none;
-}
-/* Sticky must be on <th> directly for cross-browser compatibility */
+/* Pareto PC tables: header styling (gradient, no sticky) */
 .pareto-pc-tbl thead th {
-  position: sticky;
-  z-index: 5;
   background: linear-gradient(135deg, #6366f1, #ec4899) !important;
   color: #fff !important;
   font-size: 0.85rem !important;
@@ -1795,6 +1779,7 @@ html:not(.dark) .pareto-pc-filter-sticky {
   font-weight: 600;
   color: rgba(255, 255, 255, 0.8);
   margin-top: 2px;
+}
 }
 /* Light mode: keep gradient + white text */
 html:not(.dark) .pareto-pc-tbl thead th {

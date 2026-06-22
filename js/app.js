@@ -2096,19 +2096,12 @@
   });
 
   // Keep filter bar sticky below the main header group.
-  // Also keep Pareto PC table theads sticky below the filter bar.
   function updateParetoPCFilterStickyTop() {
     const stickyGroup = document.querySelector('.sticky-top-group');
     const filterBar = document.getElementById('pareto-pc-filter-bar');
     if (!stickyGroup || !filterBar) return;
     const headerH = stickyGroup.getBoundingClientRect().height;
     filterBar.style.top = headerH + 'px';
-    // Sticky thead: positioned below header + filter bar
-    const filterH = filterBar.getBoundingClientRect().height;
-    const theadTop = (headerH + filterH) + 'px';
-    document.querySelectorAll('.pareto-pc-tbl thead th').forEach(el => {
-      el.style.top = theadTop;
-    });
   }
   window.addEventListener('resize', updateParetoPCFilterStickyTop);
   updateParetoPCFilterStickyTop();
