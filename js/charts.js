@@ -85,25 +85,34 @@ PC.charts = (() => {
 
   /* ---------- Charts ---------- */
 
+  /**
+   * Create a Chart.js-compatible canvas gradient for area fill.
+   * Mimics Pareto-Omset style: color at top (35% opacity) → transparent at bottom.
+   */
+  function _createAreaGradient(ctx, chartArea, color) {
+    if (!chartArea) return color + '20';
+    const gradient = ctx.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
+    gradient.addColorStop(0, color + '59');   // ~35% opacity
+    gradient.addColorStop(1, color + '00');   // 0% opacity
+    return gradient;
+  }
+
   function trendChart(monthly) {
     const datasets = monthly.datasets.map((ds, i) => {
       const color = ds.color || U.paletteColor(i);
       return {
         label: ds.label,
         data: ds.data,
-        backgroundColor: color + '20',
+        backgroundColor: color + '30',  // fallback before gradient
         borderColor: color,
-        tension: 0.4,                 // smoother bezier
+        tension: 0.4,
         cubicInterpolationMode: 'monotone',
         borderWidth: 2.5,
-        pointRadius: 5,
-        pointHoverRadius: 8,
-        pointBackgroundColor: color,
-        pointBorderColor: '#0a0e1a',
-        pointBorderWidth: 2,
-        pointHoverBorderWidth: 3,
+        pointRadius: 0,
+        pointHoverRadius: 5,
         pointHoverBackgroundColor: color,
         pointHoverBorderColor: '#fff',
+        pointHoverBorderWidth: 2,
         fill: true,
       };
     });
@@ -112,6 +121,8 @@ PC.charts = (() => {
       data: { labels: monthly.labels, datasets },
       options: {
         responsive: true, maintainAspectRatio: false,
+        animation: { duration: 1200, easing: 'easeOutQuart' },
+        transitions: { active: { animation: { duration: 400, easing: 'easeOutQuart' } } },
         interaction: { mode: 'nearest', axis: 'x', intersect: false },
         plugins: {
           legend: { position: 'bottom', labels: { boxWidth: 8, boxHeight: 8, padding: 14, usePointStyle: true, pointStyle: 'circle' } },
@@ -122,11 +133,24 @@ PC.charts = (() => {
         scales: {
           y: {
             ticks: { callback: (v) => U.formatNumber(v) },
-            grid: { color: 'rgba(45,52,84,0.35)', drawBorder: false }
+            grid: { color: 'rgba(45,52,84,0.25)', drawBorder: false }
           },
           x: { grid: { display: false }, ticks: { font: { weight: 500 } } }
         }
-      }
+      },
+      plugins: [{
+        id: 'areaGradient',
+        beforeDraw(chart) {
+          const { ctx, chartArea } = chart;
+          if (!chartArea) return;
+          chart.data.datasets.forEach((ds, i) => {
+            const meta = chart.getDatasetMeta(i);
+            if (meta.hidden) return;
+            const color = ds.borderColor;
+            ds.backgroundColor = _createAreaGradient(ctx, chartArea, color);
+          });
+        }
+      }]
     });
   }
 
@@ -353,17 +377,17 @@ PC.charts = (() => {
       return {
         label: `${ds.label} - ${seriesLabel}`,
         data: ds.data,
-        backgroundColor: color + '15',
+        backgroundColor: color + '30',
         borderColor: color,
         tension: 0.4,
         cubicInterpolationMode: 'monotone',
-        borderWidth: 2,
-        pointRadius: 3,
+        borderWidth: 2.5,
+        pointRadius: 0,
         pointHoverRadius: 5,
-        pointBackgroundColor: color,
-        pointBorderColor: '#0a0e1a',
-        pointBorderWidth: 1.5,
-        fill: false,
+        pointHoverBackgroundColor: color,
+        pointHoverBorderColor: '#fff',
+        pointHoverBorderWidth: 2,
+        fill: true,
         spanGaps: false,
         estimated: ds.estimated || [],
       };
