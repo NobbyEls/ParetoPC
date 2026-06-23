@@ -847,13 +847,6 @@
     // Summary text removed per user request — chart speaks for itself.
     const summaryEl = document.getElementById('yoy-summary');
     if (summaryEl) summaryEl.innerHTML = '';
-
-    // Grouped bar chart: Revenue YoY (always value-based, all years)
-    const yoyBarCard = document.getElementById('card-yoy-bar');
-    if (yoyBarCard) {
-      yoyBarCard.classList.remove('hidden');
-      Ch.yoyBarChart(state.records.filter(r => r.dept === dept), { sumField: 'total' });
-    }
   }
 
   // ============================================================
