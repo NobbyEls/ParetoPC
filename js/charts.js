@@ -456,9 +456,81 @@ PC.charts = (() => {
     });
   }
 
+  /**
+   * Grouped bar chart: Revenue per month, one bar per year side-by-side.
+   * Style matches NobbyEls/omset repo (borderRadius:6, grouped, Rp axis).
+   */
+  function yoyBarChart(records, opts = {}) {
+    const { sumField = 'total' } = opts;
+    const MONTHS = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+    const LABELS = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
+    const yearColors = { 2024: '#94a3b8', 2025: '#6366f1', 2026: '#ec4899' };
+
+    // Aggregate by year+month
+    const yearMonths = {};
+    for (const r of records) {
+      if (!r.year || !r.bulan) continue;
+      if (!yearMonths[r.year]) yearMonths[r.year] = {};
+      if (!yearMonths[r.year][r.bulan]) yearMonths[r.year][r.bulan] = 0;
+      yearMonths[r.year][r.bulan] += (r[sumField] || 0);
+    }
+    const years = Object.keys(yearMonths).sort();
+
+    const datasets = years.map((yr, idx) => {
+      const color = yearColors[yr] || U.paletteColor(idx);
+      return {
+        label: String(yr),
+        data: MONTHS.map(m => (yearMonths[yr][m] || 0) / 1e6), // in Juta
+        backgroundColor: color + 'cc',
+        borderColor: color,
+        borderWidth: 1,
+        borderRadius: 6,
+        borderSkipped: false,
+      };
+    });
+
+    return _updateOrReplace('chart-yoy-bar', {
+      type: 'bar',
+      data: { labels: LABELS, datasets },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: { duration: 1200, easing: 'easeOutQuart' },
+        transitions: { active: { animation: { duration: 400, easing: 'easeOutQuart' } } },
+        interaction: { intersect: false, mode: 'index' },
+        plugins: {
+          legend: { position: 'top', align: 'end', labels: { boxWidth: 8, boxHeight: 8, padding: 14, usePointStyle: true, pointStyle: 'circle' } },
+          tooltip: {
+            callbacks: {
+              label: (c) => {
+                const v = c.raw;
+                if (v >= 1000) return `${c.dataset.label}: Rp ${(v / 1000).toFixed(2)} M`;
+                return `${c.dataset.label}: Rp ${v.toFixed(1)} Jt`;
+              }
+            }
+          }
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: {
+              callback: (v) => {
+                if (v >= 1000) return `Rp ${(v / 1000).toFixed(1)} M`;
+                return `Rp ${v} Jt`;
+              }
+            },
+            grid: { color: 'rgba(45,52,84,0.25)', drawBorder: false },
+            title: { display: true, text: 'Revenue', color: 'rgba(148,163,184,0.8)', font: { size: 11 } }
+          },
+          x: { grid: { display: false } }
+        }
+      }
+    });
+  }
+
   return {
     trendChart, deptMixChart, brandMixChart, topBarChart, paretoChart, distChart, pieChart,
-    yoyChart,
+    yoyChart, yoyBarChart,
     refreshTheme, destroyAll
   };
 })();
