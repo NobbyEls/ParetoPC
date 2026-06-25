@@ -160,6 +160,8 @@
               records: r.records,
               fetchedAt: r.fetchedAt,
               fromCache: !!r.fromCache,
+              fromFallback: !!r.fromFallback,
+              fallbackAge: r.fallbackAge || null,
               savedAt: r.savedAt || null,
               error: null,
             };
@@ -173,6 +175,8 @@
               records: [],
               fetchedAt: new Date(),
               fromCache: false,
+              fromFallback: false,
+              fallbackAge: null,
               error: e.message || String(e),
             };
           }
@@ -189,6 +193,8 @@
           count: res.records.length,
           fetchedAt: res.fetchedAt,
           fromCache: res.fromCache,
+          fromFallback: res.fromFallback,
+          fallbackAge: res.fallbackAge,
           savedAt: res.savedAt,
           error: res.error,
         });
@@ -205,9 +211,19 @@
 
       onDataLoaded();
 
+      // Show toast messages for fallback usage and errors
+      const fallbackResults = results.filter(r => r.fromFallback);
+      if (fallbackResults.length) {
+        const msgs = fallbackResults.map(r =>
+          `Data ${r.src.label} menggunakan cache terakhir (${r.fallbackAge})`
+        );
+        msgs.forEach(msg => U.toast(msg, 'info'));
+      }
+
       if (errored.length) {
-        U.toast(`${errored.length} sumber gagal: ${errored.map(e => e.src.label).join(', ')}`, 'error');
-      } else if (silent) {
+        const failedLabels = errored.map(e => e.src.label).join(', ');
+        U.toast(`Gagal memuat ${failedLabels}, coba Refresh`, 'error');
+      } else if (!fallbackResults.length && silent) {
         U.toast('Data ter-update.', 'success');
       }
     } catch (err) {
@@ -291,13 +307,14 @@
       );
       if (!ok) return;
       const cleared = PC.sheets.clearAllCache();
+      const clearedFallback = PC.sheets.clearFallbackCache();
       // Clear Pareto PC cache
       try { localStorage.removeItem(PARETO_PC_CACHE_KEY); } catch (e) {}
       try {
         ['paretopc:pareto-pc-data:v1','paretopc:pareto-pc-data:v2','paretopc:pareto-pc:v3','paretopc:pareto-pc-trend:v1'].forEach(k => localStorage.removeItem(k));
       } catch (e) {}
       state.paretoPcData = null;
-      U.toast(`${cleared} entri cache dihapus. Memuat ulang…`, 'info');
+      U.toast(`${cleared + clearedFallback} entri cache dihapus. Memuat ulang…`, 'info');
       await loadAllSources(false, { ignoreCache: true });
     });
   }
