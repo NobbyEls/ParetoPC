@@ -18,6 +18,14 @@ PC.sheets = (() => {
   // including this prefix gives us a kill-switch.)
   const CACHE_PREFIX = 'paretopc:csv:v1:';
 
+  // Fallback cache prefix - stores last successful fetch for ALL sources
+  // (including CURRENT_YEAR) so we can serve stale data when network fails.
+  const FALLBACK_PREFIX = 'paretopc:fallback:v1:';
+
+  // Retry configuration
+  const RETRY_COUNT = 2;           // Number of retries after initial failure
+  const RETRY_BASE_DELAY = 2000;   // Base delay in ms (2s -> 4s exponential)
+
   /**
    * Convert a Google Sheets URL into a fetch-able CSV URL.
    * Supports:
@@ -182,6 +190,94 @@ PC.sheets = (() => {
     return out;
   }
 
+  // ---------- Fallback cache helpers ----------
+
+  /** Write to fallback cache (separate from normal cache, stores ALL sources). */
+  async function _writeFallbackCache(key, csvText) {
+    try {
+      const gz = await _compressToBase64(csvText);
+      const payload = gz
+        ? JSON.stringify({ compressed: true, gz, savedAt: new Date().toISOString(), originalKB: Math.round(csvText.length / 1024) })
+        : JSON.stringify({ csv: csvText, savedAt: new Date().toISOString() });
+      localStorage.setItem(FALLBACK_PREFIX + key, payload);
+      return true;
+    } catch (e) {
+      console.warn('[ParetoPC] Fallback cache write failed for', key, e.name || e.message);
+      try { localStorage.removeItem(FALLBACK_PREFIX + key); } catch (_) {}
+      return false;
+    }
+  }
+
+  /** Read from fallback cache. Returns { csv, savedAt } or null. */
+  async function _readFallbackCache(key) {
+    try {
+      const raw = localStorage.getItem(FALLBACK_PREFIX + key);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw);
+      let csv = parsed.csv;
+      if (parsed.compressed && parsed.gz) {
+        csv = await _decompressFromBase64(parsed.gz);
+        if (!csv) return null;
+      }
+      return { csv, savedAt: parsed.savedAt };
+    } catch (e) { return null; }
+  }
+
+  /** Clear all fallback cache entries. Returns the number cleared. */
+  function clearFallbackCache() {
+    let count = 0;
+    try {
+      const keys = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (k && k.startsWith(FALLBACK_PREFIX)) keys.push(k);
+      }
+      keys.forEach(k => { localStorage.removeItem(k); count++; });
+    } catch (e) {}
+    return count;
+  }
+
+  /** Format a time difference into a human-readable Indonesian string. */
+  function _formatTimeAgo(savedAtISO) {
+    const saved = new Date(savedAtISO);
+    const now = new Date();
+    const diffMs = now - saved;
+    if (diffMs < 0) return 'baru saja';
+    const diffMin = Math.floor(diffMs / 60000);
+    if (diffMin < 1) return 'baru saja';
+    if (diffMin < 60) return diffMin + ' menit lalu';
+    const diffHour = Math.floor(diffMin / 60);
+    if (diffHour < 24) return diffHour + ' jam lalu';
+    const diffDay = Math.floor(diffHour / 24);
+    return diffDay + ' hari lalu';
+  }
+
+  // ---------- Retry helper ----------
+
+  /** Delay helper for exponential backoff. */
+  function _delay(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  /** Fetch with retry and exponential backoff. Returns csvText on success or throws on final failure. */
+  async function _fetchWithRetry(csvUrl, opts = {}) {
+    let lastError;
+    const maxAttempts = 1 + RETRY_COUNT; // initial + retries
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+      try {
+        return await fetchCsv(csvUrl, opts);
+      } catch (e) {
+        lastError = e;
+        if (attempt < maxAttempts - 1) {
+          const delayMs = RETRY_BASE_DELAY * Math.pow(2, attempt); // 2s, 4s
+          console.warn(`[ParetoPC] Fetch attempt ${attempt + 1} failed for ${csvUrl}, retrying in ${delayMs}ms...`, e.message);
+          await _delay(delayMs);
+        }
+      }
+    }
+    throw lastError;
+  }
+
   // ---------- Main loader ----------
 
   /**
@@ -190,11 +286,19 @@ PC.sheets = (() => {
    * opts:
    *   cacheKey: string  - localStorage key (typically the year label)
    *   useCache: boolean - if true, try cache before network
+   *
+   * Flow (with retry + fallback):
+   *   1. If useCache && cache hit -> return cached data
+   *   2. Fetch from network (with up to 2 retries, exponential backoff 2s/4s)
+   *   3. On success -> write to fallback cache (all sources) + normal cache if useCache
+   *   4. On failure after retries -> try fallback cache
+   *      -> If fallback exists -> return stale data with fromFallback=true & savedAt
+   *      -> If no fallback -> throw error
    */
   async function loadSheet(rawUrl, opts = {}) {
     const { cacheKey, useCache = false, sheetName } = opts;
 
-    // Try cache first
+    // Try normal cache first (historical years only)
     if (useCache && cacheKey) {
       const cached = await _readCache(cacheKey);
       if (cached && cached.csv) {
@@ -204,6 +308,7 @@ PC.sheets = (() => {
           return {
             ...result,
             fromCache: true,
+            fromFallback: false,
             savedAt: new Date(cached.savedAt),
             fetchedAt: new Date(),
           };
@@ -214,25 +319,56 @@ PC.sheets = (() => {
       }
     }
 
-    // Fetch fresh from network
+    // Fetch fresh from network with retry
     const csvUrl = toCsvUrl(rawUrl, sheetName);
-    const csvText = await fetchCsv(csvUrl);
+    try {
+      const csvText = await _fetchWithRetry(csvUrl);
 
-    // Persist if requested (compressed)
-    if (useCache && cacheKey) await _writeCache(cacheKey, csvText);
+      // Persist to normal cache if requested (historical years)
+      if (useCache && cacheKey) await _writeCache(cacheKey, csvText);
 
-    const rows = PC.parser.parseCSVText(csvText);
-    const result = PC.parser.normalize(rows);
-    return {
-      ...result,
-      fromCache: false,
-      fetchedAt: new Date(),
-      csvUrl,
-    };
+      // Always persist to fallback cache (including current year)
+      if (cacheKey) await _writeFallbackCache(cacheKey, csvText);
+
+      const rows = PC.parser.parseCSVText(csvText);
+      const result = PC.parser.normalize(rows);
+      return {
+        ...result,
+        fromCache: false,
+        fromFallback: false,
+        fetchedAt: new Date(),
+        csvUrl,
+      };
+    } catch (fetchError) {
+      // Network failed after all retries - try fallback cache
+      if (cacheKey) {
+        const fallback = await _readFallbackCache(cacheKey);
+        if (fallback && fallback.csv) {
+          try {
+            const rows = PC.parser.parseCSVText(fallback.csv);
+            const result = PC.parser.normalize(rows);
+            return {
+              ...result,
+              fromCache: false,
+              fromFallback: true,
+              fallbackAge: _formatTimeAgo(fallback.savedAt),
+              savedAt: new Date(fallback.savedAt),
+              fetchedAt: new Date(),
+            };
+          } catch (parseErr) {
+            console.warn('[ParetoPC] Fallback CSV parse failed', parseErr);
+            // Remove corrupted fallback
+            try { localStorage.removeItem(FALLBACK_PREFIX + cacheKey); } catch (_) {}
+          }
+        }
+      }
+      // No fallback available - throw original error
+      throw fetchError;
+    }
   }
 
   return {
     toCsvUrl, fetchCsv, loadSheet,
-    clearAllCache, listCachedKeys,
+    clearAllCache, clearFallbackCache, listCachedKeys,
   };
 })();
