@@ -65,8 +65,9 @@
     return `${PARETO_PC_BASE_URL}?gid=${encodeURIComponent(gid)}&single=true&output=tsv`;
   }
 
-  // The 4 main department tabs + Pareto PC special tab
-  const DEPT_TABS = ['Pareto PC', 'PC Rakitan', 'Printer', 'Projector', 'Monitor', 'PC Branded'];
+  // The 4 main department tabs + Pareto PC special tab.
+  // PC Rakitan is a special tab and sits at the very end (after PC Branded).
+  const DEPT_TABS = ['Pareto PC', 'Printer', 'Projector', 'Monitor', 'PC Branded', 'PC Rakitan'];
 
   // Slugify dept name → CSS class (e.g. "PC Branded" → "pcbranded")
   function deptSlug(d) {
@@ -83,8 +84,8 @@
     chartType: 'bar',  // 'bar' or 'line' for stacked chart
     paretoPcData: null,      // All parsed months: [{ year, month, label, short, leftRows, rightRows, leftGrand, rightGrand }]
     paretoPcFilters: { year: null, month: null }, // Selected tahun/bulan for Pareto PC tab
-    pcRakitanData: null,     // [{ year, left: {headers, rows}, right: {headers, rows} }]
-    pcRakitanFilters: { year: null }, // Selected tahun for PC Rakitan tab
+    pcRakitanData: null,     // { qtyRows:[...], valueRows:[...] }
+    pcRakitanFilters: { year: null, month: null }, // Selected tahun/bulan for PC Rakitan tab
     filters: {
       dept: 'Pareto PC',  // Default tab on first load
       kota: '__all__',
@@ -2191,14 +2192,16 @@
   // ============================================================
   // PC RAKITAN — Fetch & render from dedicated CSV sheet
   //
-  // The source sheet carries TWO side-by-side tables separated by a blank
-  // column (H):
-  //   • Kolom A–G  (index 0–6)  → analisa utama (kategori + value + %, MoM, YoY)
-  //   • Kolom I–K  (index 8–10) → ringkasan tambahan
-  // The sheet's own first row is used as the table headers, so any MoM/YoY
-  // columns that already exist in the sheet are rendered as-is (with ▲/▼ color
-  // formatting on percentage cells). This keeps the tab faithful to the source
-  // without hard-coding column meanings.
+  // The source sheet carries TWO side-by-side blocks:
+  //   • QTY block (kolom A–G):  A=Bulan, B=Cabang, C=Type Rakitan,
+  //       D=Nama Barang, E=SUM of Qty, F=Brand Proc, G=Proc
+  //   • VALUE block (kolom I–L): I=Bulan, J=Cabang, K=Type Rakitan,
+  //       L=SUM of Total Harga
+  //
+  // QTY analysis  → unit terjual per Brand Proc & per Tipe Proc.
+  // VALUE analysis → omset per Cabang & per Tipe Rakitan.
+  // Each breakdown shows share %, MoM (vs bulan sebelumnya) & YoY (vs bulan
+  // yang sama tahun sebelumnya).
   //
   // Adding a new year = append an entry to PC_RAKITAN_YEAR_SOURCES.
   // ============================================================
@@ -2208,69 +2211,70 @@
     // Tambahkan tahun lain di sini saat sheet-nya sudah siap, contoh:
     // { year: 2025, gid: 'XXXXXXXXX' },
   ];
-  const PC_RAKITAN_CACHE_KEY = 'paretopc:pc-rakitan:v1';
+  const PC_RAKITAN_CACHE_KEY = 'paretopc:pc-rakitan:v2';
   const PC_RAKITAN_CACHE_TTL_MS = 60 * 60 * 1000;
 
-  // Column block ranges (0-indexed, inclusive). Column H (index 7) is separator.
-  const PC_RAKITAN_LEFT = [0, 6];   // A–G
-  const PC_RAKITAN_RIGHT = [8, 10]; // I–K
+  // Chart instances for the PC Rakitan tab (destroyed/recreated on each render)
+  const pcrCharts = {};
 
   function pcRakitanSheetUrl(gid) {
     return `${PC_RAKITAN_BASE_URL}?gid=${encodeURIComponent(gid)}&single=true&output=csv`;
   }
 
-  function pcRakitanSliceBlock(row, range) {
-    const out = [];
-    for (let c = range[0]; c <= range[1]; c++) {
-      out.push(String((row && row[c] != null) ? row[c] : '').trim());
-    }
-    return out;
-  }
-
-  function pcRakitanBlockEmpty(cells) {
-    return cells.every(c => c === '');
-  }
-
-  /** Split a parsed CSV (rows[][]) into the two side-by-side column blocks. */
-  function parsePcRakitanCsv(rows, year) {
-    const leftAll = [], rightAll = [];
+  /**
+   * Parse one PC Rakitan CSV (rows[][]) into flat qty & value rows tagged with
+   * year/month (parsed from the "Bulan" column, e.g. "Januari 2026").
+   * Non-numeric / header rows are skipped automatically.
+   */
+  function parsePcRakitanCsv(rows, fallbackYear) {
+    const qtyRows = [], valueRows = [];
     for (const row of (rows || [])) {
       if (!row) continue;
-      const l = pcRakitanSliceBlock(row, PC_RAKITAN_LEFT);
-      const r = pcRakitanSliceBlock(row, PC_RAKITAN_RIGHT);
-      if (!pcRakitanBlockEmpty(l)) leftAll.push(l);
-      if (!pcRakitanBlockEmpty(r)) rightAll.push(r);
-    }
-    const toTable = (all) => {
-      if (!all.length) return { headers: [], rows: [] };
-      // Trim trailing all-empty columns so we don't render dead columns.
-      const width = all.reduce((m, r) => Math.max(m, r.length), 0);
-      let lastNonEmpty = -1;
-      for (let c = 0; c < width; c++) {
-        if (all.some(r => (r[c] || '') !== '')) lastNonEmpty = c;
+      // ---- QTY block (A–G = index 0–6) ----
+      const mL = parseBulanLabel(String(row[0] || '').trim(), fallbackYear);
+      if (mL && isNumericValueCell(row[4])) {
+        qtyRows.push({
+          year: mL.year, month: mL.month, label: mL.label, short: mL.short,
+          cabang: String(row[1] || '').trim() || 'Lainnya',
+          typeRakitan: String(row[2] || '').trim() || 'Lainnya',
+          namaBarang: String(row[3] || '').trim(),
+          qty: parseIndonesianNumber(row[4]),
+          brandProc: String(row[5] || '').trim() || 'Lainnya',
+          proc: String(row[6] || '').trim() || 'Lainnya',
+        });
       }
-      const cut = (r) => r.slice(0, lastNonEmpty + 1);
-      return { headers: cut(all[0]), rows: all.slice(1).map(cut) };
-    };
-    return { year, left: toTable(leftAll), right: toTable(rightAll) };
+      // ---- VALUE block (I–L = index 8–11) ----
+      const mR = parseBulanLabel(String(row[8] || '').trim(), fallbackYear);
+      if (mR && isNumericValueCell(row[11])) {
+        valueRows.push({
+          year: mR.year, month: mR.month, label: mR.label, short: mR.short,
+          cabang: String(row[9] || '').trim() || 'Lainnya',
+          typeRakitan: String(row[10] || '').trim() || 'Lainnya',
+          value: parseIndonesianNumber(row[11]),
+        });
+      }
+    }
+    return { qtyRows, valueRows };
   }
 
   async function loadAndRenderPcRakitan() {
-    if (state.pcRakitanData && state.pcRakitanData.length) { renderPcRakitan(); return; }
+    if (state.pcRakitanData) { renderPcRakitan(); return; }
     // Try cache first
     try {
       const cached = localStorage.getItem(PC_RAKITAN_CACHE_KEY);
       if (cached) {
         const p = JSON.parse(cached);
-        if (p.savedAt && (Date.now() - new Date(p.savedAt).getTime()) < PC_RAKITAN_CACHE_TTL_MS && Array.isArray(p.data) && p.data.length) {
-          state.pcRakitanData = p.data;
+        const d = p && p.data;
+        if (p.savedAt && (Date.now() - new Date(p.savedAt).getTime()) < PC_RAKITAN_CACHE_TTL_MS
+            && d && (Array.isArray(d.qtyRows) || Array.isArray(d.valueRows))) {
+          state.pcRakitanData = d;
           renderPcRakitan();
           return;
         }
       }
     } catch (e) {}
     try {
-      const yearResults = await Promise.all(
+      const results = await Promise.all(
         PC_RAKITAN_YEAR_SOURCES.map(async (s) => {
           try {
             const csv = await PC.sheets.fetchCsv(pcRakitanSheetUrl(s.gid));
@@ -2278,13 +2282,17 @@
             return parsePcRakitanCsv(rows, s.year);
           } catch (err) {
             console.warn('[PCRakitan] year fetch failed:', s.year, err);
-            return { year: s.year, left: { headers: [], rows: [] }, right: { headers: [], rows: [] } };
+            return { qtyRows: [], valueRows: [] };
           }
         })
       );
-      yearResults.sort((a, b) => a.year - b.year);
-      state.pcRakitanData = yearResults;
-      try { localStorage.setItem(PC_RAKITAN_CACHE_KEY, JSON.stringify({ data: yearResults, savedAt: new Date().toISOString() })); } catch (e) {}
+      const merged = { qtyRows: [], valueRows: [] };
+      for (const r of results) {
+        merged.qtyRows.push(...r.qtyRows);
+        merged.valueRows.push(...r.valueRows);
+      }
+      state.pcRakitanData = merged;
+      try { localStorage.setItem(PC_RAKITAN_CACHE_KEY, JSON.stringify({ data: merged, savedAt: new Date().toISOString() })); } catch (e) {}
       renderPcRakitan();
     } catch (err) {
       console.error('[PCRakitan] Failed:', err);
@@ -2292,96 +2300,209 @@
     }
   }
 
+  /** Aggregate rows by a key, returning sorted [{key, val, pct}] + total. */
+  function pcrAggregate(rows, keyFn, sumFn) {
+    const map = new Map();
+    let total = 0;
+    for (const r of (rows || [])) {
+      const k = keyFn(r) || 'Lainnya';
+      const v = sumFn(r) || 0;
+      map.set(k, (map.get(k) || 0) + v);
+      total += v;
+    }
+    const arr = [...map.entries()]
+      .map(([key, val]) => ({ key, val, pct: total > 0 ? (val / total) * 100 : 0 }))
+      .sort((a, b) => b.val - a.val);
+    return { rows: arr, total };
+  }
+
+  // Color helpers
+  const PCR_BRAND_COLORS = { 'AMD': '#ef4444', 'INTEL': '#3b82f6' };
+  function pcrBrandColor(key, i) {
+    return PCR_BRAND_COLORS[String(key).toUpperCase().trim()] || BRAND_PALETTE[i % BRAND_PALETTE.length];
+  }
+  function pcrProcColor(key, i) {
+    const k = String(key).toLowerCase();
+    if (k.includes('ryzen')) return '#ef4444';
+    if (k.includes('core i9')) return '#1e3a8a';
+    if (k.includes('core i7')) return '#2563eb';
+    if (k.includes('core i5')) return '#3b82f6';
+    if (k.includes('core i3')) return '#60a5fa';
+    return BRAND_PALETTE[i % BRAND_PALETTE.length];
+  }
+  function pcrTypeColor(key, i) {
+    const k = String(key).toUpperCase();
+    if (k.includes('TANPA')) return '#f59e0b';
+    if (k.includes('MONITOR')) return '#10b981';
+    return KOTA_PALETTE[i % KOTA_PALETTE.length];
+  }
+
   function renderPcRakitan() {
-    const all = state.pcRakitanData || [];
-    if (!all.length) return;
-    const years = all.map(d => d.year).sort((a, b) => a - b);
-    let cur = state.pcRakitanFilters.year;
-    if (!cur || !years.includes(cur)) cur = years[years.length - 1];
-    state.pcRakitanFilters.year = cur;
+    const data = state.pcRakitanData;
+    if (!data) return;
+    const qtyRows = data.qtyRows || [];
+    const valueRows = data.valueRows || [];
 
+    // Build sorted unique month list from both blocks.
+    const monthsMap = new Map();
+    for (const r of [...qtyRows, ...valueRows]) {
+      const key = r.year * 100 + r.month;
+      if (!monthsMap.has(key)) monthsMap.set(key, { year: r.year, month: r.month, label: r.label, short: r.short });
+    }
+    const months = [...monthsMap.values()].sort((a, b) => (a.year - b.year) || (a.month - b.month));
+    if (!months.length) {
+      const info = document.getElementById('pc-rakitan-filter-info');
+      if (info) info.textContent = 'Tidak ada data';
+      return;
+    }
+
+    // Resolve selected year/month (default = latest available).
+    const years = [...new Set(months.map(m => m.year))].sort((a, b) => a - b);
+    let curYear = state.pcRakitanFilters.year;
+    if (!curYear || !years.includes(curYear)) curYear = years[years.length - 1];
+    const monthsInYear = months.filter(m => m.year === curYear);
+    let curMonth = state.pcRakitanFilters.month;
+    if (!curMonth || !monthsInYear.some(m => m.month === curMonth)) {
+      curMonth = monthsInYear[monthsInYear.length - 1].month;
+    }
+    state.pcRakitanFilters.year = curYear;
+    state.pcRakitanFilters.month = curMonth;
+
+    // Populate selectors.
     const yearSel = document.getElementById('pc-rakitan-filter-year');
-    if (yearSel) {
-      yearSel.innerHTML = years.map(y => `<option value="${y}"${y === cur ? ' selected' : ''}>${y}</option>`).join('');
+    if (yearSel) yearSel.innerHTML = years.map(y => `<option value="${y}"${y === curYear ? ' selected' : ''}>${y}</option>`).join('');
+    const monthSel = document.getElementById('pc-rakitan-filter-month');
+    if (monthSel) monthSel.innerHTML = monthsInYear.map(m => `<option value="${m.month}"${m.month === curMonth ? ' selected' : ''}>${PARETO_PC_BULAN_NAMES[m.month]}</option>`).join('');
+
+    // Selected, previous-month, and YoY month references.
+    const selIdx = months.findIndex(m => m.year === curYear && m.month === curMonth);
+    const sel = months[selIdx];
+    const prevMonth = selIdx > 0 ? months[selIdx - 1] : null;
+    let yoyMonth = null;
+    for (let i = selIdx - 1; i >= 0; i--) {
+      if (months[i].month === sel.month && months[i].year < sel.year) { yoyMonth = months[i]; break; }
     }
 
-    const sel = all.find(d => d.year === cur) || all[all.length - 1];
-    renderPcRakitanTable('table-pc-rakitan-left', sel.left);
-    renderPcRakitanTable('table-pc-rakitan-right', sel.right);
+    const pickQty = (m) => m ? qtyRows.filter(r => r.year === m.year && r.month === m.month) : null;
+    const pickVal = (m) => m ? valueRows.filter(r => r.year === m.year && r.month === m.month) : null;
 
-    // Hide the I–K card entirely when that block is empty.
-    const rightCard = document.getElementById('card-pc-rakitan-right');
-    if (rightCard) {
-      if (sel.right && sel.right.headers.length) rightCard.classList.remove('hidden');
-      else rightCard.classList.add('hidden');
-    }
+    const curQty = pickQty(sel), prevQty = pickQty(prevMonth), yoyQty = pickQty(yoyMonth);
+    const curVal = pickVal(sel), prevVal = pickVal(prevMonth), yoyVal = pickVal(yoyMonth);
 
+    const qtyFmt = (v) => U.formatNumber(v);
+    const valFmt = (v) => formatRpPareto(v);
+
+    // QTY breakdowns
+    renderPcrBreakdown('brand', curQty, prevQty, yoyQty, r => r.brandProc, r => r.qty,
+      { labelHead: 'Brand', valueHead: 'QTY', cellFmt: qtyFmt, tipFmt: (v) => U.formatNumber(v) + ' unit', colorFn: pcrBrandColor });
+    renderPcrBreakdown('proc', curQty, prevQty, yoyQty, r => r.proc, r => r.qty,
+      { labelHead: 'Tipe Proc', valueHead: 'QTY', cellFmt: qtyFmt, tipFmt: (v) => U.formatNumber(v) + ' unit', colorFn: pcrProcColor });
+
+    // VALUE breakdowns
+    renderPcrBreakdown('cabang', curVal, prevVal, yoyVal, r => r.cabang, r => r.value,
+      { labelHead: 'Cabang', valueHead: 'VALUE', cellFmt: (v) => fmtValueShort(v), tipFmt: valFmt, colorFn: (k, i) => KOTA_PALETTE[i % KOTA_PALETTE.length] });
+    renderPcrBreakdown('type', curVal, prevVal, yoyVal, r => r.typeRakitan, r => r.value,
+      { labelHead: 'Tipe Rakitan', valueHead: 'VALUE', cellFmt: (v) => fmtValueShort(v), tipFmt: valFmt, colorFn: pcrTypeColor });
+
+    // Info banner + subtitles
     const info = document.getElementById('pc-rakitan-filter-info');
-    if (info) info.textContent = `${years.length} tahun dimuat · menampilkan ${cur}`;
+    if (info) {
+      let txt = `${months.length} bulan dimuat · menampilkan ${sel.label}`;
+      if (prevMonth) txt += ` · MoM vs ${prevMonth.short}`;
+      if (yoyMonth) txt += ` · YoY vs ${yoyMonth.short} ${yoyMonth.year}`;
+      info.textContent = txt;
+    }
+    setText('pcr-brand-sub', `Unit terjual per brand prosesor — ${sel.label}`);
+    setText('pcr-proc-sub', `Unit terjual per tipe prosesor — ${sel.label}`);
+    setText('pcr-cabang-sub', `Total omset PC Rakitan per cabang — ${sel.label}`);
+    setText('pcr-type-sub', `Total omset per tipe rakitan — ${sel.label}`);
 
     updateParetoPCFilterStickyTop();
   }
 
-  function renderPcRakitanTable(tableId, block) {
-    const table = document.getElementById(tableId);
+  /**
+   * Render one breakdown: a doughnut chart (chart-pcr-{suffix}) + a table
+   * (table-pcr-{suffix}) with share %, MoM and YoY columns.
+   */
+  function renderPcrBreakdown(suffix, curRows, prevRows, yoyRows, keyFn, sumFn, opts) {
+    const { labelHead, valueHead, cellFmt, tipFmt, colorFn } = opts;
+    const cur = pcrAggregate(curRows, keyFn, sumFn);
+    const prevMap = prevRows ? new Map(pcrAggregate(prevRows, keyFn, sumFn).rows.map(r => [r.key, r.val])) : null;
+    const yoyMap = yoyRows ? new Map(pcrAggregate(yoyRows, keyFn, sumFn).rows.map(r => [r.key, r.val])) : null;
+
+    // ---- Chart ----
+    const canvas = document.getElementById('chart-pcr-' + suffix);
+    if (canvas) {
+      if (pcrCharts[suffix]) { pcrCharts[suffix].destroy(); delete pcrCharts[suffix]; }
+      if (cur.rows.length) {
+        const labels = cur.rows.map(r => r.key);
+        const dataArr = cur.rows.map(r => r.val);
+        const colors = cur.rows.map((r, i) => colorFn(r.key, i));
+        pcrCharts[suffix] = new Chart(canvas.getContext('2d'), {
+          type: 'doughnut',
+          data: { labels, datasets: [{ data: dataArr, backgroundColor: colors, borderWidth: 0, hoverOffset: 8 }] },
+          options: {
+            responsive: true, maintainAspectRatio: false, cutout: '62%',
+            plugins: {
+              legend: { position: 'bottom', labels: { boxWidth: 8, boxHeight: 8, padding: 10, usePointStyle: true, pointStyle: 'circle', font: { size: 11 } } },
+              tooltip: {
+                callbacks: {
+                  label: (c) => {
+                    const tot = c.dataset.data.reduce((a, b) => a + b, 0);
+                    const pct = tot ? ((c.parsed / tot) * 100).toFixed(1) : 0;
+                    return ` ${c.label}: ${tipFmt(c.parsed)} (${pct}%)`;
+                  }
+                }
+              }
+            }
+          }
+        });
+      }
+    }
+
+    // ---- Table ----
+    const table = document.getElementById('table-pcr-' + suffix);
     if (!table) return;
-    if (!block || !block.headers.length) {
+    if (!cur.rows.length) {
       table.innerHTML = '<tr><td class="text-center py-4" style="color:var(--text-muted)">Tidak ada data</td></tr>';
       return;
     }
-    const headers = block.headers;
-    const head = '<thead><tr>' +
-      headers.map((h, i) => `<th class="${i === 0 ? 'ms-head-bulan' : 'ms-head-grand'}" style="text-align:center">${escapeHtml(h)}</th>`).join('') +
-      '</tr></thead>';
-
+    let head = `<thead><tr>
+      <th class="ms-head-bulan">${escapeHtml(labelHead)}</th>
+      <th class="ms-head-grand">${escapeHtml(valueHead)}</th>
+      <th class="ms-head-grand">%</th>
+      <th class="ms-head-mom"><span class="ms-head-main">MoM</span></th>
+      <th class="ms-head-yoy"><span class="ms-head-main">YoY</span></th>
+    </tr></thead>`;
     let body = '<tbody>';
-    for (const row of block.rows) {
-      if (!row || row.every(c => (c || '') === '')) continue;
-      const firstCell = String(row[0] || '').trim();
-      const isGrand = /grand\s*total|^total$/i.test(firstCell);
-      const isNeg = /voucher/i.test(firstCell);
-      const rowCls = isGrand ? ' class="ms-grand-row"' : (isNeg ? ' class="pareto-pc-negative"' : '');
-      body += `<tr${rowCls}>` + headers.map((_, i) => {
-        const raw = (row[i] != null) ? String(row[i]) : '';
-        const cellCls = i === 0 ? 'ms-bulan-cell' : 'ms-share-cell';
-        return `<td class="${cellCls}" style="text-align:center">${formatPcRakitanCell(raw, i === 0)}</td>`;
-      }).join('') + '</tr>';
+    for (const r of cur.rows) {
+      body += `<tr>
+        <td class="ms-bulan-cell">${escapeHtml(r.key)}</td>
+        <td class="ms-qty-cell">${cellFmt(r.val)}</td>
+        <td class="ms-share-cell">${r.pct.toFixed(2)}%</td>
+        <td class="ms-share-cell ms-mom-cell">${renderPctChange(r.val, prevMap ? prevMap.get(r.key) : undefined)}</td>
+        <td class="ms-share-cell ms-yoy-cell">${renderPctChange(r.val, yoyMap ? yoyMap.get(r.key) : undefined)}</td>
+      </tr>`;
     }
     body += '</tbody>';
-    table.innerHTML = head + body;
+    const foot = `<tfoot><tr class="ms-grand-row">
+      <td class="ms-bulan-cell">Total</td>
+      <td class="ms-qty-cell ms-total-cell">${cellFmt(cur.total)}</td>
+      <td class="ms-share-cell">100%</td>
+      <td class="ms-share-cell ms-mom-cell"></td>
+      <td class="ms-share-cell ms-yoy-cell"></td>
+    </tr></tfoot>`;
+    table.innerHTML = head + body + foot;
   }
 
-  /**
-   * Format a PC Rakitan cell. The first column (label) renders as-is.
-   * Other columns: a percentage / signed change is colored green (▲) or red (▼)
-   * so MoM/YoY columns read clearly.
-   */
-  function formatPcRakitanCell(val, isLabel) {
-    const s = String(val == null ? '' : val).trim();
-    if (!s) return '';
-    if (isLabel) return escapeHtml(s);
-
-    // Already carries a direction arrow
-    if (/^[▲▼]/.test(s)) {
-      const cls = s.charAt(0) === '▲' ? 'ms-up' : 'ms-down';
-      return `<span class="${cls}">${escapeHtml(s)}</span>`;
-    }
-
-    // Percentage-like change value, e.g. "12,5%", "-8%", "(8%)"
-    if (/%\s*$/.test(s)) {
-      const negative = /^-/.test(s) || /^\(.*\)$/.test(s);
-      const numericPart = s.replace(/[()%\s]/g, '').replace(/^-/, '');
-      const isZero = /^0([.,]0+)?$/.test(numericPart);
-      if (isZero) return escapeHtml(s);
-      if (negative) return `<span class="ms-down">▼ ${escapeHtml(s.replace(/^[-(]/, '').replace(/\)$/, ''))}</span>`;
-      return `<span class="ms-up">▲ ${escapeHtml(s)}</span>`;
-    }
-    return escapeHtml(s);
-  }
-
-  // PC Rakitan year selector
+  // PC Rakitan year & month selectors
   document.getElementById('pc-rakitan-filter-year')?.addEventListener('change', (e) => {
     state.pcRakitanFilters.year = parseInt(e.target.value, 10);
+    state.pcRakitanFilters.month = null; // reset to latest month of the new year
+    renderPcRakitan();
+  });
+  document.getElementById('pc-rakitan-filter-month')?.addEventListener('change', (e) => {
+    state.pcRakitanFilters.month = parseInt(e.target.value, 10);
     renderPcRakitan();
   });
 

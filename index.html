@@ -295,45 +295,73 @@
         </div>
       </div>
 
-      <!-- ===== PC Rakitan Section (CSV: kolom A–G & I–K, MoM/YoY) ===== -->
+      <!-- ===== PC Rakitan Section (CSV: kolom A–G qty & I–L value) ===== -->
       <div id="pc-rakitan-section" class="hidden space-y-4">
 
-        <!-- Sticky filter: Tahun -->
+        <!-- Sticky filter: Tahun & Bulan -->
         <div id="pc-rakitan-filter-bar" class="chart-card pareto-pc-filter-sticky">
           <div class="flex flex-wrap items-center gap-3">
             <label class="flex items-center gap-1" style="font-size:0.82rem;color:var(--text-muted);">
               Tahun:
               <select id="pc-rakitan-filter-year" class="pareto-pc-select"></select>
             </label>
+            <label class="flex items-center gap-1" style="font-size:0.82rem;color:var(--text-muted);">
+              Bulan:
+              <select id="pc-rakitan-filter-month" class="pareto-pc-select"></select>
+            </label>
             <span id="pc-rakitan-filter-info" class="text-xs" style="color:var(--text-muted);margin-left:auto;"></span>
           </div>
         </div>
 
-        <!-- Analisa utama (kolom A–G) -->
-        <div id="card-pc-rakitan-left" class="chart-card">
-          <div class="chart-header flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <h3 class="chart-title" id="pc-rakitan-left-title">🛠️ PC Rakitan — Analisa</h3>
-              <p class="chart-sub" id="pc-rakitan-left-sub">Detail per kategori dengan perbandingan MoM &amp; YoY (kolom A–G)</p>
+        <!-- ===== QTY ANALYSIS (kolom A–G) ===== -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div id="card-pcr-brand" class="chart-card">
+            <div class="chart-header flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h3 class="chart-title">🔧 Qty per Brand Processor</h3>
+                <p class="chart-sub" id="pcr-brand-sub">Unit terjual per brand prosesor (MoM &amp; YoY)</p>
+              </div>
+              <button class="btn-png" title="Download sebagai PNG" data-target="card-pcr-brand">⬇ PNG</button>
             </div>
-            <button class="btn-png" title="Download sebagai PNG" data-target="card-pc-rakitan-left">⬇ PNG</button>
+            <div class="chart-body"><canvas id="chart-pcr-brand"></canvas></div>
+            <div class="ms-table-wrap" style="margin-top:12px"><table id="table-pcr-brand" class="ms-table"></table></div>
           </div>
-          <div class="ms-table-wrap">
-            <table id="table-pc-rakitan-left" class="ms-table pareto-pc-tbl"></table>
+          <div id="card-pcr-proc" class="chart-card">
+            <div class="chart-header flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h3 class="chart-title">🧩 Qty per Tipe Processor</h3>
+                <p class="chart-sub" id="pcr-proc-sub">Unit terjual per tipe prosesor (MoM &amp; YoY)</p>
+              </div>
+              <button class="btn-png" title="Download sebagai PNG" data-target="card-pcr-proc">⬇ PNG</button>
+            </div>
+            <div class="chart-body"><canvas id="chart-pcr-proc"></canvas></div>
+            <div class="ms-table-wrap" style="margin-top:12px"><table id="table-pcr-proc" class="ms-table"></table></div>
           </div>
         </div>
 
-        <!-- Ringkasan tambahan (kolom I–K) -->
-        <div id="card-pc-rakitan-right" class="chart-card">
-          <div class="chart-header flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <h3 class="chart-title" id="pc-rakitan-right-title">📊 PC Rakitan — Ringkasan</h3>
-              <p class="chart-sub" id="pc-rakitan-right-sub">Ringkasan tambahan (kolom I–K)</p>
+        <!-- ===== VALUE ANALYSIS (kolom I–L) ===== -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div id="card-pcr-cabang" class="chart-card">
+            <div class="chart-header flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h3 class="chart-title">🏢 Value per Cabang</h3>
+                <p class="chart-sub" id="pcr-cabang-sub">Total omset PC Rakitan per cabang (MoM &amp; YoY)</p>
+              </div>
+              <button class="btn-png" title="Download sebagai PNG" data-target="card-pcr-cabang">⬇ PNG</button>
             </div>
-            <button class="btn-png" title="Download sebagai PNG" data-target="card-pc-rakitan-right">⬇ PNG</button>
+            <div class="chart-body"><canvas id="chart-pcr-cabang"></canvas></div>
+            <div class="ms-table-wrap" style="margin-top:12px"><table id="table-pcr-cabang" class="ms-table"></table></div>
           </div>
-          <div class="ms-table-wrap">
-            <table id="table-pc-rakitan-right" class="ms-table pareto-pc-tbl"></table>
+          <div id="card-pcr-type" class="chart-card">
+            <div class="chart-header flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h3 class="chart-title">🖥️ Value per Tipe Rakitan</h3>
+                <p class="chart-sub" id="pcr-type-sub">Total omset per tipe rakitan (dengan/tanpa monitor)</p>
+              </div>
+              <button class="btn-png" title="Download sebagai PNG" data-target="card-pcr-type">⬇ PNG</button>
+            </div>
+            <div class="chart-body"><canvas id="chart-pcr-type"></canvas></div>
+            <div class="ms-table-wrap" style="margin-top:12px"><table id="table-pcr-type" class="ms-table"></table></div>
           </div>
         </div>
       </div>
