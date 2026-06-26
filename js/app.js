@@ -1733,19 +1733,25 @@
   const PARETO_PC_BULAN_MAP = {
     'januari':1,'februari':2,'maret':3,'april':4,'mei':5,'juni':6,
     'juli':7,'agustus':8,'september':9,'oktober':10,'november':11,'desember':12,
+    // Singkatan umum (3-4 huruf)
+    'jan':1,'feb':2,'mar':3,'apr':4,'mei':5,'jun':6,
+    'jul':7,'agu':8,'agus':8,'sep':9,'okt':10,'nov':11,'des':12,
   };
   const PARETO_PC_BULAN_NAMES = ['','Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
   const PARETO_PC_SHORT_BULAN = ['','Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
 
   function parseBulanLabel(raw, fallbackYear) {
-    const s = String(raw || '').trim();
+    const s = String(raw || '').replace(/[\u00A0\u200B\u2009\u202F]/g, ' ').trim();
     if (!s) return null;
     const parts = s.split(/\s+/);
     const monthKey = (parts[0] || '').toLowerCase();
     const monthIdx = PARETO_PC_BULAN_MAP[monthKey];
     if (!monthIdx) return null;
     let year = fallbackYear;
-    if (parts[1] && /^\d{4}$/.test(parts[1])) year = parseInt(parts[1], 10);
+    // Year can be in parts[1] or parts[2] (handle "April  2026" with extra space)
+    for (let i = 1; i < parts.length; i++) {
+      if (/^\d{4}$/.test(parts[i])) { year = parseInt(parts[i], 10); break; }
+    }
     return { year, month: monthIdx, label: `${PARETO_PC_BULAN_NAMES[monthIdx]} ${year}`, short: PARETO_PC_SHORT_BULAN[monthIdx] };
   }
 
@@ -2214,8 +2220,8 @@
     // Tambahkan tahun lain di sini saat sheet-nya sudah siap, contoh:
     // { year: 2025, gid: 'XXXXXXXXX' },
   ];
-  const PC_RAKITAN_CACHE_KEY = 'paretopc:pc-rakitan:v2';
-  const PC_RAKITAN_CACHE_TTL_MS = 60 * 60 * 1000;
+  const PC_RAKITAN_CACHE_KEY = 'paretopc:pc-rakitan:v3';
+  const PC_RAKITAN_CACHE_TTL_MS = 10 * 60 * 1000; // 10 menit (agar data baru cepat terdeteksi)
 
   // Chart instances for the PC Rakitan tab (destroyed/recreated on each render)
   const pcrCharts = {};
