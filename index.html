@@ -35,7 +35,7 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.6/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 
-  <link rel="stylesheet" href="css/style.css?v=52" />
+  <link rel="stylesheet" href="css/style.css?v=53" />
 </head>
 <body class="bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 font-sans antialiased min-h-screen">
 
@@ -162,6 +162,16 @@
               <label class="filter-label" id="filter-cekink-label">Tipe Printer</label>
               <select id="filter-cekink" class="w-full text-sm px-3 py-2"></select>
             </div>
+            <!-- PC Rakitan filters (shown only when PC Rakitan tab active) -->
+            <div id="filter-pcr-tahun-wrap" class="flex-1 hidden" style="min-width:150px">
+              <label class="filter-label">Tahun</label>
+              <select id="pc-rakitan-filter-year" class="w-full text-sm px-3 py-2"></select>
+            </div>
+            <div id="filter-pcr-bulan-wrap" class="flex-1 hidden" style="min-width:150px">
+              <label class="filter-label">Bulan</label>
+              <select id="pc-rakitan-filter-month" class="w-full text-sm px-3 py-2"></select>
+            </div>
+            <span id="pc-rakitan-filter-info" class="text-xs hidden" style="color:var(--text-muted);"></span>
           </div>
           <button id="btn-reset-filters" class="btn-reset px-4 py-2 text-sm self-end shrink-0">
             ↺ Reset
@@ -298,23 +308,20 @@
       <!-- ===== PC Rakitan Section (CSV: kolom A–G qty & I–L value) ===== -->
       <div id="pc-rakitan-section" class="hidden space-y-4">
 
-        <!-- Sticky filter: Tahun & Bulan -->
-        <div id="pc-rakitan-filter-bar" class="chart-card pareto-pc-filter-sticky">
-          <div class="flex flex-wrap items-center gap-3">
-            <label class="flex items-center gap-1" style="font-size:0.82rem;color:var(--text-muted);">
-              Tahun:
-              <select id="pc-rakitan-filter-year" class="pareto-pc-select"></select>
-            </label>
-            <label class="flex items-center gap-1" style="font-size:0.82rem;color:var(--text-muted);">
-              Bulan:
-              <select id="pc-rakitan-filter-month" class="pareto-pc-select"></select>
-            </label>
-            <span id="pc-rakitan-filter-info" class="text-xs" style="color:var(--text-muted);margin-left:auto;"></span>
+        <!-- Trend QTY per Bulan (paling atas, seperti tab lain) -->
+        <div id="card-pcr-trend" class="chart-card">
+          <div class="chart-header flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h3 class="chart-title" id="pcr-trend-title">📈 Tren Unit Terjual Bulanan — PC Rakitan</h3>
+              <p class="chart-sub" id="pcr-trend-sub">Total unit PC Rakitan per bulan</p>
+            </div>
+            <button class="btn-png" title="Download sebagai PNG" data-target="card-pcr-trend">⬇ PNG</button>
           </div>
+          <div class="chart-body chart-body-tall"><canvas id="chart-pcr-trend"></canvas></div>
         </div>
 
         <!-- ===== QTY ANALYSIS (kolom A–G) ===== -->
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
           <div id="card-pcr-brand" class="chart-card">
             <div class="chart-header flex flex-wrap items-center justify-between gap-3">
               <div>
@@ -336,6 +343,17 @@
             </div>
             <div class="chart-body"><canvas id="chart-pcr-proc"></canvas></div>
             <div class="ms-table-wrap" style="margin-top:12px"><table id="table-pcr-proc" class="ms-table"></table></div>
+          </div>
+          <div id="card-pcr-kota" class="chart-card">
+            <div class="chart-header flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h3 class="chart-title">🏙️ Qty per Kota / Cabang</h3>
+                <p class="chart-sub" id="pcr-kota-sub">Unit terjual per cabang (MoM &amp; YoY)</p>
+              </div>
+              <button class="btn-png" title="Download sebagai PNG" data-target="card-pcr-kota">⬇ PNG</button>
+            </div>
+            <div class="chart-body"><canvas id="chart-pcr-kota"></canvas></div>
+            <div class="ms-table-wrap" style="margin-top:12px"><table id="table-pcr-kota" class="ms-table"></table></div>
           </div>
         </div>
 
@@ -515,11 +533,11 @@
     </footer>
   </main>
 
-  <script src="js/utils.js?v=52"></script>
-  <script src="js/parser.js?v=52"></script>
-  <script src="js/sheets.js?v=52"></script>
-  <script src="js/analytics.js?v=52"></script>
-  <script src="js/charts.js?v=52"></script>
-  <script src="js/app.js?v=52"></script>
+  <script src="js/utils.js?v=53"></script>
+  <script src="js/parser.js?v=53"></script>
+  <script src="js/sheets.js?v=53"></script>
+  <script src="js/analytics.js?v=53"></script>
+  <script src="js/charts.js?v=53"></script>
+  <script src="js/app.js?v=53"></script>
 </body>
 </html>
