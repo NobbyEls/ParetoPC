@@ -340,7 +340,7 @@ PC.analytics = (() => {
     for (const r of curYear) {
       const mIdx = MS_MONTHS.indexOf(r.bulan);
       if (mIdx < 0) continue;
-      const key = topBrands.includes(r[groupByField]) ? r[groupByField] : (otherSet.has(r[groupByField]) ? '__other__' : '__other__');
+      const key = topBrands.includes(r[groupByField]) ? r[groupByField] : '__other__';
       matrix[mIdx][key] = (matrix[mIdx][key] || 0) + (r[sumField] || 0);
       // Track latest day in each month for estimasi closing
       if (r.tgl instanceof Date && !isNaN(r.tgl)) {

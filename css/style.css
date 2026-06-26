@@ -658,6 +658,10 @@ select {
   background: linear-gradient(90deg, #8b5cf6 0%, #6366f1 50%, #ec4899 100%);
   box-shadow: 0 8px 28px rgba(139,92,246,0.45), 0 0 0 1px rgba(139,92,246,0.4);
 }
+.dept-tab.active.dept-pcrakitan  {
+  background: linear-gradient(90deg, #f59e0b 0%, #ec4899 50%, #8b5cf6 100%);
+  box-shadow: 0 8px 28px rgba(236,72,153,0.45), 0 0 0 1px rgba(245,158,11,0.4);
+}
 .dept-tab.active::after {
   content: '';
   position: absolute; inset: 0;
@@ -1725,6 +1729,17 @@ tr.pareto-pc-negative td {
   font-weight: 600;
 }
 
+/* PC Rakitan tables share the Pareto PC gradient-header look */
+#pc-rakitan-section .ms-table {
+  min-width: 400px;
+}
+#pc-rakitan-section .ms-table th {
+  white-space: nowrap;
+}
+#pc-rakitan-section .ms-table tbody td {
+  font-size: 0.74rem;
+}
+
 
 /* ============================================================
    PARETO PC TAB — sticky filter bar + inline table styling
@@ -1790,7 +1805,6 @@ html:not(.dark) .pareto-pc-tbl thead th.ms-head-mom {
 html:not(.dark) .pareto-pc-tbl thead th .ms-head-main,
 html:not(.dark) .pareto-pc-tbl thead th .ms-head-sub {
   color: #fff !important;
-}
 }
 /* Light mode: keep gradient + white text */
 html:not(.dark) .pareto-pc-tbl thead th {
