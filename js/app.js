@@ -292,7 +292,17 @@
     document.getElementById('error-msg').textContent = msg;
   }
 
-  document.getElementById('btn-refresh').addEventListener('click', () => loadAllSources(/*silent*/ true));
+  document.getElementById('btn-refresh').addEventListener('click', () => {
+    loadAllSources(/*silent*/ true);
+    // PC Rakitan data is cached separately and is NOT touched by loadAllSources,
+    // so force a fresh re-fetch here too (clear all cache versions + in-memory).
+    try {
+      ['paretopc:pc-rakitan:v1','paretopc:pc-rakitan:v2','paretopc:pc-rakitan:v3','paretopc:pc-rakitan:v4','paretopc:pc-rakitan:v5']
+        .forEach(k => localStorage.removeItem(k));
+    } catch (e) {}
+    state.pcRakitanData = null;
+    loadAndRenderPcRakitan(true);
+  });
   document.getElementById('btn-retry').addEventListener('click', () => loadAllSources(false));
 
   // ============================================================
@@ -317,8 +327,11 @@
         ['paretopc:pareto-pc-data:v1','paretopc:pareto-pc-data:v2','paretopc:pareto-pc:v3','paretopc:pareto-pc-trend:v1'].forEach(k => localStorage.removeItem(k));
       } catch (e) {}
       state.paretoPcData = null;
-      // Clear PC Rakitan cache
-      try { localStorage.removeItem(PC_RAKITAN_CACHE_KEY); } catch (e) {}
+      // Clear PC Rakitan cache (all versions)
+      try {
+        ['paretopc:pc-rakitan:v1','paretopc:pc-rakitan:v2','paretopc:pc-rakitan:v3','paretopc:pc-rakitan:v4','paretopc:pc-rakitan:v5']
+          .forEach(k => localStorage.removeItem(k));
+      } catch (e) {}
       state.pcRakitanData = null;
       U.toast(`${cleared + clearedFallback} entri cache dihapus. Memuat ulang…`, 'info');
       await loadAllSources(false, { ignoreCache: true });
@@ -2263,8 +2276,8 @@
     // Tambahkan tahun lain di sini saat sheet-nya sudah siap, contoh:
     // { year: 2025, gid: 'XXXXXXXXX' },
   ];
-  const PC_RAKITAN_CACHE_KEY = 'paretopc:pc-rakitan:v4';
-  const PC_RAKITAN_CACHE_TTL_MS = 10 * 60 * 1000; // 10 menit
+  const PC_RAKITAN_CACHE_KEY = 'paretopc:pc-rakitan:v5';
+  const PC_RAKITAN_CACHE_TTL_MS = 5 * 60 * 1000; // 5 menit
 
   // Chart instances for the PC Rakitan tab (destroyed/recreated on each render)
   const pcrCharts = {};
@@ -2335,22 +2348,24 @@
     return { qtyRows, valueRows };
   }
 
-  async function loadAndRenderPcRakitan() {
-    if (state.pcRakitanData) { renderPcRakitan(); return; }
-    // Try cache first
-    try {
-      const cached = localStorage.getItem(PC_RAKITAN_CACHE_KEY);
-      if (cached) {
-        const p = JSON.parse(cached);
-        const d = p && p.data;
-        if (p.savedAt && (Date.now() - new Date(p.savedAt).getTime()) < PC_RAKITAN_CACHE_TTL_MS
-            && d && (Array.isArray(d.qtyRows) || Array.isArray(d.valueRows))) {
-          state.pcRakitanData = d;
-          renderPcRakitan();
-          return;
+  async function loadAndRenderPcRakitan(force = false) {
+    if (!force && state.pcRakitanData) { renderPcRakitan(); return; }
+    // Try cache first (skipped when force = true)
+    if (!force) {
+      try {
+        const cached = localStorage.getItem(PC_RAKITAN_CACHE_KEY);
+        if (cached) {
+          const p = JSON.parse(cached);
+          const d = p && p.data;
+          if (p.savedAt && (Date.now() - new Date(p.savedAt).getTime()) < PC_RAKITAN_CACHE_TTL_MS
+              && d && (Array.isArray(d.qtyRows) || Array.isArray(d.valueRows))) {
+            state.pcRakitanData = d;
+            renderPcRakitan();
+            return;
+          }
         }
-      }
-    } catch (e) {}
+      } catch (e) {}
+    }
     try {
       const results = await Promise.all(
         PC_RAKITAN_YEAR_SOURCES.map(async (s) => {
