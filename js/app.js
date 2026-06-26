@@ -297,7 +297,7 @@
     // PC Rakitan data is cached separately and is NOT touched by loadAllSources,
     // so force a fresh re-fetch here too (clear all cache versions + in-memory).
     try {
-      ['paretopc:pc-rakitan:v1','paretopc:pc-rakitan:v2','paretopc:pc-rakitan:v3','paretopc:pc-rakitan:v4','paretopc:pc-rakitan:v5']
+      ['paretopc:pc-rakitan:v1','paretopc:pc-rakitan:v2','paretopc:pc-rakitan:v3','paretopc:pc-rakitan:v4','paretopc:pc-rakitan:v5','paretopc:pc-rakitan:v6']
         .forEach(k => localStorage.removeItem(k));
     } catch (e) {}
     state.pcRakitanData = null;
@@ -329,7 +329,7 @@
       state.paretoPcData = null;
       // Clear PC Rakitan cache (all versions)
       try {
-        ['paretopc:pc-rakitan:v1','paretopc:pc-rakitan:v2','paretopc:pc-rakitan:v3','paretopc:pc-rakitan:v4','paretopc:pc-rakitan:v5']
+        ['paretopc:pc-rakitan:v1','paretopc:pc-rakitan:v2','paretopc:pc-rakitan:v3','paretopc:pc-rakitan:v4','paretopc:pc-rakitan:v5','paretopc:pc-rakitan:v6']
           .forEach(k => localStorage.removeItem(k));
       } catch (e) {}
       state.pcRakitanData = null;
@@ -2276,7 +2276,7 @@
     // Tambahkan tahun lain di sini saat sheet-nya sudah siap, contoh:
     // { year: 2025, gid: 'XXXXXXXXX' },
   ];
-  const PC_RAKITAN_CACHE_KEY = 'paretopc:pc-rakitan:v5';
+  const PC_RAKITAN_CACHE_KEY = 'paretopc:pc-rakitan:v6';
   const PC_RAKITAN_CACHE_TTL_MS = 5 * 60 * 1000; // 5 menit
 
   // Chart instances for the PC Rakitan tab (destroyed/recreated on each render)
@@ -2310,6 +2310,46 @@
 
   function pcRakitanSheetUrl(gid) {
     return `${PC_RAKITAN_BASE_URL}?gid=${encodeURIComponent(gid)}&single=true&output=csv`;
+  }
+
+  /**
+   * Parse raw CSV text into rows[][] WITHOUT SheetJS.
+   *
+   * IMPORTANT: We deliberately avoid PC.parser.parseCSVText (SheetJS) here
+   * because SheetJS auto-converts cells that look like English-parseable dates
+   * (e.g. "April 2026", "September 2026", "November 2026" — Indonesian month
+   * names that are spelled identically in English) into date serial numbers.
+   * That mangling silently dropped those months. Parsing the text manually
+   * keeps column A as the literal label ("April 2026") so parseBulanLabel works.
+   */
+  function pcRakitanParseCsvText(text) {
+    const lines = String(text || '').split(/\r?\n/);
+    const rows = [];
+    for (const line of lines) {
+      rows.push(pcRakitanSplitCsvLine(line));
+    }
+    return rows;
+  }
+
+  /** Split a single CSV line into fields, honoring double-quoted fields. */
+  function pcRakitanSplitCsvLine(line) {
+    const out = [];
+    let cur = '', inQuotes = false;
+    for (let i = 0; i < line.length; i++) {
+      const c = line[i];
+      if (inQuotes) {
+        if (c === '"') {
+          if (line[i + 1] === '"') { cur += '"'; i++; } // escaped quote
+          else inQuotes = false;
+        } else cur += c;
+      } else {
+        if (c === '"') inQuotes = true;
+        else if (c === ',') { out.push(cur); cur = ''; }
+        else cur += c;
+      }
+    }
+    out.push(cur);
+    return out;
   }
 
   /**
@@ -2371,7 +2411,7 @@
         PC_RAKITAN_YEAR_SOURCES.map(async (s) => {
           try {
             const csv = await PC.sheets.fetchCsv(pcRakitanSheetUrl(s.gid));
-            const rows = PC.parser.parseCSVText(csv);
+            const rows = pcRakitanParseCsvText(csv);
             return parsePcRakitanCsv(rows, s.year);
           } catch (err) {
             console.warn('[PCRakitan] year fetch failed:', s.year, err);
