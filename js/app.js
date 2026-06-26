@@ -1743,16 +1743,62 @@
   function parseBulanLabel(raw, fallbackYear) {
     const s = String(raw || '').replace(/[\u00A0\u200B\u2009\u202F]/g, ' ').trim();
     if (!s) return null;
+
+    // Strategy 1: text month name — "Januari 2026", "Apr 2026", etc.
     const parts = s.split(/\s+/);
     const monthKey = (parts[0] || '').toLowerCase();
-    const monthIdx = PARETO_PC_BULAN_MAP[monthKey];
-    if (!monthIdx) return null;
-    let year = fallbackYear;
-    // Year can be in parts[1] or parts[2] (handle "April  2026" with extra space)
-    for (let i = 1; i < parts.length; i++) {
-      if (/^\d{4}$/.test(parts[i])) { year = parseInt(parts[i], 10); break; }
+    let monthIdx = PARETO_PC_BULAN_MAP[monthKey];
+    if (monthIdx) {
+      let year = fallbackYear;
+      for (let i = 1; i < parts.length; i++) {
+        if (/^\d{4}$/.test(parts[i])) { year = parseInt(parts[i], 10); break; }
+      }
+      return { year, month: monthIdx, label: `${PARETO_PC_BULAN_NAMES[monthIdx]} ${year}`, short: PARETO_PC_SHORT_BULAN[monthIdx] };
     }
-    return { year, month: monthIdx, label: `${PARETO_PC_BULAN_NAMES[monthIdx]} ${year}`, short: PARETO_PC_SHORT_BULAN[monthIdx] };
+
+    // Strategy 2: date format — DD/MM/YYYY, D/M/YYYY, MM/DD/YYYY, YYYY-MM-DD
+    // Google Sheets CSV typically exports dates as M/D/YYYY or D/M/YYYY depending on locale.
+    // Indonesian locale typically uses DD/MM/YYYY.
+    const dateMatch = s.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4})$/);
+    if (dateMatch) {
+      let [_, a, b, y] = dateMatch;
+      a = parseInt(a, 10); b = parseInt(b, 10);
+      const year = parseInt(y, 10);
+      // Determine which is day and which is month:
+      // If a > 12, it must be the day (DD/MM/YYYY). If b > 12, it's day (MM/DD/YYYY).
+      // If both <= 12, assume DD/MM/YYYY (Indonesian locale).
+      let month;
+      if (a > 12) month = b;       // a is day, b is month
+      else if (b > 12) month = a;  // b is day, a is month
+      else month = b;              // ambiguous → assume DD/MM/YYYY (Indonesian)
+      if (month >= 1 && month <= 12) {
+        return { year, month, label: `${PARETO_PC_BULAN_NAMES[month]} ${year}`, short: PARETO_PC_SHORT_BULAN[month] };
+      }
+    }
+
+    // Strategy 3: ISO date YYYY-MM-DD
+    const isoMatch = s.match(/^(\d{4})[\/\-.](\d{1,2})[\/\-.](\d{1,2})$/);
+    if (isoMatch) {
+      const year = parseInt(isoMatch[1], 10);
+      const month = parseInt(isoMatch[2], 10);
+      if (month >= 1 && month <= 12) {
+        return { year, month, label: `${PARETO_PC_BULAN_NAMES[month]} ${year}`, short: PARETO_PC_SHORT_BULAN[month] };
+      }
+    }
+
+    // Strategy 4: Excel serial date number (days since 1899-12-30)
+    if (/^\d{5}$/.test(s)) {
+      const serial = parseInt(s, 10);
+      const excelEpoch = new Date(1899, 11, 30); // Dec 30, 1899
+      const dt = new Date(excelEpoch.getTime() + serial * 86400000);
+      if (!isNaN(dt)) {
+        const month = dt.getMonth() + 1;
+        const year = dt.getFullYear();
+        return { year, month, label: `${PARETO_PC_BULAN_NAMES[month]} ${year}`, short: PARETO_PC_SHORT_BULAN[month] };
+      }
+    }
+
+    return null;
   }
 
   function isNumericValueCell(s) {
@@ -2220,8 +2266,8 @@
     // Tambahkan tahun lain di sini saat sheet-nya sudah siap, contoh:
     // { year: 2025, gid: 'XXXXXXXXX' },
   ];
-  const PC_RAKITAN_CACHE_KEY = 'paretopc:pc-rakitan:v3';
-  const PC_RAKITAN_CACHE_TTL_MS = 10 * 60 * 1000; // 10 menit (agar data baru cepat terdeteksi)
+  const PC_RAKITAN_CACHE_KEY = 'paretopc:pc-rakitan:v4';
+  const PC_RAKITAN_CACHE_TTL_MS = 10 * 60 * 1000; // 10 menit
 
   // Chart instances for the PC Rakitan tab (destroyed/recreated on each render)
   const pcrCharts = {};
