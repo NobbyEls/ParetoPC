@@ -722,8 +722,10 @@
         if (el) el.classList.add('hidden');
       });
       document.querySelectorAll('#dashboard > .grid').forEach(el => el.classList.add('hidden'));
+      // Show filter card but swap normal filters for PC Rakitan filters
       const filterCard = document.querySelector('.filter-card');
-      if (filterCard) filterCard.classList.add('hidden');
+      if (filterCard) filterCard.classList.remove('hidden');
+      togglePcrFilters(true);
       // Show PC Rakitan section, hide Pareto PC section
       if (paretoPcSection) paretoPcSection.classList.add('hidden');
       if (pcRakitanSection) pcRakitanSection.classList.remove('hidden');
@@ -736,9 +738,10 @@
     if (paretoPcSection) paretoPcSection.classList.add('hidden');
     if (pcRakitanSection) pcRakitanSection.classList.add('hidden');
     document.querySelectorAll('#dashboard > .grid').forEach(el => el.classList.remove('hidden'));
-    // Show filter card
+    // Show filter card with normal filters
     const filterCard = document.querySelector('.filter-card');
     if (filterCard) filterCard.classList.remove('hidden');
+    togglePcrFilters(false);
 
     const filtered = A.filterRecords(state.records, state.filters);
     const deptLabel = dept || 'Semua';
@@ -2181,7 +2184,7 @@
     const stickyGroup = document.querySelector('.sticky-top-group');
     if (!stickyGroup) return;
     const headerH = stickyGroup.getBoundingClientRect().height;
-    ['pareto-pc-filter-bar', 'pc-rakitan-filter-bar'].forEach(id => {
+    ['pareto-pc-filter-bar'].forEach(id => {
       const el = document.getElementById(id);
       if (el) el.style.top = headerH + 'px';
     });
@@ -2216,6 +2219,32 @@
 
   // Chart instances for the PC Rakitan tab (destroyed/recreated on each render)
   const pcrCharts = {};
+
+  /** Show/hide the PC Rakitan filter controls in the main filter card.
+   *  When true: hide normal filters (tahun, bulan, kota, brand, juta, cekInk),
+   *  show PCR year+month selects.
+   *  When false: reverse.
+   */
+  function togglePcrFilters(show) {
+    // Normal filter elements to hide
+    const normalIds = ['filter-tahun', 'filter-bulan', 'filter-kota', 'filter-brand'];
+    for (const id of normalIds) {
+      const el = document.getElementById(id);
+      if (el && el.closest('.flex-1')) {
+        el.closest('.flex-1').classList.toggle('hidden', show);
+      }
+    }
+    // Also hide filter-cekink-wrap
+    const inkWrap = document.getElementById('filter-cekink-wrap');
+    if (inkWrap) inkWrap.classList.toggle('hidden', show);
+    // PCR filter elements
+    const pcrTahun = document.getElementById('filter-pcr-tahun-wrap');
+    const pcrBulan = document.getElementById('filter-pcr-bulan-wrap');
+    const pcrInfo = document.getElementById('pc-rakitan-filter-info');
+    if (pcrTahun) pcrTahun.classList.toggle('hidden', !show);
+    if (pcrBulan) pcrBulan.classList.toggle('hidden', !show);
+    if (pcrInfo) pcrInfo.classList.toggle('hidden', !show);
+  }
 
   function pcRakitanSheetUrl(gid) {
     return `${PC_RAKITAN_BASE_URL}?gid=${encodeURIComponent(gid)}&single=true&output=csv`;
@@ -2397,6 +2426,8 @@
       { labelHead: 'Brand', valueHead: 'QTY', cellFmt: qtyFmt, tipFmt: (v) => U.formatNumber(v) + ' unit', colorFn: pcrBrandColor });
     renderPcrBreakdown('proc', curQty, prevQty, yoyQty, r => r.proc, r => r.qty,
       { labelHead: 'Tipe Proc', valueHead: 'QTY', cellFmt: qtyFmt, tipFmt: (v) => U.formatNumber(v) + ' unit', colorFn: pcrProcColor });
+    renderPcrBreakdown('kota', curQty, prevQty, yoyQty, r => r.cabang, r => r.qty,
+      { labelHead: 'Kota / Cabang', valueHead: 'QTY', cellFmt: qtyFmt, tipFmt: (v) => U.formatNumber(v) + ' unit', colorFn: (k, i) => KOTA_PALETTE[i % KOTA_PALETTE.length] });
 
     // VALUE breakdowns
     renderPcrBreakdown('cabang', curVal, prevVal, yoyVal, r => r.cabang, r => r.value,
@@ -2404,20 +2435,95 @@
     renderPcrBreakdown('type', curVal, prevVal, yoyVal, r => r.typeRakitan, r => r.value,
       { labelHead: 'Tipe Rakitan', valueHead: 'VALUE', cellFmt: (v) => fmtValueShort(v), tipFmt: valFmt, colorFn: pcrTypeColor });
 
+    // ---- TREND CHART (total qty per bulan, line chart at top) ----
+    renderPcrTrendChart(qtyRows, curYear);
+
     // Info banner + subtitles
     const info = document.getElementById('pc-rakitan-filter-info');
     if (info) {
-      let txt = `${months.length} bulan dimuat · menampilkan ${sel.label}`;
+      let txt = `${months.length} bulan · ${sel.label}`;
       if (prevMonth) txt += ` · MoM vs ${prevMonth.short}`;
       if (yoyMonth) txt += ` · YoY vs ${yoyMonth.short} ${yoyMonth.year}`;
       info.textContent = txt;
     }
     setText('pcr-brand-sub', `Unit terjual per brand prosesor — ${sel.label}`);
     setText('pcr-proc-sub', `Unit terjual per tipe prosesor — ${sel.label}`);
+    setText('pcr-kota-sub', `Unit terjual per cabang — ${sel.label}`);
     setText('pcr-cabang-sub', `Total omset PC Rakitan per cabang — ${sel.label}`);
     setText('pcr-type-sub', `Total omset per tipe rakitan — ${sel.label}`);
 
     updateParetoPCFilterStickyTop();
+  }
+
+  /**
+   * Render a line chart showing total QTY per month for PC Rakitan (selected year).
+   * Mimics the YoY/trend chart pattern from other tabs.
+   */
+  function renderPcrTrendChart(qtyRows, year) {
+    const canvas = document.getElementById('chart-pcr-trend');
+    if (!canvas) return;
+    if (pcrCharts['trend']) { pcrCharts['trend'].destroy(); delete pcrCharts['trend']; }
+
+    const MONTHS_SHORT = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
+    const data = new Array(12).fill(0);
+    let lastIdx = -1;
+    for (const r of (qtyRows || [])) {
+      if (r.year !== year) continue;
+      const idx = r.month - 1;
+      if (idx < 0 || idx > 11) continue;
+      data[idx] += (r.qty || 0);
+      if (data[idx] > 0 && idx > lastIdx) lastIdx = idx;
+    }
+    if (lastIdx < 0) return;
+
+    const labels = MONTHS_SHORT.slice(0, lastIdx + 1);
+    const values = data.slice(0, lastIdx + 1);
+
+    const color = '#ec4899';
+    pcrCharts['trend'] = new Chart(canvas.getContext('2d'), {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [{
+          label: 'Unit PC Rakitan',
+          data: values,
+          borderColor: color,
+          backgroundColor: color + '30',
+          tension: 0.4,
+          cubicInterpolationMode: 'monotone',
+          borderWidth: 2.5,
+          pointRadius: 4,
+          pointHoverRadius: 7,
+          pointBackgroundColor: color,
+          pointBorderColor: '#0a0e1a',
+          pointBorderWidth: 2,
+          fill: true,
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        animation: { duration: 1200, easing: 'easeOutQuart' },
+        interaction: { mode: 'nearest', axis: 'x', intersect: false },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: (c) => `${U.formatNumber(c.parsed.y)} unit`,
+            }
+          }
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: { callback: (v) => U.formatNumber(v) },
+            grid: { color: 'rgba(45,52,84,0.25)', drawBorder: false },
+          },
+          x: { grid: { display: false }, ticks: { font: { weight: 500 } } }
+        }
+      }
+    });
+
+    setText('pcr-trend-sub', `Total unit PC Rakitan per bulan — ${year}`);
   }
 
   /**
