@@ -66,7 +66,7 @@
   }
 
   // The 4 main department tabs + Pareto PC special tab
-  const DEPT_TABS = ['Pareto PC', 'Printer', 'Projector', 'Monitor', 'PC Branded'];
+  const DEPT_TABS = ['Pareto PC', 'PC Rakitan', 'Printer', 'Projector', 'Monitor', 'PC Branded'];
 
   // Slugify dept name → CSS class (e.g. "PC Branded" → "pcbranded")
   function deptSlug(d) {
@@ -83,6 +83,8 @@
     chartType: 'bar',  // 'bar' or 'line' for stacked chart
     paretoPcData: null,      // All parsed months: [{ year, month, label, short, leftRows, rightRows, leftGrand, rightGrand }]
     paretoPcFilters: { year: null, month: null }, // Selected tahun/bulan for Pareto PC tab
+    pcRakitanData: null,     // [{ year, left: {headers, rows}, right: {headers, rows} }]
+    pcRakitanFilters: { year: null }, // Selected tahun for PC Rakitan tab
     filters: {
       dept: 'Pareto PC',  // Default tab on first load
       kota: '__all__',
@@ -314,6 +316,9 @@
         ['paretopc:pareto-pc-data:v1','paretopc:pareto-pc-data:v2','paretopc:pareto-pc:v3','paretopc:pareto-pc-trend:v1'].forEach(k => localStorage.removeItem(k));
       } catch (e) {}
       state.paretoPcData = null;
+      // Clear PC Rakitan cache
+      try { localStorage.removeItem(PC_RAKITAN_CACHE_KEY); } catch (e) {}
+      state.pcRakitanData = null;
       U.toast(`${cleared + clearedFallback} entri cache dihapus. Memuat ulang…`, 'info');
       await loadAllSources(false, { ignoreCache: true });
     });
@@ -508,10 +513,11 @@
     if (!wrap) return;
     // Show the 4 data-driven depts that have records + the special Pareto PC tab
     const presentDepts = new Set(state.records.map(r => r.dept).filter(Boolean));
-    const tabs = DEPT_TABS.filter(d => d === 'Pareto PC' || presentDepts.has(d));
+    const SPECIAL_TABS = ['Pareto PC', 'PC Rakitan'];
+    const tabs = DEPT_TABS.filter(d => SPECIAL_TABS.includes(d) || presentDepts.has(d));
 
-    // If active dept has no data and is not Pareto PC, fallback to first available
-    if (state.filters.dept !== 'Pareto PC' && !presentDepts.has(state.filters.dept) && tabs.length) {
+    // If active dept has no data and is not a special tab, fallback to first available
+    if (!SPECIAL_TABS.includes(state.filters.dept) && !presentDepts.has(state.filters.dept) && tabs.length) {
       state.filters.dept = tabs[0];
     }
 
@@ -525,6 +531,18 @@
             <span class="dept-tab-text">
               <span class="dept-tab-name">${escapeHtml(d)}</span>
               <span class="dept-tab-stat">Summary Report</span>
+            </span>
+          </button>
+        `;
+      }
+      if (d === 'PC Rakitan') {
+        // Special tab - data from dedicated PC Rakitan sheet (kolom A–G & I–K)
+        return `
+          <button class="dept-tab dept-pcrakitan ${isActive ? 'active' : ''}" data-key="${escapeAttr(d)}">
+            <span class="dept-tab-icon">🛠️</span>
+            <span class="dept-tab-text">
+              <span class="dept-tab-name">${escapeHtml(d)}</span>
+              <span class="dept-tab-stat">Analisa MoM / YoY</span>
             </span>
           </button>
         `;
@@ -672,6 +690,7 @@
 
     // Special handling for Pareto PC tab
     const paretoPcSection = document.getElementById('pareto-pc-section');
+    const pcRakitanSection = document.getElementById('pc-rakitan-section');
     const normalCharts = ['yoy-card', 'marketshare-tipepc-card', 'marketshare-card', 'marketshare-kota-card',
       'card-dimensi', 'dept3d-card', 'card-trend', 'card-mix', 'card-brand', 'card-product',
       'card-kota', 'card-sales', 'card-pareto'];
@@ -687,15 +706,34 @@
       // Hide filter card (filters don't apply to Pareto PC)
       const filterCard = document.querySelector('.filter-card');
       if (filterCard) filterCard.classList.add('hidden');
-      // Show Pareto PC section
+      // Show Pareto PC section, hide PC Rakitan section
+      if (pcRakitanSection) pcRakitanSection.classList.add('hidden');
       if (paretoPcSection) paretoPcSection.classList.remove('hidden');
       // Load and render Pareto PC data
       loadAndRenderParetoPC();
       return;
     }
 
-    // Normal dept selected - hide Pareto PC section, show grid containers
+    if (dept === 'PC Rakitan') {
+      // Hide all normal chart cards
+      normalCharts.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.classList.add('hidden');
+      });
+      document.querySelectorAll('#dashboard > .grid').forEach(el => el.classList.add('hidden'));
+      const filterCard = document.querySelector('.filter-card');
+      if (filterCard) filterCard.classList.add('hidden');
+      // Show PC Rakitan section, hide Pareto PC section
+      if (paretoPcSection) paretoPcSection.classList.add('hidden');
+      if (pcRakitanSection) pcRakitanSection.classList.remove('hidden');
+      // Load and render PC Rakitan data
+      loadAndRenderPcRakitan();
+      return;
+    }
+
+    // Normal dept selected - hide special sections, show grid containers
     if (paretoPcSection) paretoPcSection.classList.add('hidden');
+    if (pcRakitanSection) pcRakitanSection.classList.add('hidden');
     document.querySelectorAll('#dashboard > .grid').forEach(el => el.classList.remove('hidden'));
     // Show filter card
     const filterCard = document.querySelector('.filter-card');
@@ -714,7 +752,6 @@
     setText('title-kota',   `Penjualan per Kota — ${deptLabel}`);
     setText('title-sales',  `Top 10 Sales — ${deptLabel}`);
     setText('title-pareto', `📊 Analisa Pareto 80/20 — ${deptLabel}`);
-    setText('title-juta',   `Distribusi Range Harga — ${deptLabel}`);
 
     // Show/hide cards based on dept
     showCard('card-dimensi', dept === 'Monitor'); // Dimensi only for Monitor
@@ -799,8 +836,6 @@
     document.getElementById('pareto-summary').innerHTML = p.totalItems
       ? `🎯 <strong>${p.itemsIn80}</strong> dari <strong>${p.totalItems}</strong> produk ${deptLabel} (${(p.itemsIn80 / p.totalItems * 100).toFixed(1)}%) menghasilkan 80% dari omzet (${U.formatIDR(p.grandTotal * 0.8)} dari total ${U.formatIDR(p.grandTotal)}).`
       : '—';
-
-    Ch.distChart('chart-juta', A.aggBy(filtered, r => r.cekJuta), 'Range');
 
     if (dept === 'Monitor') {
       renderDimensiTable(filtered);
@@ -2143,13 +2178,212 @@
   // Keep filter bar sticky below the main header group.
   function updateParetoPCFilterStickyTop() {
     const stickyGroup = document.querySelector('.sticky-top-group');
-    const filterBar = document.getElementById('pareto-pc-filter-bar');
-    if (!stickyGroup || !filterBar) return;
+    if (!stickyGroup) return;
     const headerH = stickyGroup.getBoundingClientRect().height;
-    filterBar.style.top = headerH + 'px';
+    ['pareto-pc-filter-bar', 'pc-rakitan-filter-bar'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.style.top = headerH + 'px';
+    });
   }
   window.addEventListener('resize', updateParetoPCFilterStickyTop);
   updateParetoPCFilterStickyTop();
+
+  // ============================================================
+  // PC RAKITAN — Fetch & render from dedicated CSV sheet
+  //
+  // The source sheet carries TWO side-by-side tables separated by a blank
+  // column (H):
+  //   • Kolom A–G  (index 0–6)  → analisa utama (kategori + value + %, MoM, YoY)
+  //   • Kolom I–K  (index 8–10) → ringkasan tambahan
+  // The sheet's own first row is used as the table headers, so any MoM/YoY
+  // columns that already exist in the sheet are rendered as-is (with ▲/▼ color
+  // formatting on percentage cells). This keeps the tab faithful to the source
+  // without hard-coding column meanings.
+  //
+  // Adding a new year = append an entry to PC_RAKITAN_YEAR_SOURCES.
+  // ============================================================
+  const PC_RAKITAN_BASE_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRRqSZ-ul2r7ZbXd2vqir9744EcG3dp7CeOlk4YOBhgFcXmjdepy_YJ9Y9hXYHfmNuY9v_eeitsqXLb/pub';
+  const PC_RAKITAN_YEAR_SOURCES = [
+    { year: 2026, gid: '1216842085' },
+    // Tambahkan tahun lain di sini saat sheet-nya sudah siap, contoh:
+    // { year: 2025, gid: 'XXXXXXXXX' },
+  ];
+  const PC_RAKITAN_CACHE_KEY = 'paretopc:pc-rakitan:v1';
+  const PC_RAKITAN_CACHE_TTL_MS = 60 * 60 * 1000;
+
+  // Column block ranges (0-indexed, inclusive). Column H (index 7) is separator.
+  const PC_RAKITAN_LEFT = [0, 6];   // A–G
+  const PC_RAKITAN_RIGHT = [8, 10]; // I–K
+
+  function pcRakitanSheetUrl(gid) {
+    return `${PC_RAKITAN_BASE_URL}?gid=${encodeURIComponent(gid)}&single=true&output=csv`;
+  }
+
+  function pcRakitanSliceBlock(row, range) {
+    const out = [];
+    for (let c = range[0]; c <= range[1]; c++) {
+      out.push(String((row && row[c] != null) ? row[c] : '').trim());
+    }
+    return out;
+  }
+
+  function pcRakitanBlockEmpty(cells) {
+    return cells.every(c => c === '');
+  }
+
+  /** Split a parsed CSV (rows[][]) into the two side-by-side column blocks. */
+  function parsePcRakitanCsv(rows, year) {
+    const leftAll = [], rightAll = [];
+    for (const row of (rows || [])) {
+      if (!row) continue;
+      const l = pcRakitanSliceBlock(row, PC_RAKITAN_LEFT);
+      const r = pcRakitanSliceBlock(row, PC_RAKITAN_RIGHT);
+      if (!pcRakitanBlockEmpty(l)) leftAll.push(l);
+      if (!pcRakitanBlockEmpty(r)) rightAll.push(r);
+    }
+    const toTable = (all) => {
+      if (!all.length) return { headers: [], rows: [] };
+      // Trim trailing all-empty columns so we don't render dead columns.
+      const width = all.reduce((m, r) => Math.max(m, r.length), 0);
+      let lastNonEmpty = -1;
+      for (let c = 0; c < width; c++) {
+        if (all.some(r => (r[c] || '') !== '')) lastNonEmpty = c;
+      }
+      const cut = (r) => r.slice(0, lastNonEmpty + 1);
+      return { headers: cut(all[0]), rows: all.slice(1).map(cut) };
+    };
+    return { year, left: toTable(leftAll), right: toTable(rightAll) };
+  }
+
+  async function loadAndRenderPcRakitan() {
+    if (state.pcRakitanData && state.pcRakitanData.length) { renderPcRakitan(); return; }
+    // Try cache first
+    try {
+      const cached = localStorage.getItem(PC_RAKITAN_CACHE_KEY);
+      if (cached) {
+        const p = JSON.parse(cached);
+        if (p.savedAt && (Date.now() - new Date(p.savedAt).getTime()) < PC_RAKITAN_CACHE_TTL_MS && Array.isArray(p.data) && p.data.length) {
+          state.pcRakitanData = p.data;
+          renderPcRakitan();
+          return;
+        }
+      }
+    } catch (e) {}
+    try {
+      const yearResults = await Promise.all(
+        PC_RAKITAN_YEAR_SOURCES.map(async (s) => {
+          try {
+            const csv = await PC.sheets.fetchCsv(pcRakitanSheetUrl(s.gid));
+            const rows = PC.parser.parseCSVText(csv);
+            return parsePcRakitanCsv(rows, s.year);
+          } catch (err) {
+            console.warn('[PCRakitan] year fetch failed:', s.year, err);
+            return { year: s.year, left: { headers: [], rows: [] }, right: { headers: [], rows: [] } };
+          }
+        })
+      );
+      yearResults.sort((a, b) => a.year - b.year);
+      state.pcRakitanData = yearResults;
+      try { localStorage.setItem(PC_RAKITAN_CACHE_KEY, JSON.stringify({ data: yearResults, savedAt: new Date().toISOString() })); } catch (e) {}
+      renderPcRakitan();
+    } catch (err) {
+      console.error('[PCRakitan] Failed:', err);
+      U.toast('Gagal memuat data PC Rakitan: ' + (err.message || err), 'error');
+    }
+  }
+
+  function renderPcRakitan() {
+    const all = state.pcRakitanData || [];
+    if (!all.length) return;
+    const years = all.map(d => d.year).sort((a, b) => a - b);
+    let cur = state.pcRakitanFilters.year;
+    if (!cur || !years.includes(cur)) cur = years[years.length - 1];
+    state.pcRakitanFilters.year = cur;
+
+    const yearSel = document.getElementById('pc-rakitan-filter-year');
+    if (yearSel) {
+      yearSel.innerHTML = years.map(y => `<option value="${y}"${y === cur ? ' selected' : ''}>${y}</option>`).join('');
+    }
+
+    const sel = all.find(d => d.year === cur) || all[all.length - 1];
+    renderPcRakitanTable('table-pc-rakitan-left', sel.left);
+    renderPcRakitanTable('table-pc-rakitan-right', sel.right);
+
+    // Hide the I–K card entirely when that block is empty.
+    const rightCard = document.getElementById('card-pc-rakitan-right');
+    if (rightCard) {
+      if (sel.right && sel.right.headers.length) rightCard.classList.remove('hidden');
+      else rightCard.classList.add('hidden');
+    }
+
+    const info = document.getElementById('pc-rakitan-filter-info');
+    if (info) info.textContent = `${years.length} tahun dimuat · menampilkan ${cur}`;
+
+    updateParetoPCFilterStickyTop();
+  }
+
+  function renderPcRakitanTable(tableId, block) {
+    const table = document.getElementById(tableId);
+    if (!table) return;
+    if (!block || !block.headers.length) {
+      table.innerHTML = '<tr><td class="text-center py-4" style="color:var(--text-muted)">Tidak ada data</td></tr>';
+      return;
+    }
+    const headers = block.headers;
+    const head = '<thead><tr>' +
+      headers.map((h, i) => `<th class="${i === 0 ? 'ms-head-bulan' : 'ms-head-grand'}" style="text-align:center">${escapeHtml(h)}</th>`).join('') +
+      '</tr></thead>';
+
+    let body = '<tbody>';
+    for (const row of block.rows) {
+      if (!row || row.every(c => (c || '') === '')) continue;
+      const firstCell = String(row[0] || '').trim();
+      const isGrand = /grand\s*total|^total$/i.test(firstCell);
+      const isNeg = /voucher/i.test(firstCell);
+      const rowCls = isGrand ? ' class="ms-grand-row"' : (isNeg ? ' class="pareto-pc-negative"' : '');
+      body += `<tr${rowCls}>` + headers.map((_, i) => {
+        const raw = (row[i] != null) ? String(row[i]) : '';
+        const cellCls = i === 0 ? 'ms-bulan-cell' : 'ms-share-cell';
+        return `<td class="${cellCls}" style="text-align:center">${formatPcRakitanCell(raw, i === 0)}</td>`;
+      }).join('') + '</tr>';
+    }
+    body += '</tbody>';
+    table.innerHTML = head + body;
+  }
+
+  /**
+   * Format a PC Rakitan cell. The first column (label) renders as-is.
+   * Other columns: a percentage / signed change is colored green (▲) or red (▼)
+   * so MoM/YoY columns read clearly.
+   */
+  function formatPcRakitanCell(val, isLabel) {
+    const s = String(val == null ? '' : val).trim();
+    if (!s) return '';
+    if (isLabel) return escapeHtml(s);
+
+    // Already carries a direction arrow
+    if (/^[▲▼]/.test(s)) {
+      const cls = s.charAt(0) === '▲' ? 'ms-up' : 'ms-down';
+      return `<span class="${cls}">${escapeHtml(s)}</span>`;
+    }
+
+    // Percentage-like change value, e.g. "12,5%", "-8%", "(8%)"
+    if (/%\s*$/.test(s)) {
+      const negative = /^-/.test(s) || /^\(.*\)$/.test(s);
+      const numericPart = s.replace(/[()%\s]/g, '').replace(/^-/, '');
+      const isZero = /^0([.,]0+)?$/.test(numericPart);
+      if (isZero) return escapeHtml(s);
+      if (negative) return `<span class="ms-down">▼ ${escapeHtml(s.replace(/^[-(]/, '').replace(/\)$/, ''))}</span>`;
+      return `<span class="ms-up">▲ ${escapeHtml(s)}</span>`;
+    }
+    return escapeHtml(s);
+  }
+
+  // PC Rakitan year selector
+  document.getElementById('pc-rakitan-filter-year')?.addEventListener('change', (e) => {
+    state.pcRakitanFilters.year = parseInt(e.target.value, 10);
+    renderPcRakitan();
+  });
 
   // ============================================================
   // PNG DOWNLOAD — capture card as image using html2canvas
@@ -2199,10 +2433,16 @@
     loadAndRenderParetoPC().catch(() => {});
   }
 
+  // Prefetch PC Rakitan data in background too, so the tab opens instantly.
+  function prefetchPcRakitan() {
+    loadAndRenderPcRakitan().catch(() => {});
+  }
+
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => { loadAllSources(false); prefetchParetoPC(); });
+    document.addEventListener('DOMContentLoaded', () => { loadAllSources(false); prefetchParetoPC(); prefetchPcRakitan(); });
   } else {
     loadAllSources(false);
     prefetchParetoPC();
+    prefetchPcRakitan();
   }
 })();
