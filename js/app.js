@@ -1743,40 +1743,46 @@
   const PARETO_PC_CACHE_KEY = 'paretopc:pareto-pc:v4';
   const PARETO_PC_CACHE_TTL_MS = 60 * 60 * 1000;
 
-  const PARETO_PC_BULAN_MAP = {
-    'januari':1,'februari':2,'maret':3,'april':4,'mei':5,'juni':6,
-    'juli':7,'agustus':8,'september':9,'oktober':10,'november':11,'desember':12,
-    // Singkatan umum (3-4 huruf)
+const PARETO_PC_BULAN_MAP = {
+    // Singkatan ID
     'jan':1,'feb':2,'mar':3,'apr':4,'mei':5,'jun':6,
-    'jul':7,'agu':8,'agus':8,'sep':9,'okt':10,'nov':11,'des':12,
+    'jul':7,'agu':8,'agus':8,'ags':8,'sep':9,'sept':9,'okt':10,'nov':11,'des':12,
+    // Nama lengkap ID
+    'januari':1,'februari':2,'maret':3,'april':4,'juni':6,
+    'juli':7,'agustus':8,'september':9,'oktober':10,'november':11,'desember':12,
+    // English (jaga-jaga, kalau locale sheet berubah)
+    'january':1,'february':2,'march':3,'may':5,'june':6,
+    'july':7,'august':8,'october':10,'december':12,
   };
   const PARETO_PC_BULAN_NAMES = ['','Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
   const PARETO_PC_SHORT_BULAN = ['','Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
-
-  function parseBulanLabel(raw, fallbackYear) {
+function parseBulanLabel(raw, fallbackYear) {
     const s = String(raw || '').replace(/[\u00A0\u200B\u2009\u202F]/g, ' ').trim();
     if (!s) return null;
 
-    // Strategy 1: text month name — "Januari 2026", "Apr 2026", etc.
+    // Strategy 1: scan SEMUA kata untuk nama bulan (ID/EN, lengkap/singkat).
+    // Toleran terhadap variasi seperti "April 2026", "Apr 2026", "1 April 2026",
+    // "01 Apr 2026", "April 2026.", "Apr, 2026", dst.
     const parts = s.split(/\s+/);
-    const monthKey = (parts[0] || '').toLowerCase();
-    const monthIdx = PARETO_PC_BULAN_MAP[monthKey];
+    let monthIdx = null;
+    for (const p of parts) {
+      const key = p.toLowerCase().replace(/[.,;:]/g, '');
+      if (PARETO_PC_BULAN_MAP[key]) { monthIdx = PARETO_PC_BULAN_MAP[key]; break; }
+    }
     if (monthIdx) {
       let year = fallbackYear;
-      for (let i = 1; i < parts.length; i++) {
-        if (/^\d{4}$/.test(parts[i])) { year = parseInt(parts[i], 10); break; }
+      for (const p of parts) {
+        if (/^\d{4}$/.test(p)) { year = parseInt(p, 10); break; }
       }
       return { year, month: monthIdx, label: `${PARETO_PC_BULAN_NAMES[monthIdx]} ${year}`, short: PARETO_PC_SHORT_BULAN[monthIdx] };
     }
 
-    // Strategy 2: date DD/MM/YYYY or M/D/YYYY (Google Sheets CSV export)
+    // Strategy 2: tanggal DD/MM/YYYY atau MM/DD/YYYY (assume DD/MM/YYYY = Indonesian locale)
     const dateMatch = s.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4})$/);
     if (dateMatch) {
       let [_, a, b, y] = dateMatch;
       a = parseInt(a, 10); b = parseInt(b, 10);
       const year = parseInt(y, 10);
-      // If a > 12 it must be day (DD/MM/YYYY). If b > 12 it's day (MM/DD/YYYY).
-      // Ambiguous → assume DD/MM/YYYY (Indonesian locale).
       let month;
       if (a > 12) month = b;
       else if (b > 12) month = a;
