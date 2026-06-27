@@ -171,6 +171,10 @@
               <label class="filter-label">Bulan</label>
               <select id="pc-rakitan-filter-month" class="w-full text-sm px-3 py-2"></select>
             </div>
+            <div id="filter-pcr-kota-wrap" class="flex-1 hidden" style="min-width:150px">
+              <label class="filter-label">Kota / Cabang</label>
+              <select id="pc-rakitan-filter-kota" class="w-full text-sm px-3 py-2"></select>
+            </div>
             <span id="pc-rakitan-filter-info" class="text-xs hidden" style="color:var(--text-muted);"></span>
           </div>
           <button id="btn-reset-filters" class="btn-reset px-4 py-2 text-sm self-end shrink-0">
@@ -315,7 +319,13 @@
               <h3 class="chart-title" id="pcr-trend-title">📈 Tren Unit Terjual Bulanan — PC Rakitan</h3>
               <p class="chart-sub" id="pcr-trend-sub">Total unit PC Rakitan per bulan</p>
             </div>
-            <button class="btn-png" title="Download sebagai PNG" data-target="card-pcr-trend">⬇ PNG</button>
+            <div class="flex items-center gap-2">
+              <button class="btn-png" title="Download sebagai PNG" data-target="card-pcr-trend">⬇ PNG</button>
+              <div id="pcr-trend-mode-toggle" class="inline-flex rounded-lg overflow-hidden border" style="border-color:var(--border-subtle);">
+                <button class="pcr-trend-mode-btn yoy-mode-btn active" data-mode="qty">QTY</button>
+                <button class="pcr-trend-mode-btn yoy-mode-btn" data-mode="value">Value (Rp)</button>
+              </div>
+            </div>
           </div>
           <div class="chart-body chart-body-tall"><canvas id="chart-pcr-trend"></canvas></div>
         </div>
@@ -325,7 +335,7 @@
           <div id="card-pcr-brand" class="chart-card">
             <div class="chart-header flex flex-wrap items-center justify-between gap-3">
               <div>
-                <h3 class="chart-title">🔧 Qty per Brand Processor</h3>
+                <h3 class="chart-title">🔧 PC Rakitan by Proc</h3>
                 <p class="chart-sub" id="pcr-brand-sub">Unit terjual per brand prosesor (MoM &amp; YoY)</p>
               </div>
               <button class="btn-png" title="Download sebagai PNG" data-target="card-pcr-brand">⬇ PNG</button>
@@ -336,7 +346,7 @@
           <div id="card-pcr-proc" class="chart-card">
             <div class="chart-header flex flex-wrap items-center justify-between gap-3">
               <div>
-                <h3 class="chart-title">🧩 Qty per Tipe Processor</h3>
+                <h3 class="chart-title">🧩 PC Rakitan by Type Proc</h3>
                 <p class="chart-sub" id="pcr-proc-sub">Unit terjual per tipe prosesor (MoM &amp; YoY)</p>
               </div>
               <button class="btn-png" title="Download sebagai PNG" data-target="card-pcr-proc">⬇ PNG</button>
