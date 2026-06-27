@@ -230,11 +230,25 @@ PC.analytics = (() => {
     return { labels: sortedMonths, datasets };
   }
 
-  /** Pareto on a key (default: nama barang) */
+ /** Pareto on a key (default: nama barang) */
   function pareto(records, keyFn = r => r.namaBarang, limit = 30) {
     const agg = aggBy(records, keyFn);
-    const top = agg.slice(0, limit);
     const grandTotal = agg.reduce((s, x) => s + x.total, 0);
+
+    // PASS 1: Cari cutoff 80% atas SELURUH agg (bukan hanya top-N).
+    // Tanpa ini, kalau total produk > limit dan 80% tercapai di luar top-N,
+    // jumlah "produk dalam 80%" yang ditampilkan salah.
+    let cumFull = 0;
+    let trueCutoffIdx = -1;
+    for (let i = 0; i < agg.length; i++) {
+      cumFull += agg[i].total;
+      const cp = grandTotal ? (cumFull / grandTotal) * 100 : 0;
+      if (trueCutoffIdx === -1 && cp >= 80) { trueCutoffIdx = i; break; }
+    }
+    const itemsIn80 = trueCutoffIdx === -1 ? agg.length : trueCutoffIdx + 1;
+
+    // PASS 2: Bangun items untuk display (hanya top-N).
+    const top = agg.slice(0, limit);
     let cum = 0;
     const out = top.map(item => {
       cum += item.total;
@@ -246,13 +260,12 @@ PC.analytics = (() => {
         pct: grandTotal ? (item.total / grandTotal) * 100 : 0,
       };
     });
-    // Find where cumulative crosses 80%
-    const cut = out.findIndex(x => x.cumPct >= 80);
+
     return {
       items: out,
       grandTotal,
-      cutoffIdx: cut,                            // last index in 80%
-      itemsIn80: cut === -1 ? out.length : cut + 1,
+      cutoffIdx: trueCutoffIdx,     // index di FULL agg (dipakai chart untuk warnai bar)
+      itemsIn80,                     // jumlah produk yang benar-benar membentuk 80%
       totalItems: agg.length,
     };
   }
