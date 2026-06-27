@@ -90,16 +90,15 @@ PC.parser = (() => {
 
       const date = U.parseIDDate(get('tgl'));
 
-      // Brand canonicalization: preserve short all-caps abbreviations (HP, LG, IBM)
-      // but title-case longer mixed-case brands (EPSON/Epson/epson → "Epson")
+      // Brand canonicalization:
+      // - Brand ≤4 huruf yang seluruhnya alfabet (HP, LG, IBM, ASUS, ACER, SONY, DELL, MSI, AOC...)
+      //   selalu di-UPPERCASE → input "Asus"/"ASUS"/"asus" semua jadi "ASUS" (dedup).
+      // - Brand lainnya jadi Title Case → "EPSON"/"epson"/"Epson" semua jadi "Epson".
       const rawBrand = cleanText(get('brand'));
       let brand;
       if (!rawBrand) {
         brand = 'Unknown';
-      } else if (rawBrand.length <= 3 && /^[A-Z]+$/.test(rawBrand.toUpperCase())) {
-        brand = rawBrand.toUpperCase();
-      } else if (rawBrand === rawBrand.toUpperCase() && rawBrand.length <= 4) {
-        // ASUS, ACER, SONY, etc — keep uppercase
+      } else if (rawBrand.length <= 4 && /^[A-Za-z]+$/.test(rawBrand)) {
         brand = rawBrand.toUpperCase();
       } else {
         brand = rawBrand.toLowerCase().replace(/\b[a-z]/g, c => c.toUpperCase());
