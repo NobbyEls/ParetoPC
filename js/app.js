@@ -85,7 +85,7 @@
     paretoPcData: null,      // All parsed months: [{ year, month, label, short, leftRows, rightRows, leftGrand, rightGrand }]
     paretoPcFilters: { year: null, month: null }, // Selected tahun/bulan for Pareto PC tab
     pcRakitanData: null,     // { qtyRows:[...], valueRows:[...] }
-    pcRakitanFilters: { year: null, month: null }, // Selected tahun/bulan for PC Rakitan tab
+    pcRakitanFilters: { year: null, month: null, kota: '__all__', trendMode: 'qty' }, // Selected tahun/bulan/kota/trendMode for PC Rakitan tab
     filters: {
       dept: 'Pareto PC',  // Default tab on first load
       kota: '__all__',
@@ -1743,46 +1743,40 @@
   const PARETO_PC_CACHE_KEY = 'paretopc:pareto-pc:v4';
   const PARETO_PC_CACHE_TTL_MS = 60 * 60 * 1000;
 
-const PARETO_PC_BULAN_MAP = {
-    // Singkatan ID
-    'jan':1,'feb':2,'mar':3,'apr':4,'mei':5,'jun':6,
-    'jul':7,'agu':8,'agus':8,'ags':8,'sep':9,'sept':9,'okt':10,'nov':11,'des':12,
-    // Nama lengkap ID
-    'januari':1,'februari':2,'maret':3,'april':4,'juni':6,
+  const PARETO_PC_BULAN_MAP = {
+    'januari':1,'februari':2,'maret':3,'april':4,'mei':5,'juni':6,
     'juli':7,'agustus':8,'september':9,'oktober':10,'november':11,'desember':12,
-    // English (jaga-jaga, kalau locale sheet berubah)
-    'january':1,'february':2,'march':3,'may':5,'june':6,
-    'july':7,'august':8,'october':10,'december':12,
+    // Singkatan umum (3-4 huruf)
+    'jan':1,'feb':2,'mar':3,'apr':4,'mei':5,'jun':6,
+    'jul':7,'agu':8,'agus':8,'sep':9,'okt':10,'nov':11,'des':12,
   };
   const PARETO_PC_BULAN_NAMES = ['','Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
   const PARETO_PC_SHORT_BULAN = ['','Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
-function parseBulanLabel(raw, fallbackYear) {
+
+  function parseBulanLabel(raw, fallbackYear) {
     const s = String(raw || '').replace(/[\u00A0\u200B\u2009\u202F]/g, ' ').trim();
     if (!s) return null;
 
-    // Strategy 1: scan SEMUA kata untuk nama bulan (ID/EN, lengkap/singkat).
-    // Toleran terhadap variasi seperti "April 2026", "Apr 2026", "1 April 2026",
-    // "01 Apr 2026", "April 2026.", "Apr, 2026", dst.
+    // Strategy 1: text month name — "Januari 2026", "Apr 2026", etc.
     const parts = s.split(/\s+/);
-    let monthIdx = null;
-    for (const p of parts) {
-      const key = p.toLowerCase().replace(/[.,;:]/g, '');
-      if (PARETO_PC_BULAN_MAP[key]) { monthIdx = PARETO_PC_BULAN_MAP[key]; break; }
-    }
+    const monthKey = (parts[0] || '').toLowerCase();
+    const monthIdx = PARETO_PC_BULAN_MAP[monthKey];
     if (monthIdx) {
       let year = fallbackYear;
-      for (const p of parts) {
-        if (/^\d{4}$/.test(p)) { year = parseInt(p, 10); break; }
+      for (let i = 1; i < parts.length; i++) {
+        if (/^\d{4}$/.test(parts[i])) { year = parseInt(parts[i], 10); break; }
       }
       return { year, month: monthIdx, label: `${PARETO_PC_BULAN_NAMES[monthIdx]} ${year}`, short: PARETO_PC_SHORT_BULAN[monthIdx] };
     }
 
-    // Strategy 2: tanggal DD/MM/YYYY atau MM/DD/YYYY (assume DD/MM/YYYY = Indonesian locale)
+    // Strategy 2: date DD/MM/YYYY or M/D/YYYY (Google Sheets CSV export)
     const dateMatch = s.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4})$/);
     if (dateMatch) {
       let [_, a, b, y] = dateMatch;
       a = parseInt(a, 10); b = parseInt(b, 10);
       const year = parseInt(y, 10);
+      // If a > 12 it must be day (DD/MM/YYYY). If b > 12 it's day (MM/DD/YYYY).
+      // Ambiguous → assume DD/MM/YYYY (Indonesian locale).
       let month;
       if (a > 12) month = b;
       else if (b > 12) month = a;
@@ -2308,9 +2302,11 @@ function parseBulanLabel(raw, fallbackYear) {
     // PCR filter elements
     const pcrTahun = document.getElementById('filter-pcr-tahun-wrap');
     const pcrBulan = document.getElementById('filter-pcr-bulan-wrap');
+    const pcrKota  = document.getElementById('filter-pcr-kota-wrap');
     const pcrInfo = document.getElementById('pc-rakitan-filter-info');
     if (pcrTahun) pcrTahun.classList.toggle('hidden', !show);
     if (pcrBulan) pcrBulan.classList.toggle('hidden', !show);
+    if (pcrKota)  pcrKota.classList.toggle('hidden', !show);
     if (pcrInfo) pcrInfo.classList.toggle('hidden', !show);
   }
 
@@ -2467,11 +2463,33 @@ function parseBulanLabel(raw, fallbackYear) {
     state.pcRakitanFilters.year = curYear;
     state.pcRakitanFilters.month = curMonth;
 
+    // Build distinct kota list (from BOTH qty and value rows, year-scoped).
+    const kotaSet = new Set();
+    for (const r of [...qtyRows, ...valueRows]) {
+      if (r.year === curYear && r.cabang) kotaSet.add(r.cabang);
+    }
+    const kotaList = [...kotaSet].sort((a, b) => String(a).localeCompare(String(b)));
+    let curKota = state.pcRakitanFilters.kota || '__all__';
+    if (curKota !== '__all__' && !kotaSet.has(curKota)) curKota = '__all__';
+    state.pcRakitanFilters.kota = curKota;
+
     // Populate selectors.
     const yearSel = document.getElementById('pc-rakitan-filter-year');
     if (yearSel) yearSel.innerHTML = years.map(y => `<option value="${y}"${y === curYear ? ' selected' : ''}>${y}</option>`).join('');
     const monthSel = document.getElementById('pc-rakitan-filter-month');
     if (monthSel) monthSel.innerHTML = monthsInYear.map(m => `<option value="${m.month}"${m.month === curMonth ? ' selected' : ''}>${PARETO_PC_BULAN_NAMES[m.month]}</option>`).join('');
+    const kotaSel = document.getElementById('pc-rakitan-filter-kota');
+    if (kotaSel) {
+      const opts = [`<option value="__all__"${curKota === '__all__' ? ' selected' : ''}>Semua Cabang</option>`]
+        .concat(kotaList.map(k => `<option value="${escapeAttr(k)}"${k === curKota ? ' selected' : ''}>${escapeHtml(k)}</option>`));
+      kotaSel.innerHTML = opts.join('');
+    }
+
+    // Sync the trend-mode toggle active class with current state
+    const trendMode = state.pcRakitanFilters.trendMode || 'qty';
+    document.querySelectorAll('.pcr-trend-mode-btn').forEach(b => {
+      b.classList.toggle('active', b.dataset.mode === trendMode);
+    });
 
     // Selected, previous-month, and YoY month references.
     const selIdx = months.findIndex(m => m.year === curYear && m.month === curMonth);
@@ -2482,8 +2500,10 @@ function parseBulanLabel(raw, fallbackYear) {
       if (months[i].month === sel.month && months[i].year < sel.year) { yoyMonth = months[i]; break; }
     }
 
-    const pickQty = (m) => m ? qtyRows.filter(r => r.year === m.year && r.month === m.month) : null;
-    const pickVal = (m) => m ? valueRows.filter(r => r.year === m.year && r.month === m.month) : null;
+    // Apply kota filter to row pickers
+    const kotaMatch = (r) => curKota === '__all__' || r.cabang === curKota;
+    const pickQty = (m) => m ? qtyRows.filter(r => r.year === m.year && r.month === m.month && kotaMatch(r)) : null;
+    const pickVal = (m) => m ? valueRows.filter(r => r.year === m.year && r.month === m.month && kotaMatch(r)) : null;
 
     const curQty = pickQty(sel), prevQty = pickQty(prevMonth), yoyQty = pickQty(yoyMonth);
     const curVal = pickVal(sel), prevVal = pickVal(prevMonth), yoyVal = pickVal(yoyMonth);
@@ -2505,22 +2525,24 @@ function parseBulanLabel(raw, fallbackYear) {
     renderPcrBreakdown('type', curVal, prevVal, yoyVal, r => r.typeRakitan, r => r.value,
       { labelHead: 'Tipe Rakitan', valueHead: 'VALUE', cellFmt: (v) => fmtValueShort(v), tipFmt: valFmt, colorFn: pcrTypeColor });
 
-    // ---- TREND CHART (total qty per bulan, line chart at top) ----
-    renderPcrTrendChart(qtyRows, curYear);
+    // ---- TREND CHART (qty atau value per bulan, sesuai toggle) ----
+    renderPcrTrendChart(qtyRows, valueRows, curYear, trendMode, curKota);
 
     // Info banner + subtitles
     const info = document.getElementById('pc-rakitan-filter-info');
     if (info) {
       let txt = `${months.length} bulan · ${sel.label}`;
+      if (curKota !== '__all__') txt += ` · ${curKota}`;
       if (prevMonth) txt += ` · MoM vs ${prevMonth.short}`;
       if (yoyMonth) txt += ` · YoY vs ${yoyMonth.short} ${yoyMonth.year}`;
       info.textContent = txt;
     }
-    setText('pcr-brand-sub', `Unit terjual per brand prosesor — ${sel.label}`);
-    setText('pcr-proc-sub', `Unit terjual per tipe prosesor — ${sel.label}`);
-    setText('pcr-kota-sub', `Unit terjual per cabang — ${sel.label}`);
-    setText('pcr-cabang-sub', `Total omset PC Rakitan per cabang — ${sel.label}`);
-    setText('pcr-type-sub', `Total omset per tipe rakitan — ${sel.label}`);
+    const kotaTag = curKota === '__all__' ? '' : ` (${curKota})`;
+    setText('pcr-brand-sub', `Unit terjual per brand prosesor — ${sel.label}${kotaTag}`);
+    setText('pcr-proc-sub', `Unit terjual per tipe prosesor — ${sel.label}${kotaTag}`);
+    setText('pcr-kota-sub', `Unit terjual per cabang — ${sel.label}${kotaTag}`);
+    setText('pcr-cabang-sub', `Total omset PC Rakitan per cabang — ${sel.label}${kotaTag}`);
+    setText('pcr-type-sub', `Total omset per tipe rakitan — ${sel.label}${kotaTag}`);
 
     updateParetoPCFilterStickyTop();
   }
@@ -2529,33 +2551,71 @@ function parseBulanLabel(raw, fallbackYear) {
    * Render a line chart showing total QTY per month for PC Rakitan (selected year).
    * Mimics the YoY/trend chart pattern from other tabs.
    */
-  function renderPcrTrendChart(qtyRows, year) {
+  function renderPcrTrendChart(qtyRows, valueRows, year, mode, kota) {
     const canvas = document.getElementById('chart-pcr-trend');
     if (!canvas) return;
-    if (pcrCharts['trend']) { pcrCharts['trend'].destroy(); delete pcrCharts['trend']; }
+
+    const isValue = mode === 'value';
+    const sourceRows = isValue ? (valueRows || []) : (qtyRows || []);
+    const valueField = isValue ? 'value' : 'qty';
+    const kotaFilter = kota || '__all__';
 
     const MONTHS_SHORT = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
     const data = new Array(12).fill(0);
     let lastIdx = -1;
-    for (const r of (qtyRows || [])) {
+    for (const r of sourceRows) {
       if (r.year !== year) continue;
+      if (kotaFilter !== '__all__' && r.cabang !== kotaFilter) continue;
       const idx = r.month - 1;
       if (idx < 0 || idx > 11) continue;
-      data[idx] += (r.qty || 0);
+      data[idx] += (r[valueField] || 0);
       if (data[idx] > 0 && idx > lastIdx) lastIdx = idx;
     }
-    if (lastIdx < 0) return;
+
+    // Tooltip + axis formatters per mode
+    const tipFmt = isValue
+      ? (v) => formatRpPareto(v)
+      : (v) => U.formatNumber(v) + ' unit';
+    const axisFmt = isValue
+      ? (v) => U.formatIDRCompact(v)
+      : (v) => U.formatNumber(v);
+    const seriesLabel = isValue ? 'Value PC Rakitan' : 'Unit PC Rakitan';
+    const subTextBase = isValue ? `Total omset PC Rakitan per bulan — ${year}` : `Total unit PC Rakitan per bulan — ${year}`;
+    const subText = kotaFilter !== '__all__' ? `${subTextBase} (${kotaFilter})` : subTextBase;
+
+    if (lastIdx < 0) {
+      if (pcrCharts['trend']) { pcrCharts['trend'].destroy(); delete pcrCharts['trend']; }
+      setText('pcr-trend-sub', subText + ' — Tidak ada data');
+      return;
+    }
 
     const labels = MONTHS_SHORT.slice(0, lastIdx + 1);
     const values = data.slice(0, lastIdx + 1);
-
     const color = '#ec4899';
+
+    // SMOOTH IN-PLACE UPDATE: if a chart already exists and the point count
+    // matches, update data + formatters in-place using .update('active') so the
+    // transition animates (400ms ease) instead of destroying & re-creating.
+    const existing = pcrCharts['trend'];
+    if (existing && existing.data.datasets.length === 1 && existing.data.labels.length === labels.length) {
+      existing.data.labels = labels;
+      existing.data.datasets[0].label = seriesLabel;
+      existing.data.datasets[0].data = values;
+      existing.options.plugins.tooltip.callbacks.label = (c) => `${seriesLabel}: ${tipFmt(c.parsed.y)}`;
+      existing.options.scales.y.ticks.callback = axisFmt;
+      existing.update('active');
+      setText('pcr-trend-sub', subText);
+      return;
+    }
+
+    // Otherwise destroy & rebuild (point count or first render).
+    if (existing) { existing.destroy(); delete pcrCharts['trend']; }
     pcrCharts['trend'] = new Chart(canvas.getContext('2d'), {
       type: 'line',
       data: {
         labels,
         datasets: [{
-          label: 'Unit PC Rakitan',
+          label: seriesLabel,
           data: values,
           borderColor: color,
           backgroundColor: color + '30',
@@ -2573,19 +2633,20 @@ function parseBulanLabel(raw, fallbackYear) {
       options: {
         responsive: true, maintainAspectRatio: false,
         animation: { duration: 1200, easing: 'easeOutQuart' },
+        transitions: { active: { animation: { duration: 400, easing: 'easeOutQuart' } } },
         interaction: { mode: 'nearest', axis: 'x', intersect: false },
         plugins: {
           legend: { display: false },
           tooltip: {
             callbacks: {
-              label: (c) => `${U.formatNumber(c.parsed.y)} unit`,
+              label: (c) => `${seriesLabel}: ${tipFmt(c.parsed.y)}`,
             }
           }
         },
         scales: {
           y: {
             beginAtZero: true,
-            ticks: { callback: (v) => U.formatNumber(v) },
+            ticks: { callback: axisFmt },
             grid: { color: 'rgba(45,52,84,0.25)', drawBorder: false },
           },
           x: { grid: { display: false }, ticks: { font: { weight: 500 } } }
@@ -2593,7 +2654,7 @@ function parseBulanLabel(raw, fallbackYear) {
       }
     });
 
-    setText('pcr-trend-sub', `Total unit PC Rakitan per bulan — ${year}`);
+    setText('pcr-trend-sub', subText);
   }
 
   /**
@@ -2680,6 +2741,28 @@ function parseBulanLabel(raw, fallbackYear) {
   document.getElementById('pc-rakitan-filter-month')?.addEventListener('change', (e) => {
     state.pcRakitanFilters.month = parseInt(e.target.value, 10);
     renderPcRakitan();
+  });
+  // PC Rakitan kota / cabang filter
+  document.getElementById('pc-rakitan-filter-kota')?.addEventListener('change', (e) => {
+    state.pcRakitanFilters.kota = e.target.value || '__all__';
+    renderPcRakitan();
+  });
+  // PC Rakitan trend QTY / Value toggle
+  document.addEventListener('click', (e) => {
+    const btn = e.target.closest('.pcr-trend-mode-btn');
+    if (!btn) return;
+    const mode = btn.dataset.mode;
+    if (mode === state.pcRakitanFilters.trendMode) return;
+    state.pcRakitanFilters.trendMode = mode;
+    document.querySelectorAll('.pcr-trend-mode-btn').forEach(b => {
+      b.classList.toggle('active', b.dataset.mode === mode);
+    });
+    // Re-render only the trend (keeps it snappy)
+    const data = state.pcRakitanData;
+    if (data) {
+      renderPcrTrendChart(data.qtyRows || [], data.valueRows || [],
+        state.pcRakitanFilters.year, mode, state.pcRakitanFilters.kota || '__all__');
+    }
   });
 
   // ============================================================
